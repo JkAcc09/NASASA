@@ -675,20 +675,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* Marswalk: a printed-map sheet. The photo map is the sheet; the grey collar and
    margins carry the legend, as on a USGS quadrangle. Magenta is the overprint colour
    cartographers use for field revisions, so it marks the walker's own trail. */
+/* Colours. Three themes; Settings switches between them by setting data-theme on <body>.
+   Mars is brown and grey, so the default frame is blue: it never blends into the map. */
 :root {
-  --paper: #E7EAEA;
-  --paper-2: #D6DCDD;
-  --rule: #AEB8BC;
-  --ink: #14202B;
-  --ink-2: #44535E;
-  --me: #0B5FFF;
-  --t1: #FFC2E2;
-  --t2: #FF5FB0;
-  --t3: #D4148C;
-  --t4: #6E0A63;
-  --warn: #9A3B00;
+  --t1: #FFC2E2; --t2: #FF5FB0; --t3: #D4148C; --t4: #6E0A63;      /* trail shades, set from Settings */
+  --me-colour: #0B5FFF; --me-edge: #FFFFFF; --me-scale: 1;         /* pointer, set from Settings */
   --label: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+}
+body, body[data-theme="blue"] {
+  --paper: #E2EEFA; --paper-2: #C6DCF3; --field: #F5FAFF; --rule: #98B6D8;
+  --ink: #0B2545; --ink-2: #3A5A82; --me: #0B5FFF; --warn: #8A3400;
+}
+body[data-theme="night"] {
+  --paper: #0B2545; --paper-2: #17396B; --field: #06182F; --rule: #35598C;
+  --ink: #EAF3FC; --ink-2: #A9C6E4; --me: #8DBBFF; --warn: #FFC078;
+}
+body[data-theme="grey"] {
+  --paper: #E7EAEA; --paper-2: #D6DCDD; --field: #FFFFFF; --rule: #AEB8BC;
+  --ink: #14202B; --ink-2: #44535E; --me: #0B5FFF; --warn: #9A3B00;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -738,7 +743,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .ramp { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin-top: 8px; font: 500 13px/1 var(--label); font-variant-numeric: tabular-nums; }
 .ramp i { height: 10px; border: 1px solid var(--ink); }
 #route-legend i { background: linear-gradient(90deg, #440154, #3B528B, #21918C, #5EC962, #FDE725); }
-#profile { width: 100%; height: 75px; margin-top: 10px; display: block; border: 1px solid var(--rule); background: #fff; }
+#profile { width: 100%; height: 75px; margin-top: 10px; display: block; border: 1px solid var(--rule); background: var(--field); }
 
 .trail-key { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0; margin: 0; font: 500 13px/1.2 var(--label); }
 .trail-key i { display: block; height: 8px; border: 1px solid var(--ink); margin-bottom: 4px; }
@@ -756,7 +761,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #stage { grid-area: stage; position: relative; min-height: 0; background: #1b1b1b; }
 #map { position: absolute; inset: 0; background: #1b1b1b; font: inherit; }
 .leaflet-container { font: 400 14px/1.35 var(--body); }
-.leaflet-control-attribution { font: 400 11px/1.3 var(--body); background: rgba(231, 234, 234, .85) !important; color: var(--ink); }
+.leaflet-control-attribution { font: 400 11px/1.3 var(--body); background: var(--paper) !important; color: var(--ink); opacity: .9; }
 .leaflet-popup-content-wrapper { border-radius: 3px; background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); box-shadow: none; }
 .leaflet-popup-tip { background: var(--paper); border: 1.5px solid var(--ink); box-shadow: none; }
 .leaflet-popup-content { margin: 10px 12px; min-width: 190px; }
@@ -767,9 +772,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .pop button { margin-top: 8px; min-height: 34px; }
 
 .me { pointer-events: none; }
-.me svg { display: block; overflow: visible; will-change: transform; }
+.me svg { display: block; overflow: visible; color: var(--me-colour); transform: scale(var(--me-scale)); transform-origin: 36px 36px; }
+.me-arrow { stroke: var(--me-edge); }
 
-#banner { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 900; background: #FFF3D6; color: var(--warn); border: 1.5px solid var(--warn); border-radius: 3px; padding: 10px 12px; font-weight: 500; }
+#banner { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 900; background: #FFF3D6; color: #8A3400; border: 1.5px solid #8A3400; border-radius: 3px; padding: 10px 12px; font-weight: 500; }
 #scale { position: absolute; left: 12px; bottom: 12px; z-index: 800; display: flex; align-items: flex-end; gap: 6px; color: #fff; font: 600 14px/1 var(--label); text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
 #scale i { display: block; height: 7px; border: 2px solid #fff; border-top: 0; box-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
 
@@ -782,7 +788,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
 #pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
 
-#pad { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; background: rgba(231, 234, 234, .92); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px; }
+#pad { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px; }
 #pad button { min-height: 52px; font-size: 20px; padding: 0; touch-action: none; }
 #pad button[data-k="back"] { grid-column: 2; }
 #pad p { grid-column: 1 / -1; margin: 0; font-size: 12px; line-height: 1.3; color: var(--ink-2); max-width: 180px; }
@@ -827,7 +833,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .rec.on::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #C8102E; margin-right: 6px; }
 #save-form { margin-top: 10px; display: grid; gap: 6px; }
 #save-form label { font: 500 14px/1 var(--label); }
-#save-form input { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 10px; border: 1.5px solid var(--ink); border-radius: 3px; background: #fff; color: var(--ink); }
+#save-form input { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 10px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); }
 #save-form .row { margin-top: 0; }
 
 #saved { list-style: none; margin: 0; padding: 0; }
@@ -837,6 +843,56 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #saved span { font-size: 13px; color: var(--ink-2); }
 #saved div { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 #saved button { min-height: 32px; padding: 0 9px; font-size: 14px; }
+
+/* ---------- landmark names (rules for when they show are in js/landmarks.js) ---------- */
+.lm { overflow: visible; }
+.lm-name { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; padding: 5px 6px; cursor: pointer; color: #fff;
+  font: 600 14px/1 var(--label); text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 3px #000; }
+.lm-name.r1 { font-size: 16px; font-weight: 700; letter-spacing: .02em; }
+.lm-name.r3 { font-size: 13px; font-weight: 500; }
+.lm-name.pt::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; background: #fff; border: 2px solid #000; vertical-align: -1px; }
+.lm:focus-visible .lm-name { outline: 3px solid var(--me); }
+.lmk dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; }
+.lmk dt { font: 600 13px/1.35 var(--label); color: var(--ink-2); }
+.lmk dd { margin: 0; }
+
+/* ---------- settings panel ---------- */
+#settings { position: absolute; top: 12px; left: 12px; bottom: 12px; z-index: 1000; width: min(330px, calc(100% - 24px)); overflow-y: auto;
+  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 3px; padding: 12px 14px 14px; }
+#settings header { display: flex; justify-content: space-between; align-items: center; }
+#settings h2 { font: 700 22px/1 var(--label); margin: 0; }
+#settings h3 { font: 600 16px/1.2 var(--label); margin: 14px 0 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
+#settings-close { min-height: 34px; width: 34px; padding: 0; font-size: 20px; }
+#settings .seg { display: flex; }
+#settings .seg button { flex: 1; padding: 0 6px; }
+#settings .row { margin-top: 6px; }
+#settings .row > * { flex: 1; min-width: 0; }
+#settings input[type="text"], #settings select { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); }
+.sws { display: flex; gap: 6px; }
+.sw { flex: 1; min-height: 34px; padding: 0; border-width: 1.5px; }
+.sw[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+button:disabled { opacity: .45; cursor: default; }
+
+/* ---------- display modes (Settings > Display) ----------
+   .plan  = only the planner needs it      .robot = only the robot display shows it */
+.robot { display: none !important; }
+body[data-display="robot"] .robot { display: flex !important; }
+body[data-move="click"] #pad { display: none; }
+
+/* Astronaut: the map and a few large readouts. The legend column becomes a drawer behind "Layers". */
+body[data-display="astronaut"] .plan { display: none !important; }
+body[data-display="astronaut"] #app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+body[data-display="astronaut"] #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
+body[data-display="astronaut"] #collar.open { transform: none; }
+body[data-display="astronaut"] .only-narrow { display: inline-block; }
+body[data-display="astronaut"] #bar button, body[data-display="astronaut"] #bar select { min-height: 52px; font-size: 18px; padding: 0 16px; }
+body[data-display="astronaut"] #strip { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+body[data-display="astronaut"] #strip dl { gap: 6px 40px; padding: 10px 16px 12px; }
+body[data-display="astronaut"] #strip dd { font-size: 38px; }
+body[data-display="astronaut"] #strip dt { font-size: 16px; }
+body[data-display="astronaut"] #pad { grid-template-columns: repeat(3, 72px); }
+body[data-display="astronaut"] #pad button { min-height: 68px; font-size: 26px; }
+@media (prefers-reduced-motion: reduce) { body[data-display="astronaut"] #collar { transition: none; } }
 
 </style>
 </head>
@@ -921,7 +977,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
       <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
     </div>
     <button id="btn-play" type="button">Start</button>
-    <label class="select inline"><span>Speed</span>
+    <label class="select inline plan"><span>Speed</span>
       <select id="speed">
         <option value="1">Real time</option>
         <option value="10">10×</option>
@@ -930,8 +986,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
       </select>
     </label>
     <span class="spacer"></span>
+    <label class="select inline plan"><span>Walker</span><select id="walker"></select></label>
+    <button id="btn-settings" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
     <button id="btn-follow" type="button" aria-pressed="true">Follow me</button>
-    <div class="seg" role="group" aria-label="Map scale">
+    <div class="seg plan" role="group" aria-label="Map scale">
       <button id="z-walk" type="button">Walk</button>
       <button id="z-crater" type="button">Crater</button>
       <button id="z-planet" type="button">Planet</button>
@@ -964,15 +1022,54 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
       <button data-k="fwd" type="button" aria-label="Walk forward">▲</button>
       <button data-k="right" type="button" aria-label="Turn right">⟳</button>
       <button data-k="back" type="button" aria-label="Step back">▼</button>
-      <p>W A S D or arrow keys. Tap the map to walk to a spot.</p>
+      <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
+
+    <!-- Settings panel: wired up in js/settings.js, choices listed in js/config.js -->
+    <section id="settings" role="dialog" aria-label="Settings" hidden>
+      <header><h2>Settings</h2><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
+
+      <h3>Walker</h3>
+      <label class="select"><span class="sr">Active walker</span><select id="set-walker"></select></label>
+      <div class="row">
+        <input id="set-walker-name" type="text" maxlength="30" autocomplete="off" aria-label="Walker's name">
+        <select id="set-walker-type" aria-label="Kind of walker"><option value="astronaut">Astronaut</option><option value="robot">Robot</option></select>
+      </div>
+      <div class="row">
+        <button id="set-walker-add" type="button">Add a walker</button>
+        <button id="set-walker-remove" type="button">Remove this one</button>
+      </div>
+      <p class="note">Every recorded trail carries its walker's name and kind, and landmark visits are counted per walker.</p>
+
+      <h3>Display</h3>
+      <div id="set-display" class="seg"></div>
+      <p class="note">Planner shows everything. Astronaut keeps a few large readouts for a glance through a visor. Robot gives exact coordinates.</p>
+
+      <h3>App colours</h3>
+      <div id="set-theme" class="seg"></div>
+
+      <h3>Trail</h3>
+      <div id="set-trail-colour" class="sws" role="group" aria-label="Trail colour"></div>
+      <label class="slider"><span>Width</span><input id="set-trail-width" type="range" min="0.5" max="2.5" step="0.25"></label>
+
+      <h3>Pointer</h3>
+      <div id="set-pointer-colour" class="sws" role="group" aria-label="Pointer colour"></div>
+      <label class="slider"><span>Size</span><input id="set-pointer-size" type="range" min="0.7" max="2.2" step="0.1"></label>
+
+      <h3>Moving the pointer</h3>
+      <div id="set-move" class="seg"></div>
+      <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
+
+      <div class="row"><button id="set-reset" type="button">Back to the original look</button></div>
+    </section>
   </main>
 
   <!-- ============ bottom strip: the head-up readouts ============ -->
   <div id="strip" aria-label="Position and conditions">
     <dl id="nav">
-      <div><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
-      <div><dd id="r-z">–</dd><dt id="r-z-l">height, MOLA datum</dt></div>
+      <div class="plan"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
+      <div class="robot"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
+      <div class="plan"><dd id="r-z">–</dd><dt id="r-z-l">height, MOLA datum</dt></div>
       <div><dd id="r-hdg">–</dd><dt>looking</dt></div>
       <div><dd id="r-dist">–</dd><dt>walked</dt></div>
       <div><dd id="r-home">–</dd><dt id="r-home-l">straight back to base</dt></div>
@@ -984,13 +1081,13 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
         <i id="p-bar" aria-hidden="true"><b id="p-tick"></b></i>
         <dt id="p-lab"></dt>
       </div>
-      <div><dd id="e-air">–</dd><dt>air</dt></div>
-      <div><dd id="e-gnd">–</dd><dt>ground</dt></div>
-      <div><dd id="e-p">–</dd><dt>pressure</dt></div>
-      <div><dd id="e-uv">–</dd><dt>UV</dt></div>
-      <div><dd id="e-rad">–</dd><dt>dose rate</dt></div>
+      <div class="plan"><dd id="e-air">–</dd><dt>air</dt></div>
+      <div class="plan"><dd id="e-gnd">–</dd><dt>ground</dt></div>
+      <div class="plan"><dd id="e-p">–</dd><dt>pressure</dt></div>
+      <div class="plan"><dd id="e-uv">–</dd><dt>UV</dt></div>
+      <div class="plan"><dd id="e-rad">–</dd><dt>dose rate</dt></div>
       <div><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
-      <p id="e-src" class="note"></p>
+      <p id="e-src" class="note plan"></p>
     </dl>
   </div>
 </div>
@@ -1026,7 +1123,22 @@ MW.config = {
   CELL: 3,                    // m, size of the spatial-index cells
   NEAR: 2.5,                  // m, "the same ground"
   REVISIT_GAP: 12,            // m walked away before coming back counts as a new pass
-  TRAIL_COLOURS: ['#FFC2E2', '#FF5FB0', '#D4148C', '#6E0A63'],   // once, twice, 3 times, 4 or more
+
+  /* ---- choices offered in Settings (js/settings.js). The first of each is the default. ---- */
+  TRAIL_PALETTES: {               // four shades each: passed once, twice, 3 times, 4 or more
+    magenta: ['#FFC2E2', '#FF5FB0', '#D4148C', '#6E0A63'],
+    cyan:    ['#C9F5FF', '#5CD3F5', '#0E9BC9', '#06486B'],
+    lime:    ['#E9FBB5', '#B6E64C', '#6FAE12', '#34590A'],
+    orange:  ['#FFE3BF', '#FFAB52', '#E8590C', '#7A2E06'],
+    white:   ['#FFFFFF', '#CFCFCF', '#8C8C8C', '#3A3A3A']
+  },
+  POINTER_COLOURS: { blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
+  THEMES: {                       // name shown in Settings; colours live in css/style.css under body[data-theme]
+    blue: 'Blue', night: 'Night blue', grey: 'Grey'
+  },
+  DISPLAYS: { planner: 'Planner', astronaut: 'Astronaut', robot: 'Robot' },
+  MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
+  DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
 
   /* ---- NASA Mars Trek tiles ---- */
   TREK: 'https://trek.nasa.gov/tiles/Mars/EQ/',
@@ -1490,12 +1602,13 @@ window.MARSWALK_DATA = {
   };
 
   /* A saved-trail record: plain data that store.js keeps and that can be shared as a .json file. */
-  Trail.prototype.toRecord = function (name, source) {
+  Trail.prototype.toRecord = function (name, source, walker) {
     var pts = this.pts, last = pts[pts.length - 1] || { d: 0, t: 0 };
     return {
       format: 'marswalk-trail', version: 1,
       id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       name: name, savedAt: new Date().toISOString(), source: source,
+      walker: walker ? { name: walker.name, type: walker.type } : null,      // who made it: astronaut or robot
       site: 'Mount Sharp boxwork, Gale crater, Mars',
       base: { lat: G.ORIGIN.lat, lon: G.ORIGIN.lon },
       distance_m: Math.round(last.d * 10) / 10, duration_s: Math.round(last.t - (pts[0] ? pts[0].t : 0)),
@@ -1559,19 +1672,334 @@ window.MARSWALK_DATA = {
 
 </script>
 <script>
+/* landmarks.js — MW.landmarks: the named places, their outlines, and the label layer.
+ *
+ * To add a landmark, add one entry to LIST:
+ *   name, rank     rank 1 = most important (largest label, shown first), 2, 3
+ *   role           what the place is for a walker ("Landing site", "Hazard: soft sand" …)
+ *   shape          one of
+ *                    { point: [lat, lon] }
+ *                    { circle: [lat, lon], km: diameter }
+ *                    { ellipse: [lat, lon], km: [long axis, short axis], turn: degrees clockwise from east }
+ *                    { hull: 'x,y x,y …' }  corner list, lon = 137 + x/1e5, lat = -4 + y/1e5
+ *                    { route: true }        the ground covered by the reference route in data.js
+ *   minZoom        points only: the zoom from which the name shows (default depends on rank)
+ *   size           text shown as the size
+ *   missions       surface missions that have been there: [count, 'who and when']
+ *   note           one or two plain sentences
+ *
+ * Hull outlines are not geological boundaries. They are the ground Curiosity actually covered in
+ * that place (from its position fixes, NASA MSL_waypoints.json), widened by a 25 m margin.
+ * Circles and ellipses are approximate, from the IAU gazetteer centre and diameter.
+ *
+ * Labels follow map conventions: higher rank and larger places appear first and in larger type;
+ * a name disappears once its place is too small to matter at this zoom, or has grown bigger than
+ * the screen; names never overlap, the higher rank wins.
+ */
+(function () {
+  'use strict';
+  var G = MW.geo, DEG = G.DEG, M = G.M_PER_DEG;
+  var CUR = 'Curiosity, sols ';
+
+  var LIST = [
+    /* ---- the planet ---- */
+    { name: 'Olympus Mons', rank: 1, role: 'Shield volcano', shape: { circle: [18.65, -133.8], km: 610 }, size: '610 km across, about 22 km high',
+      missions: [0, 'no surface mission'], note: 'The tallest known volcano in the Solar System. Its summit is above most of the atmosphere.' },
+    { name: 'Valles Marineris', rank: 1, role: 'Canyon system', shape: { ellipse: [-13.9, -59.2], km: [3760, 600], turn: 8 }, size: 'about 3,760 km long, up to 7 km deep',
+      missions: [0, 'no surface mission'], note: 'A canyon system as long as the United States is wide. Steep walls and landslides make it hard ground.' },
+    { name: 'Hellas Planitia', rank: 1, role: 'Impact basin', shape: { circle: [-42.4, 70.5], km: 2300 }, size: '2,300 km across, about 7 km deep',
+      missions: [0, 'no surface mission'], note: 'The deepest basin on Mars, so it has the highest air pressure on the planet.' },
+    { name: 'Utopia Planitia', rank: 2, role: 'Lowland plain', shape: { circle: [46.7, 117.5], km: 3300 }, size: '3,300 km across',
+      missions: [2, 'Viking 2 (1976), Zhurong (2021)'], note: 'The largest recognised impact basin on Mars. Buried ice lies under much of the plain.' },
+    { name: 'Chryse Planitia', rank: 2, role: 'Lowland plain', shape: { circle: [28.4, -40.3], km: 1540 }, size: '1,540 km across',
+      missions: [2, 'Viking 1 (1976), Mars Pathfinder (1997)'], note: 'A smooth plain where ancient flood channels end. Site of the first successful Mars landing.' },
+    { name: 'Elysium Mons', rank: 2, role: 'Shield volcano', shape: { circle: [25.02, 147.21], km: 400 }, size: '400 km across, about 14 km high',
+      missions: [0, 'no surface mission'], note: 'The main volcano of the Elysium rise, north of Gale crater.' },
+    { name: 'Meridiani Planum', rank: 2, role: 'Plain', shape: { circle: [0.2, -2.5], km: 1060 }, size: 'about 1,060 km across',
+      missions: [1, 'Opportunity (2004–2018)'], note: 'Flat plain rich in the iron mineral hematite, a sign of past water. Opportunity drove 45 km here.' },
+    { name: 'Gusev crater', rank: 2, role: 'Impact crater', shape: { circle: [-14.53, 175.52], km: 166 }, size: '166 km across',
+      missions: [1, 'Spirit (2004–2010)'], note: 'An old crater once fed by a river valley. Spirit found silica deposits from hot springs here.' },
+    { name: 'Jezero crater', rank: 2, role: 'Impact crater with a river delta', shape: { circle: [18.38, 77.58], km: 45 }, size: '45 km across',
+      missions: [1, 'Perseverance and Ingenuity (2021–)'], note: 'Held a lake about 3.5 billion years ago. Perseverance is collecting rock samples here.' },
+    { name: 'InSight', rank: 3, role: 'Landing site (seismic station)', shape: { point: [4.50, 135.62] }, size: 'a single lander',
+      missions: [1, 'InSight (2018–2022)'], note: 'Recorded more than 1,300 marsquakes from the plain of Elysium Planitia, about 600 km north of Gale.' },
+    { name: 'Viking 1', rank: 3, role: 'Landing site', shape: { point: [22.27, -47.95] }, size: 'a single lander',
+      missions: [1, 'Viking 1 (1976–1982)'], note: 'The first spacecraft to operate on Mars for years.' },
+    { name: 'Viking 2', rank: 3, role: 'Landing site', shape: { point: [47.64, 134.29] }, size: 'a single lander',
+      missions: [1, 'Viking 2 (1976–1980)'], note: 'Photographed morning frost on the ground in Utopia Planitia.' },
+    { name: 'Pathfinder', rank: 3, role: 'Landing site', shape: { point: [19.13, -33.22] }, size: 'a lander and the Sojourner rover',
+      missions: [1, 'Mars Pathfinder (1997)'], note: 'Carried Sojourner, the first rover on Mars.' },
+    { name: 'Phoenix', rank: 3, role: 'Landing site', shape: { point: [68.22, -125.75] }, size: 'a single lander',
+      missions: [1, 'Phoenix (2008)'], note: 'Dug into the arctic soil and touched water ice a few centimetres down.' },
+    { name: 'Zhurong', rank: 3, role: 'Landing site', shape: { point: [25.07, 109.93] }, size: 'a lander and rover',
+      missions: [1, 'Tianwen-1 Zhurong (2021–2022)'], note: "China's first Mars rover, in southern Utopia Planitia." },
+
+    /* ---- Gale crater ---- */
+    { name: 'Gale crater', rank: 1, role: 'Impact crater: the exploration zone', shape: { circle: [-5.4, 137.8], km: 154 }, size: '154 km across',
+      missions: [1, 'Curiosity (2012–)'], note: 'About 3.7 billion years old. It held lakes and streams, and its central mountain keeps the record in layers.' },
+    { name: 'Aeolis Mons (Mount Sharp)', rank: 1, role: 'Layered mountain: the science goal', shape: { ellipse: [-5.08, 137.85], km: [95, 80], turn: 0 }, size: 'about 90 km across, 5.5 km high',
+      missions: [1, 'Curiosity, climbing since 2014'], note: 'Each layer is a later chapter of Mars drying out. The walk on this map is on its lower north-west slope.' },
+    { name: 'Aeolis Palus', rank: 2, role: 'Crater-floor plain', shape: { ellipse: [-4.47, 137.42], km: [70, 22], turn: -20 }, size: 'a plain about 70 km long',
+      missions: [1, 'Curiosity (2012–2014)'], note: 'The flat ground between the crater wall and the mountain: the easy driving, and the landing zone.' },
+    { name: 'Peace Vallis', rank: 3, role: 'Ancient river channel', shape: { ellipse: [-4.21, 137.23], km: [35, 5], turn: -50 }, size: 'about 35 km long',
+      missions: [0, 'seen from orbit and from the rover'], note: 'A channel that carried water and gravel down the crater wall into a fan near the landing site.' },
+    { name: 'Bradbury Landing', rank: 2, role: 'Landing site', shape: { point: [-4.5895, 137.4417] }, minZoom: 9, size: 'a touchdown point',
+      missions: [1, 'Curiosity, landed 6 August 2012'], note: 'Where the sky crane set Curiosity down. Named after the writer Ray Bradbury.' },
+    { name: 'Yellowknife Bay', rank: 3, role: 'Science stop: first drill site', shape: { hull: '44873,-59020 44881,-59051 44905,-59038 44927,-59015 44938,-58923 44939,-58914 44912,-58947' }, sols: [125, 324],
+      missions: [1, CUR + '125–324'], note: 'Mudstone from an ancient lake bed. The first drilled samples showed water here was once fit for life.' },
+    { name: 'The Kimberley', rank: 3, role: 'Science stop: sandstone outcrops', shape: { hull: '40136,-64039 40214,-63957 40290,-63773 40297,-63736 40279,-63690 40250,-63627 40217,-63634' }, sols: [574, 634],
+      missions: [1, CUR + '574–634'], note: 'Tilted sandstone beds laid down by rivers flowing towards the mountain.' },
+    { name: 'Pahrump Hills', rank: 3, role: 'Science stop: base of the mountain', shape: { hull: '37731,-66359 37750,-66358 37778,-66338 37790,-66319 37752,-66257 37745,-66265 37738,-66284' }, sols: [753, 923],
+      missions: [1, CUR + '753–923'], note: 'The first outcrop of Mount Sharp itself: fine lake mudstone, drilled three times.' },
+    { name: 'Bagnold Dunes', rank: 2, role: 'Hazard: active sand dunes', shape: { hull: '36554,-67875 36563,-67936 36755,-68022 36802,-68005 36802,-68004 36605,-67631' }, sols: [1162, 1250],
+      missions: [1, CUR + '1162–1250'], note: 'Dark dunes that still move about a metre a year. Soft sand: a walker or rover can sink in.' },
+    { name: 'Murray Buttes', rank: 3, role: 'Landmark: flat-topped hills', shape: { hull: '35276,-69175 35301,-69520 35372,-69627 35413,-69665 35447,-68718 35358,-68867 35283,-69107' }, sols: [1417, 1470],
+      missions: [1, CUR + '1417–1470'], note: 'Buttes and mesas of wind-laid sandstone, up to 15 m high. Easy to recognise from a distance.' },
+    { name: 'Vera Rubin Ridge', rank: 2, role: 'Science stop: hematite ridge', shape: { hull: '37249,-72474 37444,-72813 37628,-72982 37957,-72927 38173,-72546 37913,-72392 37275,-72368' }, sols: [1809, 2300],
+      missions: [1, CUR + '1809–2300'], note: 'A hard ridge rich in the iron mineral hematite. Tough rock: several drill attempts failed here.' },
+    { name: 'Glen Torridon', rank: 2, role: 'Science stop: clay-rich valley', shape: { hull: '38000,-72915 38036,-73612 38084,-73705 39371,-73130 39379,-73016 38410,-72568 38154,-72772' }, sols: [2302, 2950],
+      missions: [1, CUR + '2302–2950'], note: 'The valley with the most clay minerals found on the mission: the strongest sign of long-lasting water.' },
+    { name: 'Marker Band Valley', rank: 3, role: 'Science stop: ancient lake ripples', shape: { hull: '39471,-76076 39911,-77037 40093,-76963 40154,-76926 39719,-76200 39650,-76109 39526,-76076' }, sols: [3640, 3900],
+      missions: [1, CUR + '3640–3900'], note: 'A thin dark rock layer with ripples left by waves on a shallow lake.' },
+    { name: 'Gediz Vallis', rank: 2, role: 'Science stop: late flood channel', shape: { hull: '40381,-78229 40720,-78681 40854,-78763 40913,-78732 40943,-78575 40911,-78466 40735,-78012' }, sols: [4100, 4360],
+      missions: [1, CUR + '4100–4360'], note: 'A channel cut by late floods and debris flows. Curiosity cracked open rocks of pure sulfur here in 2024.' },
+    { name: 'Boxwork', rank: 1, role: 'Science goal of this walk', shape: { route: true }, sols: [4560, 5073],
+      missions: [1, CUR + '4560–5073'], note: 'A web of low ridges where groundwater once cemented cracks in the rock. Ridges give firm footing; the hollows between hold sand.' }
+  ];
+
+  /* ---------------- geometry ---------------- */
+  function hullOf(pts) {                                // convex hull of [lat, lon] points
+    var p = pts.slice().sort(function (a, b) { return a[1] - b[1] || a[0] - b[0]; });
+    var cr = function (o, a, b) { return (a[1] - o[1]) * (b[0] - o[0]) - (a[0] - o[0]) * (b[1] - o[1]); };
+    var lo = [], up = [], i;
+    for (i = 0; i < p.length; i++) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p[i]) <= 0) lo.pop(); lo.push(p[i]); }
+    for (i = p.length - 1; i >= 0; i--) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], p[i]) <= 0) up.pop(); up.push(p[i]); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+  function widen(poly, metres) {                        // push each corner away from the middle
+    var c = centre(poly), k = Math.cos(c[0] * DEG);
+    return poly.map(function (p) {
+      var dx = (p[1] - c[1]) * M * k, dy = (p[0] - c[0]) * M, d = Math.hypot(dx, dy) || 1, f = (d + metres) / d;
+      return [c[0] + dy * f / M, c[1] + dx * f / (M * k)];
+    });
+  }
+  function centre(poly) { var a = 0, b = 0; poly.forEach(function (p) { a += p[0]; b += p[1]; }); return [a / poly.length, b / poly.length]; }
+  function ellipse(c, longKm, shortKm, turn) {
+    var out = [], k = Math.cos(c[0] * DEG), t = (turn || 0) * DEG;
+    for (var i = 0; i < 48; i++) {
+      var a = i / 48 * 2 * Math.PI, x = Math.cos(a) * longKm * 500, y = Math.sin(a) * shortKm * 500;
+      var e = x * Math.cos(t) + y * Math.sin(t), n = -x * Math.sin(t) + y * Math.cos(t);
+      out.push([c[0] + n / M, c[1] + e / (M * k)]);
+    }
+    return out;
+  }
+  function extent(poly) {                               // longest side of the bounding box, metres
+    var la = poly.map(function (p) { return p[0]; }), lo = poly.map(function (p) { return p[1]; }), c = centre(poly);
+    return Math.max((Math.max.apply(null, la) - Math.min.apply(null, la)) * M, (Math.max.apply(null, lo) - Math.min.apply(null, lo)) * M * Math.cos(c[0] * DEG));
+  }
+
+  /* Work out each landmark's outline, centre and size once. */
+  LIST.forEach(function (lm, i) {
+    var s = lm.shape; lm.id = i;
+    if (s.point) { lm.outline = null; lm.at = s.point; lm.metres = 0; lm.outlineNote = ''; return; }
+    if (s.circle) { lm.outline = ellipse(s.circle, s.km, s.km, 0); lm.outlineNote = 'Outline: approximate, from the catalogued centre and diameter.'; }
+    else if (s.ellipse) { lm.outline = ellipse(s.ellipse, s.km[0], s.km[1], s.turn); lm.outlineNote = 'Outline: approximate.'; }
+    else {
+      var pts = s.route ? G.WP.map(function (w) { return [w.lat, w.lon]; })
+        : s.hull.split(' ').map(function (v) { var a = v.split(','); return [-4 + a[1] / 1e5, 137 + a[0] / 1e5]; });
+      lm.outline = widen(hullOf(pts), 25);
+      lm.outlineNote = 'Outline: the ground Curiosity covered here, with a 25 m margin. It is not a geological boundary.';
+    }
+    lm.at = centre(lm.outline); lm.metres = extent(lm.outline);
+    if (!lm.size) lm.size = 'explored area about ' + G.fmt(Math.round(lm.metres / 10) * 10) + ' m across';
+  });
+
+  function contains(lm, lat, lon) {
+    if (!lm.outline) return Math.hypot((lat - lm.at[0]) * M, (lon - lm.at[1]) * M * Math.cos(lat * DEG)) < 30;   // within 30 m of a point
+    var p = lm.outline, inside = false;
+    for (var i = 0, j = p.length - 1; i < p.length; j = i++) {
+      if ((p[i][0] > lat) !== (p[j][0] > lat) && lon < (p[j][1] - p[i][1]) * (lat - p[i][0]) / (p[j][0] - p[i][0]) + p[i][1]) inside = !inside;
+    }
+    return inside;
+  }
+  /* How many separate times a list of [lat, lon, …] points goes into a landmark. */
+  function entries(lm, points) {
+    var n = 0, was = false;
+    for (var i = 0; i < points.length; i++) { var is = contains(lm, points[i][0], points[i][1]); if (is && !was) n++; was = is; }
+    return n;
+  }
+
+  /* ---------------- label layer ----------------
+     opts.onOpen(lm) is called when a name is tapped. */
+  var MIN_PX = { 1: 9, 2: 60, 3: 110 };                // a place needs to be this wide on screen before its name shows
+  var POINT_ZOOM = { 1: 2, 2: 4, 3: 5 };                // single points have no size: show from this zoom
+  var FONT = { 1: 16, 2: 14, 3: 13 };
+  function attach(map, opts) {
+    var group = L.layerGroup().addTo(map), markers = LIST.map(function (lm) {
+      var el = '<span class="lm-name r' + lm.rank + (lm.outline ? '' : ' pt') + '">' + G.escapeHtml(lm.name) + '</span>';
+      var m = L.marker(lm.at, { icon: L.divIcon({ className: 'lm', html: el, iconSize: [0, 0] }), keyboard: true, title: lm.name, alt: lm.name, zIndexOffset: 400 - lm.rank * 100 });
+      m.on('click', function (e) { L.DomEvent.stop(e); opts.onOpen(lm); });
+      return m;
+    });
+    function refresh() {
+      var z = map.getZoom(), mpp = G.metresPerPixel(z), size = map.getSize(), view = map.getBounds().pad(0.1), placed = [];
+      var order = LIST.map(function (lm, i) { return i; }).sort(function (a, b) { return LIST[a].rank - LIST[b].rank || LIST[b].metres - LIST[a].metres; });
+      var show = {};
+      order.forEach(function (i) {
+        var lm = LIST[i], px = lm.metres / mpp;
+        var ok = lm.outline ? px >= MIN_PX[lm.rank] && px <= 1.5 * Math.min(size.x, size.y)      // too small to matter, or bigger than the screen
+                            : z >= (lm.minZoom || POINT_ZOOM[lm.rank]);
+        if (!ok || !view.contains(lm.at)) return;
+        var p = map.latLngToContainerPoint(lm.at), w = lm.name.length * FONT[lm.rank] * 0.56 + 12, h = FONT[lm.rank] + 10;
+        var box = [p.x - w / 2, p.y - h / 2, p.x + w / 2, p.y + h / 2];
+        if (placed.some(function (b) { return box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1]; })) return;   // a more important name is already here
+        placed.push(box); show[i] = true;
+      });
+      markers.forEach(function (m, i) { var on = group.hasLayer(m); if (show[i] && !on) group.addLayer(m); else if (!show[i] && on) group.removeLayer(m); });
+    }
+    map.on('zoomend moveend', refresh); refresh();
+    return { refresh: refresh };
+  }
+
+  MW.landmarks = { list: LIST, contains: contains, entries: entries, attach: attach };
+})();
+
+</script>
+<script>
+/* settings.js — MW.settings: the user's choices, kept between visits, and the Settings panel.
+ *
+ *   MW.settings.get('trailColour')        read one value
+ *   MW.settings.set('trailColour', 'cyan') change it, save it, tell everyone listening
+ *   MW.settings.onChange(fn)              be told after any change (app.js redraws from this)
+ *   MW.settings.walker()                  the active walker: { id, name, type }
+ *
+ * Values live in localStorage under one key. If storage is refused they last for this visit only.
+ * The choices offered (palettes, themes, modes) are listed in config.js.
+ * Colours that are pure styling (theme, trail swatches, pointer colour and size) are applied here
+ * as CSS variables; anything the map has to redraw is left to the listeners.
+ */
+(function () {
+  'use strict';
+  var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
+  var DEFAULTS = {
+    theme: 'blue', display: 'planner', move: 'hybrid',
+    trailColour: 'magenta', trailWidth: 1,
+    pointerColour: 'blue', pointerSize: 1,
+    walkers: C.DEFAULT_WALKERS, walker: 'w1'
+  };
+  var v = JSON.parse(JSON.stringify(DEFAULTS)), listeners = [];
+  try { var saved = JSON.parse(window.localStorage.getItem(KEY) || '{}'); Object.keys(DEFAULTS).forEach(function (k) { if (saved[k] !== undefined) v[k] = saved[k]; }); } catch (e) {}
+  /* Never trust stored values blindly: fall back to the default if a choice no longer exists. */
+  if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
+  if (!C.DISPLAYS[v.display]) v.display = DEFAULTS.display;
+  if (!C.MOVES[v.move]) v.move = DEFAULTS.move;
+  if (!C.TRAIL_PALETTES[v.trailColour]) v.trailColour = DEFAULTS.trailColour;
+  if (!C.POINTER_COLOURS[v.pointerColour]) v.pointerColour = DEFAULTS.pointerColour;
+  if (!Array.isArray(v.walkers) || !v.walkers.length) v.walkers = JSON.parse(JSON.stringify(C.DEFAULT_WALKERS));
+  if (!v.walkers.some(function (w) { return w.id === v.walker; })) v.walker = v.walkers[0].id;
+
+  function save() { try { window.localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
+  function walker() { return v.walkers.filter(function (w) { return w.id === v.walker; })[0]; }
+
+  /* Styling that needs no redraw. */
+  function applyStyle() {
+    var root = document.documentElement.style, pal = C.TRAIL_PALETTES[v.trailColour], pc = C.POINTER_COLOURS[v.pointerColour];
+    document.body.setAttribute('data-theme', v.theme);
+    document.body.setAttribute('data-display', v.display);
+    document.body.setAttribute('data-move', v.move);
+    pal.forEach(function (c, i) { root.setProperty('--t' + (i + 1), c); });
+    root.setProperty('--me-colour', pc);
+    root.setProperty('--me-edge', v.pointerColour === 'white' ? '#0B2545' : '#FFFFFF');
+    root.setProperty('--me-scale', v.pointerSize);
+  }
+  function changed() { save(); applyStyle(); render(); listeners.forEach(function (fn) { fn(v); }); }
+
+  /* ---------------- the panel ---------------- */
+  function swatches(boxId, key, choices, paint) {
+    var box = $(boxId); box.innerHTML = '';
+    Object.keys(choices).forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'sw'; b.title = name; b.setAttribute('aria-label', name); b.setAttribute('aria-pressed', v[key] === name);
+      b.style.background = paint(choices[name]);
+      b.addEventListener('click', function () { v[key] = name; changed(); });
+      box.appendChild(b);
+    });
+  }
+  function choice(boxId, key, choices) {
+    var box = $(boxId); box.innerHTML = '';
+    Object.keys(choices).forEach(function (name) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = choices[name]; b.setAttribute('aria-pressed', v[key] === name);
+      b.addEventListener('click', function () { v[key] = name; changed(); });
+      box.appendChild(b);
+    });
+  }
+  function fillWalkers(sel) {
+    sel.innerHTML = '';
+    v.walkers.forEach(function (w) { var o = document.createElement('option'); o.value = w.id; o.textContent = w.name + (w.type === 'robot' ? ' (robot)' : ''); sel.appendChild(o); });
+    sel.value = v.walker;
+  }
+  function render() {
+    choice('set-display', 'display', C.DISPLAYS);
+    choice('set-theme', 'theme', C.THEMES);
+    choice('set-move', 'move', C.MOVES);
+    swatches('set-trail-colour', 'trailColour', C.TRAIL_PALETTES, function (p) { return 'linear-gradient(90deg,' + p.join(',') + ')'; });
+    swatches('set-pointer-colour', 'pointerColour', C.POINTER_COLOURS, function (c) { return c; });
+    $('set-trail-width').value = v.trailWidth; $('set-pointer-size').value = v.pointerSize;
+    fillWalkers($('set-walker')); fillWalkers($('walker'));
+    var w = walker();
+    $('set-walker-name').value = w.name; $('set-walker-type').value = w.type;
+    $('set-walker-remove').disabled = v.walkers.length < 2;
+  }
+
+  function wire() {
+    $('btn-settings').addEventListener('click', function () { var p = $('settings'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', !p.hidden); });
+    $('settings-close').addEventListener('click', function () { $('settings').hidden = true; $('btn-settings').setAttribute('aria-expanded', 'false'); $('btn-settings').focus(); });
+    $('set-trail-width').addEventListener('input', function () { v.trailWidth = +this.value; changed(); });
+    $('set-pointer-size').addEventListener('input', function () { v.pointerSize = +this.value; changed(); });
+    [$('set-walker'), $('walker')].forEach(function (sel) { sel.addEventListener('change', function () { v.walker = this.value; changed(); }); });
+    $('set-walker-name').addEventListener('change', function () { var n = this.value.trim().slice(0, 30); if (n) { walker().name = n; changed(); } else this.value = walker().name; });
+    $('set-walker-type').addEventListener('change', function () { walker().type = this.value; changed(); });
+    $('set-walker-add').addEventListener('click', function () {
+      var id = 'w' + Date.now().toString(36);
+      v.walkers.push({ id: id, name: 'Walker ' + (v.walkers.length + 1), type: 'astronaut' }); v.walker = id; changed();
+      $('set-walker-name').focus(); $('set-walker-name').select();
+    });
+    $('set-walker-remove').addEventListener('click', function () {
+      if (v.walkers.length < 2) return;
+      v.walkers = v.walkers.filter(function (w) { return w.id !== v.walker; }); v.walker = v.walkers[0].id; changed();
+    });
+    $('set-reset').addEventListener('click', function () {
+      var keep = { walkers: v.walkers, walker: v.walker };                 // resetting looks does not delete people
+      v = JSON.parse(JSON.stringify(DEFAULTS)); v.walkers = keep.walkers; v.walker = keep.walker; changed();
+    });
+  }
+
+  MW.settings = {
+    get: function (k) { return v[k]; },
+    set: function (k, val) { v[k] = val; changed(); },
+    onChange: function (fn) { listeners.push(fn); },
+    walker: walker
+  };
+  applyStyle(); wire(); render();
+})();
+
+</script>
+<script>
 /* app.js — the page itself: builds the map, moves the pointer, draws the trail, fills the readouts.
  *
  * Sections, in order:
  *   1. Map and layers            5. Movement (replay, manual, sensors)
  *   2. Reference route           6. Recording and saved trails
- *   3. Pointer and state         7. Readouts (bottom strip) and rover view
- *   4. Trail drawing             8. Controls and the main loop
+ *      and landmarks             7. Readouts (bottom strip) and rover view
+ *   3. Pointer and state         8. Controls, settings and the main loop
+ *   4. Trail drawing
  *
  * Real sensors plug in through window.Marswalk.setPose({ lat, lon, heading }).
  */
 (function () {
   'use strict';
-  var C = MW.config, G = MW.geo, WP = G.WP, $ = G.$, store = MW.store;
+  var C = MW.config, G = MW.geo, WP = G.WP, $ = G.$, store = MW.store, settings = MW.settings;
   var fmt = G.fmt, minus = G.minus, norm = G.norm, clock = G.clock, compass = G.compass, toLL = G.toLL, toENU = G.toENU;
 
   /* ================================================================== 1. Map and layers */
@@ -1675,14 +2103,41 @@ window.MARSWALK_DATA = {
     if (b) { showPov(+b.getAttribute('data-pov')); map.closePopup(); }
   }, true);
 
+  /* ---- Landmarks: names on the map; tap one for its details and outline ---- */
+  var lmOutline = null;
+  function userVisits(lm) {                              // by the active walker: this trail plus their saved trails
+    var w = settings.walker(), live = MW.landmarks.entries(lm, trail.pts.map(function (p) { return p.ll; })), saved = 0;
+    store.list().forEach(function (r) { if (!r.walker || r.walker.name === w.name) saved += MW.landmarks.entries(lm, r.points); });
+    return { who: w.name, live: live, saved: saved };
+  }
+  function openLandmark(lm) {
+    var v = userVisits(lm), n = v.live + v.saved, times = function (k) { return k === 1 ? 'once' : k + ' times'; };
+    var html = '<div class="pop lmk"><h3>' + G.escapeHtml(lm.name) + '</h3><dl>' +
+      '<dt>Function</dt><dd>' + lm.role + '</dd>' +
+      '<dt>Size</dt><dd>' + lm.size + '</dd>' +
+      '<dt>Visited by missions</dt><dd>' + (lm.missions[0] ? times(lm.missions[0]) + ': ' : 'never: ') + lm.missions[1] + '</dd>' +
+      '<dt>Visited by you</dt><dd>' + (n ? times(n) : 'not yet') + ' (' + G.escapeHtml(v.who) + (n ? ': ' + v.live + ' on this trail, ' + v.saved + ' in saved trails' : '') + ')</dd>' +
+      '</dl><p>' + lm.note + '</p>' + (lm.outlineNote ? '<p>' + lm.outlineNote + '</p>' : '') + '</div>';
+    if (lmOutline) lmOutline.forEach(function (l) { map.removeLayer(l); });
+    lmOutline = lm.outline
+      ? [L.polygon(lm.outline, { renderer: routeR, color: '#000', weight: 5, opacity: 0.5, fill: false, interactive: false }).addTo(map),
+         L.polygon(lm.outline, { renderer: routeR, color: '#fff', weight: 2, dashArray: '7 5', fillColor: '#fff', fillOpacity: 0.1, interactive: false }).addTo(map)]
+      : [L.circleMarker(lm.at, { renderer: routeR, radius: 14, color: '#fff', weight: 2, dashArray: '5 4', fillOpacity: 0, interactive: false }).addTo(map)];
+    L.popup({ maxWidth: 300, className: 'lmk-pop' }).setLatLng(lm.at).setContent(html).openOn(map);
+  }
+  map.on('popupclose', function (e) {
+    if (lmOutline && e.popup.options.className === 'lmk-pop') { lmOutline.forEach(function (l) { map.removeLayer(l); }); lmOutline = null; }
+  });
+  MW.landmarks.attach(map, { onOpen: openLandmark });
+
   /* ================================================================== 3. Pointer and state */
   var meIcon = L.divIcon({
     className: 'me', iconSize: [72, 72], iconAnchor: [36, 36],
     html: '<svg width="72" height="72" viewBox="-36 -36 72 72" aria-hidden="true">' +
       '<defs><radialGradient id="cone" cx="0" cy="0" r="36" gradientUnits="userSpaceOnUse">' +
-      '<stop offset="0.25" stop-color="#0B5FFF" stop-opacity="0.55"/><stop offset="1" stop-color="#0B5FFF" stop-opacity="0"/></radialGradient></defs>' +
+      '<stop offset="0.25" stop-color="currentColor" stop-opacity="0.55"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient></defs>' +
       '<g id="me-rot"><path d="M0 0 L-18 -31.2 A36 36 0 0 1 18 -31.2 Z" fill="url(#cone)"/>' +             // 60° view cone
-      '<path d="M0 -18 L12 13 L0 6.5 L-12 13 Z" fill="#0B5FFF" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></g></svg>'
+      '<path class="me-arrow" d="M0 -18 L12 13 L0 6.5 L-12 13 Z" fill="currentColor" stroke-width="2.6" stroke-linejoin="round"/></g></svg>'   // colour and size come from Settings, as CSS variables
   });
   var me = L.marker([G.ORIGIN.lat, G.ORIGIN.lon], { icon: meIcon, interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map);
 
@@ -1699,9 +2154,14 @@ window.MARSWALK_DATA = {
   /* ================================================================== 4. Trail drawing */
   var trail = new MW.Trail();
   var casing = L.polyline([], { renderer: trailR, color: '#22061F', weight: 9, opacity: 0.6, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  var tLines = C.TRAIL_COLOURS.map(function (c, i) {     // one line per pass count: four canvas strokes however long the trail gets
-    return L.polyline([], { renderer: trailR, color: c, weight: 4 + i, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+  var tLines = [0, 1, 2, 3].map(function () {            // one line per pass count: four canvas strokes however long the trail gets
+    return L.polyline([], { renderer: trailR, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
   });
+  function styleTrail() {                                // colour and width chosen in Settings
+    var pal = C.TRAIL_PALETTES[settings.get('trailColour')], w = settings.get('trailWidth');
+    casing.setStyle({ weight: 9 * w });
+    tLines.forEach(function (l, i) { l.setStyle({ color: pal[i], weight: (4 + i) * w }); });
+  }
   var backLine = L.polyline([], { renderer: trailR, color: '#0B5FFF', weight: 3, dashArray: '2 7', interactive: false }).addTo(map);
   var showBack = false;
 
@@ -1847,7 +2307,7 @@ window.MARSWALK_DATA = {
   $('save-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var name = $('save-name').value.trim() || 'Trail ' + (store.list().length + 1);
-    store.save(trail.toRecord(name, 'walked'));
+    store.save(trail.toRecord(name, 'walked', settings.walker()));
     $('save-form').hidden = true; renderSaved(); say('Saved “' + name + '”.');
   });
   $('btn-discard').addEventListener('click', function () { $('save-form').hidden = true; });
@@ -1864,7 +2324,7 @@ window.MARSWALK_DATA = {
     };
     row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [['replay', 'Replay']]);
     store.list().forEach(function (r) {
-      row(r.id, r.name, fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      row(r.id, r.name, (r.walker ? G.escapeHtml(r.walker.name) + (r.walker.type === 'robot' ? ' (robot)' : '') + ', ' : '') + fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
         [['show', shown.has(r.id) ? 'Hide' : 'Show'], ['replay', 'Replay'], ['file', 'Download'], ['del', 'Delete']]);
     });
   }
@@ -1943,14 +2403,16 @@ window.MARSWALK_DATA = {
   function updateReadouts() {
     nearestOnRoute();
     var c = conditions(), off = S.near.d > 25;
-    $('r-pos').textContent = 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    var exact = settings.get('display') === 'robot', ll = toLL(S.x, S.y);   // Robot display: full precision
+    $('r-pos').textContent = exact ? 'E ' + S.x.toFixed(2) + ' m, N ' + S.y.toFixed(2) + ' m' : 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    $('r-ll').textContent = ll[0].toFixed(6) + '°, ' + ll[1].toFixed(6) + '°';
     $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z, 1) + ' m';
     $('r-z-l').textContent = off ? 'height of nearest route point' : 'height, MOLA datum';
-    $('r-hdg').textContent = String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
-    $('r-dist').textContent = fmt(S.dist) + ' m';
+    $('r-hdg').textContent = exact ? norm(S.heading).toFixed(1) + '°' : String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
+    $('r-dist').textContent = exact ? S.dist.toFixed(1) + ' m' : fmt(S.dist) + ' m';
     if (showBack) { $('r-home').textContent = fmt(MW.Trail.pathLength(trail.wayBack())) + ' m'; $('r-home-l').textContent = 'back to the trail start along your trail'; }
     else { $('r-home').textContent = fmt(Math.hypot(S.x, S.y)) + ' m'; $('r-home-l').textContent = 'straight back to base'; }
-    $('r-time').textContent = clock(S.t);
+    $('r-time').textContent = exact ? Math.round(S.t) + ' s' : clock(S.t);
     $('r-time-l').textContent = 'on the surface, ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local';
     $('e-air').textContent = minus(c.air) + ' °C';
     $('e-gnd').textContent = minus(c.gnd) + ' °C';
@@ -1983,7 +2445,7 @@ window.MARSWALK_DATA = {
   $('pov-open').addEventListener('click', function () { showPov(S.near.i); });
 
   /* Height along the reference route, with the walker's place on it. */
-  var prof = $('profile'), pg = prof.getContext('2d');
+  var prof = $('profile'), pg = prof.getContext('2d'), look = { fill: '#ccc', ink: '#000', ink2: '#444' };
   function drawProfile() {
     var W = prof.width, H = prof.height, pad = 16, zs = WP.map(function (w) { return w.z; });
     var lo = Math.min.apply(null, zs), hi = Math.max.apply(null, zs);
@@ -1991,10 +2453,10 @@ window.MARSWALK_DATA = {
     pg.clearRect(0, 0, W, H);
     pg.beginPath(); pg.moveTo(X(0), H - pad);
     WP.forEach(function (w) { pg.lineTo(X(w.s), Y(w.z)); });
-    pg.lineTo(X(G.routeLen), H - pad); pg.closePath(); pg.fillStyle = '#D6DCDD'; pg.fill();
+    pg.lineTo(X(G.routeLen), H - pad); pg.closePath(); pg.fillStyle = look.fill; pg.fill();
     pg.beginPath(); WP.forEach(function (w, i) { pg[i ? 'lineTo' : 'moveTo'](X(w.s), Y(w.z)); });
-    pg.strokeStyle = '#14202B'; pg.lineWidth = 2.5; pg.stroke();
-    pg.fillStyle = '#44535E'; pg.font = '500 20px "Barlow Semi Condensed", Arial, sans-serif';
+    pg.strokeStyle = look.ink; pg.lineWidth = 2.5; pg.stroke();
+    pg.fillStyle = look.ink2; pg.font = '500 20px "Barlow Semi Condensed", Arial, sans-serif';
     pg.textAlign = 'left'; pg.fillText(minus(lo) + ' m', pad, 22);
     pg.textAlign = 'right'; pg.fillText(minus(hi) + ' m, ' + fmt(G.routeLen / 1000, 1) + ' km', W - pad, 22);
     var x = X(S.near.s), y = Y(S.near.z);
@@ -2049,6 +2511,7 @@ window.MARSWALK_DATA = {
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
     var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (settings.get('move') === 'click') return;        // Settings: taps only
     if (S.mode !== 'manual') setManual();
     keys[k] = true; if (!S.playing) setPlaying(true); e.preventDefault();
   });
@@ -2061,7 +2524,7 @@ window.MARSWALK_DATA = {
   });
   map.on('click', function (e) {
     if (inspectTrail(e.latlng)) return;
-    if (S.mode === 'manual') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }
+    if (S.mode === 'manual' && settings.get('move') !== 'keys') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }   // Settings: keys only switches this off
   });
 
   var lastTs = 0, lastUi = 0, lastDraw = 0, lastPan = 0, drawn = { x: NaN, y: NaN, h: NaN }, meRot = null;
@@ -2087,10 +2550,24 @@ window.MARSWALK_DATA = {
     requestAnimationFrame(frame);
   }
 
+  /* Settings changed (or first run): restyle what CSS variables cannot reach. */
+  function applySettings() {
+    var cs = getComputedStyle(document.body);
+    look = { fill: cs.getPropertyValue('--paper-2').trim(), ink: cs.getPropertyValue('--ink').trim(), ink2: cs.getPropertyValue('--ink-2').trim() };
+    styleTrail();
+    var mv = settings.get('move');
+    $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
+    if (mv === 'keys') target = null;
+    renderSaved();
+    setTimeout(function () { map.invalidateSize({ pan: false }); }, 0);   // a display mode can change the map's size
+  }
+  settings.onChange(applySettings);
+
   /* ---- start: pointer standing still at base, waiting for Start ---- */
+  applySettings();
   setDataLayer('none');
   trail.add(0, 0, 0, meta());
-  renderSaved(); showMode(); setPlaying(false);
+  showMode(); setPlaying(false);
   if (window.innerWidth > 860) showPov(0); else $('pov-open').hidden = false;   // small screens keep the map clear
   requestAnimationFrame(frame);
 
@@ -2102,7 +2579,7 @@ window.MARSWALK_DATA = {
       if (typeof p.lat === 'number' && typeof p.lon === 'number') { var e = toENU(p.lat, p.lon); setPos(e.x, e.y); }
     },
     releasePose: function () { S.external = false; },
-    getTrail: function () { return trail.toRecord('live', 'live'); },
+    getTrail: function () { return trail.toRecord('live', 'live', settings.walker()); },
     clearTrail: clearTrail,
     savedTrails: function () { return store.list(); },
     _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; }

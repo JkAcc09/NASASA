@@ -3,14 +3,15 @@
  * Sections, in order:
  *   1. Map and layers            5. Movement (replay, manual, sensors)
  *   2. Reference route           6. Recording and saved trails
- *   3. Pointer and state         7. Readouts (bottom strip) and rover view
- *   4. Trail drawing             8. Controls and the main loop
+ *      and landmarks             7. Readouts (bottom strip) and rover view
+ *   3. Pointer and state         8. Controls, settings and the main loop
+ *   4. Trail drawing
  *
  * Real sensors plug in through window.Marswalk.setPose({ lat, lon, heading }).
  */
 (function () {
   'use strict';
-  var C = MW.config, G = MW.geo, WP = G.WP, $ = G.$, store = MW.store;
+  var C = MW.config, G = MW.geo, WP = G.WP, $ = G.$, store = MW.store, settings = MW.settings;
   var fmt = G.fmt, minus = G.minus, norm = G.norm, clock = G.clock, compass = G.compass, toLL = G.toLL, toENU = G.toENU;
 
   /* ================================================================== 1. Map and layers */
@@ -114,14 +115,41 @@
     if (b) { showPov(+b.getAttribute('data-pov')); map.closePopup(); }
   }, true);
 
+  /* ---- Landmarks: names on the map; tap one for its details and outline ---- */
+  var lmOutline = null;
+  function userVisits(lm) {                              // by the active walker: this trail plus their saved trails
+    var w = settings.walker(), live = MW.landmarks.entries(lm, trail.pts.map(function (p) { return p.ll; })), saved = 0;
+    store.list().forEach(function (r) { if (!r.walker || r.walker.name === w.name) saved += MW.landmarks.entries(lm, r.points); });
+    return { who: w.name, live: live, saved: saved };
+  }
+  function openLandmark(lm) {
+    var v = userVisits(lm), n = v.live + v.saved, times = function (k) { return k === 1 ? 'once' : k + ' times'; };
+    var html = '<div class="pop lmk"><h3>' + G.escapeHtml(lm.name) + '</h3><dl>' +
+      '<dt>Function</dt><dd>' + lm.role + '</dd>' +
+      '<dt>Size</dt><dd>' + lm.size + '</dd>' +
+      '<dt>Visited by missions</dt><dd>' + (lm.missions[0] ? times(lm.missions[0]) + ': ' : 'never: ') + lm.missions[1] + '</dd>' +
+      '<dt>Visited by you</dt><dd>' + (n ? times(n) : 'not yet') + ' (' + G.escapeHtml(v.who) + (n ? ': ' + v.live + ' on this trail, ' + v.saved + ' in saved trails' : '') + ')</dd>' +
+      '</dl><p>' + lm.note + '</p>' + (lm.outlineNote ? '<p>' + lm.outlineNote + '</p>' : '') + '</div>';
+    if (lmOutline) lmOutline.forEach(function (l) { map.removeLayer(l); });
+    lmOutline = lm.outline
+      ? [L.polygon(lm.outline, { renderer: routeR, color: '#000', weight: 5, opacity: 0.5, fill: false, interactive: false }).addTo(map),
+         L.polygon(lm.outline, { renderer: routeR, color: '#fff', weight: 2, dashArray: '7 5', fillColor: '#fff', fillOpacity: 0.1, interactive: false }).addTo(map)]
+      : [L.circleMarker(lm.at, { renderer: routeR, radius: 14, color: '#fff', weight: 2, dashArray: '5 4', fillOpacity: 0, interactive: false }).addTo(map)];
+    L.popup({ maxWidth: 300, className: 'lmk-pop' }).setLatLng(lm.at).setContent(html).openOn(map);
+  }
+  map.on('popupclose', function (e) {
+    if (lmOutline && e.popup.options.className === 'lmk-pop') { lmOutline.forEach(function (l) { map.removeLayer(l); }); lmOutline = null; }
+  });
+  MW.landmarks.attach(map, { onOpen: openLandmark });
+
   /* ================================================================== 3. Pointer and state */
   var meIcon = L.divIcon({
     className: 'me', iconSize: [72, 72], iconAnchor: [36, 36],
     html: '<svg width="72" height="72" viewBox="-36 -36 72 72" aria-hidden="true">' +
       '<defs><radialGradient id="cone" cx="0" cy="0" r="36" gradientUnits="userSpaceOnUse">' +
-      '<stop offset="0.25" stop-color="#0B5FFF" stop-opacity="0.55"/><stop offset="1" stop-color="#0B5FFF" stop-opacity="0"/></radialGradient></defs>' +
+      '<stop offset="0.25" stop-color="currentColor" stop-opacity="0.55"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></radialGradient></defs>' +
       '<g id="me-rot"><path d="M0 0 L-18 -31.2 A36 36 0 0 1 18 -31.2 Z" fill="url(#cone)"/>' +             // 60° view cone
-      '<path d="M0 -18 L12 13 L0 6.5 L-12 13 Z" fill="#0B5FFF" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/></g></svg>'
+      '<path class="me-arrow" d="M0 -18 L12 13 L0 6.5 L-12 13 Z" fill="currentColor" stroke-width="2.6" stroke-linejoin="round"/></g></svg>'   // colour and size come from Settings, as CSS variables
   });
   var me = L.marker([G.ORIGIN.lat, G.ORIGIN.lon], { icon: meIcon, interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map);
 
@@ -138,9 +166,14 @@
   /* ================================================================== 4. Trail drawing */
   var trail = new MW.Trail();
   var casing = L.polyline([], { renderer: trailR, color: '#22061F', weight: 9, opacity: 0.6, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
-  var tLines = C.TRAIL_COLOURS.map(function (c, i) {     // one line per pass count: four canvas strokes however long the trail gets
-    return L.polyline([], { renderer: trailR, color: c, weight: 4 + i, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
+  var tLines = [0, 1, 2, 3].map(function () {            // one line per pass count: four canvas strokes however long the trail gets
+    return L.polyline([], { renderer: trailR, interactive: false, lineCap: 'round', lineJoin: 'round' }).addTo(map);
   });
+  function styleTrail() {                                // colour and width chosen in Settings
+    var pal = C.TRAIL_PALETTES[settings.get('trailColour')], w = settings.get('trailWidth');
+    casing.setStyle({ weight: 9 * w });
+    tLines.forEach(function (l, i) { l.setStyle({ color: pal[i], weight: (4 + i) * w }); });
+  }
   var backLine = L.polyline([], { renderer: trailR, color: '#0B5FFF', weight: 3, dashArray: '2 7', interactive: false }).addTo(map);
   var showBack = false;
 
@@ -286,7 +319,7 @@
   $('save-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var name = $('save-name').value.trim() || 'Trail ' + (store.list().length + 1);
-    store.save(trail.toRecord(name, 'walked'));
+    store.save(trail.toRecord(name, 'walked', settings.walker()));
     $('save-form').hidden = true; renderSaved(); say('Saved “' + name + '”.');
   });
   $('btn-discard').addEventListener('click', function () { $('save-form').hidden = true; });
@@ -303,7 +336,7 @@
     };
     row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [['replay', 'Replay']]);
     store.list().forEach(function (r) {
-      row(r.id, r.name, fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+      row(r.id, r.name, (r.walker ? G.escapeHtml(r.walker.name) + (r.walker.type === 'robot' ? ' (robot)' : '') + ', ' : '') + fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
         [['show', shown.has(r.id) ? 'Hide' : 'Show'], ['replay', 'Replay'], ['file', 'Download'], ['del', 'Delete']]);
     });
   }
@@ -382,14 +415,16 @@
   function updateReadouts() {
     nearestOnRoute();
     var c = conditions(), off = S.near.d > 25;
-    $('r-pos').textContent = 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    var exact = settings.get('display') === 'robot', ll = toLL(S.x, S.y);   // Robot display: full precision
+    $('r-pos').textContent = exact ? 'E ' + S.x.toFixed(2) + ' m, N ' + S.y.toFixed(2) + ' m' : 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    $('r-ll').textContent = ll[0].toFixed(6) + '°, ' + ll[1].toFixed(6) + '°';
     $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z, 1) + ' m';
     $('r-z-l').textContent = off ? 'height of nearest route point' : 'height, MOLA datum';
-    $('r-hdg').textContent = String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
-    $('r-dist').textContent = fmt(S.dist) + ' m';
+    $('r-hdg').textContent = exact ? norm(S.heading).toFixed(1) + '°' : String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
+    $('r-dist').textContent = exact ? S.dist.toFixed(1) + ' m' : fmt(S.dist) + ' m';
     if (showBack) { $('r-home').textContent = fmt(MW.Trail.pathLength(trail.wayBack())) + ' m'; $('r-home-l').textContent = 'back to the trail start along your trail'; }
     else { $('r-home').textContent = fmt(Math.hypot(S.x, S.y)) + ' m'; $('r-home-l').textContent = 'straight back to base'; }
-    $('r-time').textContent = clock(S.t);
+    $('r-time').textContent = exact ? Math.round(S.t) + ' s' : clock(S.t);
     $('r-time-l').textContent = 'on the surface, ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local';
     $('e-air').textContent = minus(c.air) + ' °C';
     $('e-gnd').textContent = minus(c.gnd) + ' °C';
@@ -422,7 +457,7 @@
   $('pov-open').addEventListener('click', function () { showPov(S.near.i); });
 
   /* Height along the reference route, with the walker's place on it. */
-  var prof = $('profile'), pg = prof.getContext('2d');
+  var prof = $('profile'), pg = prof.getContext('2d'), look = { fill: '#ccc', ink: '#000', ink2: '#444' };
   function drawProfile() {
     var W = prof.width, H = prof.height, pad = 16, zs = WP.map(function (w) { return w.z; });
     var lo = Math.min.apply(null, zs), hi = Math.max.apply(null, zs);
@@ -430,10 +465,10 @@
     pg.clearRect(0, 0, W, H);
     pg.beginPath(); pg.moveTo(X(0), H - pad);
     WP.forEach(function (w) { pg.lineTo(X(w.s), Y(w.z)); });
-    pg.lineTo(X(G.routeLen), H - pad); pg.closePath(); pg.fillStyle = '#D6DCDD'; pg.fill();
+    pg.lineTo(X(G.routeLen), H - pad); pg.closePath(); pg.fillStyle = look.fill; pg.fill();
     pg.beginPath(); WP.forEach(function (w, i) { pg[i ? 'lineTo' : 'moveTo'](X(w.s), Y(w.z)); });
-    pg.strokeStyle = '#14202B'; pg.lineWidth = 2.5; pg.stroke();
-    pg.fillStyle = '#44535E'; pg.font = '500 20px "Barlow Semi Condensed", Arial, sans-serif';
+    pg.strokeStyle = look.ink; pg.lineWidth = 2.5; pg.stroke();
+    pg.fillStyle = look.ink2; pg.font = '500 20px "Barlow Semi Condensed", Arial, sans-serif';
     pg.textAlign = 'left'; pg.fillText(minus(lo) + ' m', pad, 22);
     pg.textAlign = 'right'; pg.fillText(minus(hi) + ' m, ' + fmt(G.routeLen / 1000, 1) + ' km', W - pad, 22);
     var x = X(S.near.s), y = Y(S.near.z);
@@ -488,6 +523,7 @@
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
     var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if (settings.get('move') === 'click') return;        // Settings: taps only
     if (S.mode !== 'manual') setManual();
     keys[k] = true; if (!S.playing) setPlaying(true); e.preventDefault();
   });
@@ -500,7 +536,7 @@
   });
   map.on('click', function (e) {
     if (inspectTrail(e.latlng)) return;
-    if (S.mode === 'manual') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }
+    if (S.mode === 'manual' && settings.get('move') !== 'keys') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }   // Settings: keys only switches this off
   });
 
   var lastTs = 0, lastUi = 0, lastDraw = 0, lastPan = 0, drawn = { x: NaN, y: NaN, h: NaN }, meRot = null;
@@ -526,10 +562,24 @@
     requestAnimationFrame(frame);
   }
 
+  /* Settings changed (or first run): restyle what CSS variables cannot reach. */
+  function applySettings() {
+    var cs = getComputedStyle(document.body);
+    look = { fill: cs.getPropertyValue('--paper-2').trim(), ink: cs.getPropertyValue('--ink').trim(), ink2: cs.getPropertyValue('--ink-2').trim() };
+    styleTrail();
+    var mv = settings.get('move');
+    $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
+    if (mv === 'keys') target = null;
+    renderSaved();
+    setTimeout(function () { map.invalidateSize({ pan: false }); }, 0);   // a display mode can change the map's size
+  }
+  settings.onChange(applySettings);
+
   /* ---- start: pointer standing still at base, waiting for Start ---- */
+  applySettings();
   setDataLayer('none');
   trail.add(0, 0, 0, meta());
-  renderSaved(); showMode(); setPlaying(false);
+  showMode(); setPlaying(false);
   if (window.innerWidth > 860) showPov(0); else $('pov-open').hidden = false;   // small screens keep the map clear
   requestAnimationFrame(frame);
 
@@ -541,7 +591,7 @@
       if (typeof p.lat === 'number' && typeof p.lon === 'number') { var e = toENU(p.lat, p.lon); setPos(e.x, e.y); }
     },
     releasePose: function () { S.external = false; },
-    getTrail: function () { return trail.toRecord('live', 'live'); },
+    getTrail: function () { return trail.toRecord('live', 'live', settings.walker()); },
     clearTrail: clearTrail,
     savedTrails: function () { return store.list(); },
     _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; }
