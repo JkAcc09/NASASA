@@ -134,6 +134,10 @@ Three **display modes** show the same data for different users:
 | Astronaut | a glance through a visor | the legend column becomes a drawer; five large readouts (looking, walked, back to base, time, dose); larger buttons |
 | Robot | a rover or its operator | exact latitude and longitude (6 decimals), metres to the centimetre, heading to 0.1° |
 
+In Planner and Robot on a wide screen, the tab on the legend column's right edge folds the column
+away to give the map the full width; the choice is kept in the browser (key `marswalk.collarHidden`).
+Where the column is a drawer (Astronaut, or a narrow screen), "Layers" opens it and × or Escape closes it.
+
 **Settings** also change the trail's colour (five palettes, each four shades from pale to deep) and
 width, the pointer's colour and size, how the pointer is moved (keys and taps, keys only, taps only)
 and the app's colours (Blue, Night blue, Grey). Choices are kept in the browser

@@ -518,7 +518,25 @@
     showBack = !showBack; this.setAttribute('aria-pressed', showBack); this.textContent = showBack ? 'Hide way back' : 'Show way back';
     drawTrail();
   });
-  $('btn-collar').addEventListener('click', function () { var o = $('collar').classList.toggle('open'); this.setAttribute('aria-expanded', o); });
+  /* Legend column. Wide screens (Planner, Robot): the tab on its edge folds it away, remembered between
+     visits. Narrow screens and the Astronaut display: it is a drawer, opened by "Layers", closed by × or Escape. */
+  var COLLAR_KEY = 'marswalk.collarHidden';
+  function setCollarHidden(hid) {
+    $('app').classList.toggle('collar-hidden', hid);
+    var t = $('collar-tab'), lab = hid ? 'Show panel' : 'Hide panel';
+    t.setAttribute('aria-expanded', !hid); t.setAttribute('aria-label', lab); t.title = lab;
+  }
+  try { setCollarHidden(window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) { setCollarHidden(false); }
+  $('collar-tab').addEventListener('click', function () {
+    var hid = !$('app').classList.contains('collar-hidden');
+    setCollarHidden(hid);
+    try { window.localStorage.setItem(COLLAR_KEY, hid ? '1' : '0'); } catch (e) {}
+  });
+  function setDrawer(open) { $('collar').classList.toggle('open', open); $('btn-collar').setAttribute('aria-expanded', open); }
+  $('btn-collar').addEventListener('click', function () { setDrawer(!$('collar').classList.contains('open')); });
+  function closeDrawer() { if ($('collar').classList.contains('open')) { setDrawer(false); $('btn-collar').focus(); } }
+  $('collar-close').addEventListener('click', closeDrawer);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {

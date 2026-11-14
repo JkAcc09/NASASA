@@ -759,8 +759,8 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 
 /* ---------- wide screens: the collar can be folded away to give the map the full width ---------- */
 @media (min-width: 861px) {
-  #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
-  #app.collar-hidden #collar { display: none; }
+  body:not([data-display="astronaut"]) #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+  body:not([data-display="astronaut"]) #app.collar-hidden #collar { display: none; }
 }
 /* the fold-away tab: hangs off the collar's right edge, halfway down the map; with the
    collar folded it sits against the screen edge and its chevron turns to point back out */
@@ -771,6 +771,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #collar-tab:hover { background: var(--paper-2); }
 #collar-tab svg { width: 10px; height: 18px; transition: transform .2s ease; }
 #app.collar-hidden #collar-tab svg { transform: scaleX(-1); }
+body[data-display="astronaut"] #collar-tab { display: none; }
+.sheet-title { position: relative; }
+#collar-close { position: absolute; right: -6px; top: -6px; width: 40px; padding: 0; font-size: 22px; }
 
 /* ---------- map stage ---------- */
 #stage { grid-area: stage; position: relative; min-height: 0; background: #1b1b1b; }

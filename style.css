@@ -114,6 +114,25 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
 #pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
 
+/* Fold-away tab: hangs off the legend column's right edge, halfway down the map. With the column
+   folded away (#app.collar-hidden) it sits against the screen edge and its chevron turns to point out.
+   Where the column is a drawer (narrow screens, Astronaut display) the tab is not used. */
+#collar-tab { position: absolute; left: 0; top: 50%; z-index: 850; transform: translateY(-50%);
+  width: 26px; min-height: 0; height: 76px; padding: 0; display: grid; place-items: center;
+  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-left: 0; border-radius: 0 6px 6px 0;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, .35); }
+#collar-tab:hover { background: var(--paper-2); }
+#collar-tab svg { width: 10px; height: 18px; transition: transform .2s ease; }
+#app.collar-hidden #collar-tab svg { transform: scaleX(-1); }
+@media (min-width: 861px) {
+  body:not([data-display="astronaut"]) #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+  body:not([data-display="astronaut"]) #app.collar-hidden #collar { display: none; }
+}
+body[data-display="astronaut"] #collar-tab { display: none; }
+/* Close button inside the drawer (shown wherever .only-narrow is) */
+.sheet-title { position: relative; }
+#collar-close { position: absolute; right: -6px; top: -6px; width: 40px; padding: 0; font-size: 22px; }
+
 #pad { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px; }
 #pad button { min-height: 52px; font-size: 20px; padding: 0; touch-action: none; }
 #pad button[data-k="back"] { grid-column: 2; }
@@ -136,6 +155,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
   #collar.open { transform: none; }
   .only-narrow { display: inline-block; }
+  #collar-tab { display: none; }
   #strip { grid-template-columns: minmax(0, 1fr); }
   #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
   #strip dd { font-size: 18px; }
@@ -146,7 +166,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #pad button { min-height: 46px; }
   #pad p { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { #collar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #collar, #collar-tab svg { transition: none; } }
 
 /* ---------- legend tick, layer readout, recording, saved trails ---------- */
 .ramp i, #p-bar { position: relative; }
