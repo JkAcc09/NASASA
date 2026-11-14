@@ -8,11 +8,11 @@ and which way they are looking, and a trail that remembers every pass over the s
 Trails can be recorded per walker, saved, replayed and shared as files. Named landmarks can be tapped
 for their details and outline, and the look and controls are adjustable in Settings.
 
-![Night infrared over the HiRISE photo map, with Curiosity's route](docs/night-infrared-over-hirise.jpg)
+![Night infrared over the HiRISE photo map, with Curiosity's route](night-infrared-over-hirise.jpg)
 
 ## Run it
 
-- **Quickest:** open `dist/marswalk.html` in Chrome, Edge or Firefox. It is the whole app in one file.
+- **Quickest:** open `marswalk.html` in Chrome, Edge or Firefox. It is the whole app in one file.
 - **From source:** open `index.html`, or serve the folder with `python -m http.server` and open
   `http://localhost:8000`.
 - **GitHub Pages:** enable Pages on the main branch. There is no build step.
@@ -36,6 +36,11 @@ and they load in this order (see the bottom of `index.html`):
 | `js/landmarks.js` | `MW.landmarks`: named places, their outlines, the rules for showing names | add a landmark or change when names appear |
 | `js/settings.js` | `MW.settings`: the user's choices and the Settings panel | add a setting |
 | `js/app.js` | The page: map, pointer, movement, recording, readouts, main loop | change behaviour or the interface |
+| `js/dust-data.js` | The dust data pack: observed dust optical depth, MY24 to MY36 (written by `tools/dust_ingest.py`) | never by hand: rebuild it |
+| `js/dust.js` | `MW.dust`: seasonal baseline, anomaly detection, classes, route exposure. No map, no page | change how dust activity is detected |
+| `js/dust-ui.js` | The DUST STORM ACTIVITY layer, timeline, dust monitor and route warnings | change how dust is shown |
+| `tools/dust_ingest.py` | Downloads the dust climatology and writes `js/dust-data.js` | refresh the data, or change its resolution |
+| `tools/dust_test.js` | Checks the detection against the real data: `node tools/dust_test.js` | you changed `dust.js` or a threshold |
 | `css/style.css` | All styling | change the look |
 | `tools/build.py` | Packs everything into `dist/marswalk.html` | you changed any file above: run `python tools/build.py` |
 | `vendor/` | Leaflet 1.9.4, unmodified | – |
@@ -91,6 +96,7 @@ each source and encoding) and the `BASE` layers and bounds in `js/config.js`.
 | Spectral, chemical | Clinopyroxene, plagioclase, glass and clay, albedo | MGS TES `TES_*` | 1 | regional |
 | Geophysical | Thermal inertia, dust cover, roughness | MGS TES, MGS MOLA | 1 | regional |
 | Atmospheric | Air and ground temperature, pressure, UV at every route stop | Curiosity REMS | per sol | in place |
+| Atmospheric | Dust storm activity: column dust optical depth | Montabone et al. climatology v2 (MGS TES, Odyssey THEMIS, MRO MCS) | 5-sol means, MY24–36 | 6° × 5° (about 355 × 296 km) |
 | Radiation | Dose rate and dose for this walk | Model on the RAD surface average, 0.67 mSv/day | modelled | – |
 | Point of view | Navcam photo at every third stop | Curiosity raw images | per stop | – |
 
@@ -120,6 +126,96 @@ walker's own value. The same value is shown as a number under the map.
 To get physical units for the regional layers, the next step is to download the numeric TES grids
 from the PDS and sample those instead of the pictures.
 
+## Dust storm activity
+
+A detection and early-warning layer built on real orbital observations. It reports what was observed
+and how unusual it was for the place and season. **It does not forecast.**
+
+### The data
+
+Column dust optical depth, in infrared absorption at 9.3 µm, normalised to 610 Pa, from
+[Montabone et al., Climatologies of the Martian Atmospheric Dust Optical Depth, v2](https://www-mars.lmd.jussieu.fr/mars/dust_climatology/index.html)
+(Icarus 2015, doi:10.1016/j.icarus.2014.12.034; JGR Planets 2020, doi:10.1029/2019JE006111; CC BY-SA 3.0).
+The climatology is built from NASA retrievals: MGS TES, Mars Odyssey THEMIS and MRO
+[Mars Climate Sounder](https://pdsatmospheres.nmsu.edu/data_and_services/atmospheres_data/MARS/aerosols.html).
+From MY34 on it is MCS alone.
+
+`python tools/dust_ingest.py` reads the NetCDF files straight from the server (only the variables it needs,
+no extra packages), averages them to 6° × 5° cells and 5-sol frames, and writes `js/dust-data.js`:
+13 Martian Years, 134 frames a year, 2,160 cells. For every cell and frame it keeps the optical depth,
+its relative uncertainty, the data set's reliability value, the Ls, the sol and the instruments.
+`--years 34 35` builds a subset; `--inspect 34` lists what is in a year's files.
+
+Every number on the page carries one of four labels:
+
+| Label | Meaning here |
+|---|---|
+| OBSERVED | a cell of the observation-only maps (`griddedcdod`) for those sols |
+| HISTORICAL | statistics of OBSERVED values from the other Martian Years: the seasonal baseline |
+| INTERPOLATED | the kriged complete-coverage maps (`dustscenario`), used only where there is no observation, only when an observation exists within 10 sols or in a neighbouring cell, and drawn on the map only if "Fill gaps" is ticked |
+| MODELLED | not used: no dust value is a model output |
+
+A cell with neither is NO DATA. It is drawn grey and is never treated as clear air.
+
+### The detection (`js/dust.js`, thresholds in `DUST` in `js/config.js`)
+
+1. **Baseline.** For each cell and season: every OBSERVED value within ±10° of Ls, from every Martian Year
+   except the one being judged. This gives a median, a 90th percentile and a robust spread
+   (1.4826 × the median absolute deviation, never less than 15 % of the median or 0.02).
+   It needs 6 values from 3 other years.
+2. **Anomaly.** z = (optical depth − median) ÷ spread; deviation = (optical depth − median) ÷ median.
+3. **Persistence.** How many consecutive observed frames, ending at this one, were elevated.
+4. **Region.** How many of the 8 neighbouring cells are elevated in the same frame.
+5. **Trend.** A straight-line fit through the last 4 frames (20 sols): increasing, decreasing or stable
+   (a change of at least 20 % of the mean and 0.03).
+6. **Class.**
+
+| Class | Criteria |
+|---|---|
+| LOW | not elevated: inside the normal range for the place and season |
+| MODERATE | z ≥ 2 and optical depth ≥ 0.15. An elevated value that is neither persistent nor regional stays here, however high |
+| HIGH | z ≥ 4 and optical depth ≥ 0.30, and persistent (2 frames, 10 sols) or regional (3 neighbours) |
+| SEVERE | z ≥ 6 and optical depth ≥ 0.80, and persistent and regional |
+
+The optical-depth floors are this project's own choices, not a published standard. Without a usable
+baseline only the floors apply, the class is capped at HIGH and confidence is low. Confidence also drops
+for interpolated values, retrieval uncertainty above 30 %, a baseline from fewer than 5 years, and
+latitudes beyond 60°, where retrievals near the polar caps are less reliable.
+
+A **storm event** is a run of frames in which HIGH or SEVERE cells cover at least 2 % of the observed
+area between 60° S and 60° N. Run on the record, the detection finds the planet-encircling storms of
+MY25, MY28 and MY34 without being told about them.
+
+### On the page
+
+- **Layer.** "DUST STORM ACTIVITY" in the legend column can be shown over any other layer. It is drawn as
+  one rectangle per cell at the cell's true size. Colour it by optical depth, deviation from baseline,
+  class or trend. A white line marks the edge of the HIGH or SEVERE region; a red triangle marks a rising cell.
+- **Timeline.** Choose a Martian Year and an Ls range, step or play through the frames, replay a detected
+  storm event, and compare with a second year (chart, monitor row, and a button to swap the years on the map).
+- **Dust monitor.** For the walker's cell, or a cell tapped at Crater or Planet scale: optical depth,
+  baseline, deviation, class, trend, regional activity, observation date, instrument, resolution,
+  confidence, and how often this season was HIGH or SEVERE in the record.
+- **Route.** The route being replayed is cut into sections, one per data cell, each with its class,
+  measurements and the reasons. Elevated sections are highlighted on the map, with possible
+  consequences: reduced visibility, harder surface operations, less solar power, timing to reassess.
+  The astronaut strip shows the class at the walker's position; HIGH or SEVERE on the route raises a
+  short notice on the map.
+
+`MW.dustUI.goTo(34, 205)` jumps to a year and Ls; `MW.dustUI.show(true)` turns the layer on.
+
+### What it is not
+
+- Not a forecast, and not live: the newest observation in the pack is MY36, Ls 359° (December 2022).
+  The class shown is for the frame selected on the timeline.
+- Not a visibility or surface measurement. Optical depth describes the whole air column from orbit.
+- Not local. One cell is about 355 × 296 km at Gale, so a Marswalk sits inside one cell and the data
+  cannot tell one part of a short route from another.
+- Marswalk has no path-finder, so it cannot draw a detour. "Alternatives" compares the stored routes and
+  gives the historically clearest season for the place.
+- The Mars Climate Sounder profiles on the PDS are not read directly; they enter through the climatology.
+- Before MY28 the record rests on TES and THEMIS, with sparser coverage (32 % of grid points in MY27).
+
 ## Walkers, display modes and settings
 
 A **walker** is a named astronaut or robot (Settings, or the Walker list in the top bar). Each saved
@@ -131,12 +227,21 @@ Three **display modes** show the same data for different users:
 | Mode | For | What changes |
 |---|---|---|
 | Planner | planning in the habitat | everything is shown |
-| Astronaut | a glance through a visor | the legend column becomes a drawer; five large readouts (looking, walked, back to base, time, dose); larger buttons |
+| Astronaut | a glance through a visor | the legend column becomes a drawer; large readouts (looking, walked, back to base, time, dose); larger buttons |
 | Robot | a rover or its operator | exact latitude and longitude (6 decimals), metres to the centimetre, heading to 0.1° |
 
 In Planner and Robot on a wide screen, the tab on the legend column's right edge folds the column
 away to give the map the full width; the choice is kept in the browser (key `marswalk.collarHidden`).
-Where the column is a drawer (Astronaut, or a narrow screen), "Layers" opens it and × or Escape closes it.
+Where the column is a drawer (Astronaut, or a narrow screen), "Menu" opens it and × or Escape closes it.
+
+The column has four parts, chosen with the buttons at its bottom: **Menu** (trail, saved routes, route
+measurements; shown first), **Map Overlay** (the data layers), **Dust Storm** (the dust layer, monitor and
+route warnings) and **Timeline** (Martian Year, Ls range, playback, storm events). A section belongs to a
+part through its `data-tab` attribute in `index.html`; `Marswalk.setTab('dust')` switches from code.
+
+Small **(i)** buttons beside technical terms open a short explanation: what the value is and its unit, why it
+matters on a walk, and whether it is measured, historical, interpolated or modelled. The texts are
+`GLOSSARY` in `js/config.js`; any `<button class="info" data-info="key">` opens the entry with that key.
 
 **Settings** also change the trail's colour (five palettes, each four shades from pale to deep) and
 width, the pointer's colour and size, how the pointer is moved (keys and taps, keys only, taps only)
@@ -203,8 +308,11 @@ Height is metres relative to the MOLA geoid. Heading is degrees clockwise from n
 - Landmark outlines are approximations (see Landmarks); proper outlines need the USGS geologic map.
 - REMS weather ends at sol 4995 in the public feed; later stops reuse that sol.
 - Saved trails stay in one browser unless downloaded.
+- Dust: an archive ending in MY36, at 6° × 5°; see "Dust storm activity, What it is not".
 
 ## Credits
 
 Imagery and data: NASA/JPL-Caltech, USGS, University of Arizona, MSSS, ASU, ESA/DLR/FU Berlin (HRSC).
+Dust optical depth: L. Montabone, F. Forget, E. Millour and co-authors, LMD/Space Science Institute, from NASA MGS TES,
+Mars Odyssey THEMIS and MRO MCS retrievals (CC BY-SA 3.0; averaged and quantised here, and shared under the same licence).
 Map library: Leaflet 1.9.4 (BSD-2-Clause). NASA does not endorse this project.

@@ -7,8 +7,8 @@
 <title>Marswalk: Mount Sharp boxwork field map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="vendor/leaflet.css">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="leaflet.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
@@ -21,7 +21,8 @@
       <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
     </header>
 
-    <section>
+    <!-- The four parts of this column: data-tab says which button at the bottom shows each one (app.js, setTab) -->
+    <section data-tab="overlay" hidden>
       <h2>Data over the photo map</h2>
       <div id="layer-list" role="radiogroup" aria-label="Data layer"></div>
       <label class="slider"><span>Layer strength</span>
@@ -32,7 +33,68 @@
       <p id="layer-note" class="note"></p>
     </section>
 
-    <section>
+    <!-- Dust storm activity: filled in by dust-ui.js from dust.js and dust-data.js -->
+    <section id="dust" class="dustsec" data-tab="dust" hidden>
+      <h2>Dust storm activity</h2>
+      <label class="check"><input id="dust-on" type="checkbox"><span>DUST STORM ACTIVITY</span><span id="dust-res" class="res"></span></label>
+      <p id="dust-status" class="note" role="status">Loading the dust observations…</p>
+      <div id="dust-body" hidden>
+        <label class="select"><span class="sr">Colour the dust layer by</span><select id="dust-view"></select></label>
+        <label class="slider"><span>Layer strength</span>
+          <input id="dust-opacity" type="range" min="10" max="100" value="60" aria-label="Dust layer strength">
+        </label>
+        <label class="check sub"><input id="dust-fill" type="checkbox"><span>Fill gaps with INTERPOLATED values</span></label>
+        <div id="dust-key" class="ramp"><span></span><i></i><span></span></div>
+        <ul id="dust-classes" class="trail-key" hidden></ul>
+        <p id="dust-key-note" class="note"></p>
+        <p class="note">Tap the map at Crater or Planet scale to read a cell. One cell is hundreds of kilometres across: it is a regional value, not a local one.</p>
+
+        <h3>Dust monitor</h3>
+        <p id="dust-where" class="note"></p>
+        <dl id="dust-panel"></dl>
+        <ul id="dust-why" class="note"></ul>
+        <div class="row"><button id="dust-unpin" type="button" hidden>Back to the walker's position</button></div>
+
+        <h3>Dust along the route</h3>
+        <div id="dust-route"></div>
+
+        <p class="note"><b>How to read the labels</b> <button type="button" class="info" data-info="labels" aria-label="What does this mean?">i</button><b>.</b> OBSERVED: retrieved from an orbiter instrument for that cell and those sols. HISTORICAL: statistics of observations from other Martian Years. INTERPOLATED: estimated between observations (kriging), shown only when asked for. MODELLED: no dust value here is a model output. This is detection from past observations and a historical record, not a forecast. Optical depth describes the whole air column from orbit; it does not measure visibility or conditions on the ground.</p>
+        <p id="dust-credit" class="note"></p>
+      </div>
+    </section>
+
+    <!-- Timeline: the same dust data through time. Filled in by dust-ui.js -->
+    <section id="dust-time" class="dustsec" data-tab="time" hidden>
+      <h2>Timeline</h2>
+      <p id="dust-time-status" class="note" role="status">Loading the dust observations…</p>
+      <div id="dust-time-body" hidden>
+        <p class="note">Historical dust observations, one frame every 5 sols. Playing the timeline turns the DUST STORM ACTIVITY layer on.</p>
+        <div class="row pair">
+          <label class="select"><span>Martian Year <button type="button" class="info" data-info="martianYear" aria-label="What does this mean?">i</button></span><select id="dust-my"></select></label>
+          <label class="select"><span>Compare with</span><select id="dust-cmp"></select></label>
+        </div>
+        <div class="row pair">
+          <label class="num"><span>Ls from <button type="button" class="info" data-info="ls" aria-label="What does this mean?">i</button></span><input id="dust-ls-from" type="number" min="0" max="360" step="5" value="0"></label>
+          <label class="num"><span>Ls to</span><input id="dust-ls-to" type="number" min="0" max="360" step="5" value="360"></label>
+        </div>
+        <input id="dust-frame" type="range" min="0" max="1" value="0" aria-label="Observation in the timeline">
+        <p id="dust-when" class="note"></p>
+        <div class="row">
+          <button id="dust-prev" type="button" aria-label="Previous observation">◀</button>
+          <button id="dust-play" type="button" aria-pressed="false">Play</button>
+          <button id="dust-next" type="button" aria-label="Next observation">▶</button>
+          <label class="select"><span class="sr">Animation speed</span>
+            <select id="dust-fps"><option value="2">Slow</option><option value="4" selected>Normal</option><option value="10">Fast</option></select>
+          </label>
+        </div>
+        <div class="row"><button id="dust-swap" type="button" disabled>Put the comparison year on the map</button></div>
+        <canvas id="dust-chart" width="536" height="230" aria-label="Dust optical depth of the monitored cell through the Martian Year"></canvas>
+        <p id="dust-chart-note" class="note"></p>
+        <div id="dust-events"></div>
+      </div>
+    </section>
+
+    <section data-tab="menu">
       <h2>Your trail</h2>
       <ul class="trail-key" aria-label="Trail colour by number of passes">
         <li><i style="background:var(--t1)"></i>once</li>
@@ -59,7 +121,7 @@
       </div>
     </section>
 
-    <section>
+    <section data-tab="menu">
       <h2>Saved routes and trails</h2>
       <ul id="saved"></ul>
       <p id="store-msg" class="note" role="status" hidden></p>
@@ -69,24 +131,32 @@
       <input id="import-file" type="file" accept=".json,application/json" hidden>
     </section>
 
-    <section>
+    <section data-tab="menu">
       <h2>Measured along the route</h2>
       <label class="select"><span class="sr">Colour the route stops by</span>
         <select id="route-var"></select>
       </label>
       <div id="route-legend" class="ramp" hidden><span id="ramp-min"></span><i></i><span id="ramp-max"></span></div>
       <canvas id="profile" width="536" height="150" aria-label="Elevation along the route"></canvas>
-      <p class="note">Height along the route, from Curiosity's own position fixes. The blue mark is you.</p>
+      <p class="note">Height along the route <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button>, from Curiosity's own position fixes. The blue mark is you.</p>
     </section>
 
-    <footer>
-      <p>Imagery and layers: NASA/JPL Mars Trek (MRO HiRISE and CTX, Viking, Odyssey THEMIS, MGS TES and MOLA, Mars Express HRSC). Route, weather and rover photos: NASA/JPL-Caltech Curiosity (MSL, REMS, Navcam). Radiation is a model built on the published RAD surface average.</p>
+    <footer data-tab="menu">
+      <p>Imagery and layers: NASA/JPL Mars Trek (MRO HiRISE and CTX, Viking, Odyssey THEMIS, MGS TES and MOLA, Mars Express HRSC). Route, weather and rover photos: NASA/JPL-Caltech Curiosity (MSL, REMS, Navcam). Radiation is a model built on the published RAD surface average. Dust optical depth: Montabone et al. climatology (MGS TES, Odyssey THEMIS, MRO MCS), CC BY-SA 3.0.</p>
     </footer>
+
+    <!-- Bottom of the column: which part is shown -->
+    <nav id="tabs" aria-label="Panel sections">
+      <button type="button" data-tab-btn="menu" aria-pressed="true">Menu</button>
+      <button type="button" data-tab-btn="overlay" aria-pressed="false">Map Overlay</button>
+      <button type="button" data-tab-btn="dust" aria-pressed="false">Dust Storm</button>
+      <button type="button" data-tab-btn="time" aria-pressed="false">Timeline</button>
+    </nav>
   </aside>
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
-    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Layers</button>
+    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Menu</button>
     <div class="seg" role="group" aria-label="Who moves the pointer">
       <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
       <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
@@ -123,6 +193,7 @@
       <svg viewBox="0 0 10 18" aria-hidden="true"><polyline points="8,2 2,9 8,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
     <div id="banner" role="alert" hidden></div>
+    <div id="dust-warn" role="status" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
     <figure id="pov" hidden>
@@ -144,7 +215,7 @@
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
-    <!-- Settings panel: wired up in js/settings.js, choices listed in js/config.js -->
+    <!-- Settings panel: wired up in settings.js, choices listed in config.js -->
     <section id="settings" role="dialog" aria-label="Settings" hidden>
       <header><h2>Settings</h2><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
 
@@ -188,7 +259,7 @@
     <dl id="nav">
       <div class="plan"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div class="robot"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
-      <div class="plan"><dd id="r-z">–</dd><dt id="r-z-l">height, MOLA datum</dt></div>
+      <div class="plan"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
       <div><dd id="r-hdg">–</dd><dt>looking</dt></div>
       <div><dd id="r-dist">–</dd><dt>walked</dt></div>
       <div><dd id="r-home">–</dd><dt id="r-home-l">straight back to base</dt></div>
@@ -200,27 +271,34 @@
         <i id="p-bar" aria-hidden="true"><b id="p-tick"></b></i>
         <dt id="p-lab"></dt>
       </div>
-      <div class="plan"><dd id="e-air">–</dd><dt>air</dt></div>
+      <div class="plan"><dd id="e-air">–</dd><dt>air <button type="button" class="info" data-info="temperature" aria-label="What does this mean?">i</button></dt></div>
       <div class="plan"><dd id="e-gnd">–</dd><dt>ground</dt></div>
-      <div class="plan"><dd id="e-p">–</dd><dt>pressure</dt></div>
-      <div class="plan"><dd id="e-uv">–</dd><dt>UV</dt></div>
-      <div class="plan"><dd id="e-rad">–</dd><dt>dose rate</dt></div>
+      <div class="plan"><dd id="e-p">–</dd><dt>pressure <button type="button" class="info" data-info="pressure" aria-label="What does this mean?">i</button></dt></div>
+      <div class="plan"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
+      <div class="plan"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
       <div><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div id="dust-read"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
       <p id="e-src" class="note plan"></p>
     </dl>
   </div>
 </div>
 
+<!-- One small pop-up shared by every (i) button; the texts are GLOSSARY in config.js -->
+<div id="info-pop" role="dialog" aria-label="Explanation" hidden></div>
+
 <!-- Load order matters: each file adds to the one global, MW. See README.md, "Where things live". -->
-<script src="vendor/leaflet.js"></script>
-<script src="js/config.js"></script>
-<script src="js/data.js"></script>
-<script src="js/geo.js"></script>
-<script src="js/tiles.js"></script>
-<script src="js/trail.js"></script>
-<script src="js/store.js"></script>
-<script src="js/landmarks.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/app.js"></script>
+<script src="leaflet.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="geo.js"></script>
+<script src="tiles.js"></script>
+<script src="trail.js"></script>
+<script src="store.js"></script>
+<script src="landmarks.js"></script>
+<script src="settings.js"></script>
+<script src="app.js"></script>
+<script src="dust-data.js"></script>
+<script src="dust.js"></script>
+<script src="dust-ui.js"></script>
 </body>
 </html>
