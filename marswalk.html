@@ -675,7 +675,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 /* Marswalk: a printed-map sheet. The photo map is the sheet; the grey collar and
    margins carry the legend, as on a USGS quadrangle. Magenta is the overprint colour
    cartographers use for field revisions, so it marks the walker's own trail. */
-/* Colours. Three themes; Settings switches between them by setting data-theme on <body>.
+/* Colours. Ten themes; Settings switches between them by setting data-theme on <body>. Each block also
+   applies to [data-theme-preview], the little sample tiles in Settings > App colours.
    Mars is brown and grey, so the default frame is blue: it never blends into the map. */
 :root {
   --t1: #FFC2E2; --t2: #FF5FB0; --t3: #D4148C; --t4: #6E0A63;      /* trail shades, set from Settings */
@@ -683,19 +684,52 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --label: "Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
   --body: "Barlow", "Helvetica Neue", Arial, sans-serif;
 }
-body, body[data-theme="blue"] {
+body, body[data-theme="blue"], [data-theme-preview="blue"] {
   --paper: #E2EEFA; --paper-2: #C6DCF3; --field: #F5FAFF; --rule: #98B6D8;
   --ink: #0B2545; --ink-2: #3A5A82; --me: #0B5FFF; --warn: #8A3400;
 }
-body[data-theme="night"] {
+body[data-theme="night"], [data-theme-preview="night"] {
   --paper: #0B2545; --paper-2: #17396B; --field: #06182F; --rule: #35598C;
   --ink: #EAF3FC; --ink-2: #A9C6E4; --me: #8DBBFF; --warn: #FFC078;
 }
-body[data-theme="grey"] {
+body[data-theme="grey"], [data-theme-preview="grey"] {
   --paper: #E7EAEA; --paper-2: #D6DCDD; --field: #FFFFFF; --rule: #AEB8BC;
   --ink: #14202B; --ink-2: #44535E; --me: #0B5FFF; --warn: #9A3B00;
 }
+body[data-theme="sand"], [data-theme-preview="sand"] {
+  --paper: #F3E9DA; --paper-2: #E6D3B8; --field: #FFF9F0; --rule: #C9AE88;
+  --ink: #3B2412; --ink-2: #6E4B2D; --me: #0B5FFF; --warn: #8A3400;
+}
+body[data-theme="green"], [data-theme-preview="green"] {
+  --paper: #E3F1E6; --paper-2: #C7E2CD; --field: #F6FBF7; --rule: #94C2A0;
+  --ink: #0F2E1B; --ink-2: #3A6249; --me: #0B5FFF; --warn: #8A3400;
+}
+body[data-theme="violet"], [data-theme-preview="violet"] {
+  --paper: #ECE6F7; --paper-2: #D8CCF0; --field: #F8F5FD; --rule: #AE9BD6;
+  --ink: #24133F; --ink-2: #55457A; --me: #0B5FFF; --warn: #8A3400;
+}
+body[data-theme="contrast"], [data-theme-preview="contrast"] {   /* bright light, as in direct sun */
+  --paper: #FFFFFF; --paper-2: #E4E4E4; --field: #FFFFFF; --rule: #000000;
+  --ink: #000000; --ink-2: #1F1F1F; --me: #0047FF; --warn: #8A2A00;
+}
+body[data-theme="teal"], [data-theme-preview="teal"] {
+  --paper: #0E2A2E; --paper-2: #164249; --field: #071B1E; --rule: #2F6870;
+  --ink: #E6F5F4; --ink-2: #9CC9C6; --me: #6FD3FF; --warn: #FFC078;
+}
+body[data-theme="black"], [data-theme-preview="black"] {
+  --paper: #0E0F11; --paper-2: #23262B; --field: #000000; --rule: #3A3F47;
+  --ink: #F2F4F7; --ink-2: #A8B0BB; --me: #7FB2FF; --warn: #FFB25E;
+}
+body[data-theme="red"], [data-theme-preview="red"] {        /* red on black keeps eyes adjusted to the dark */
+  --paper: #140505; --paper-2: #2A0B0B; --field: #0A0202; --rule: #5A1A1A;
+  --ink: #FF6B5B; --ink-2: #C8463A; --me: #FF9A6B; --warn: #FFB25E;
+}
 * { box-sizing: border-box; }
+/* Theme change: colours glide to the new theme. Only for the moment of the change, so hovers stay quick;
+   the map itself is left out, because Leaflet animates its tiles and zoom with transitions of its own. */
+html.theme-fade, html.theme-fade :not(.leaflet-container *):not(.leaflet-container) {
+  transition: background-color .5s ease, color .5s ease, border-color .5s ease, outline-color .5s ease, fill .5s ease, stroke .5s ease, box-shadow .5s ease !important;
+}
 html, body { height: 100%; margin: 0; }
 body { font: 400 15px/1.4 var(--body); color: var(--ink); background: var(--paper); }
 [hidden] { display: none !important; }
@@ -775,7 +809,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .me svg { display: block; overflow: visible; color: var(--me-colour); transform: scale(var(--me-scale)); transform-origin: 36px 36px; }
 .me-arrow { stroke: var(--me-edge); }
 
-#banner { position: absolute; left: 12px; right: 12px; top: 12px; z-index: 900; background: #FFF3D6; color: #8A3400; border: 1.5px solid #8A3400; border-radius: 3px; padding: 10px 12px; font-weight: 500; }
+#banner { position: absolute; left: 64px; right: 12px; top: 12px; z-index: 900; background: #FFF3D6; color: #8A3400; border: 1.5px solid #8A3400; border-radius: 3px; padding: 10px 12px; font-weight: 500; }
 #scale { position: absolute; left: 12px; bottom: 12px; z-index: 800; display: flex; align-items: flex-end; gap: 6px; color: #fff; font: 600 14px/1 var(--label); text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
 #scale i { display: block; height: 7px; border: 2px solid #fff; border-top: 0; box-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
 
@@ -788,21 +822,20 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
 #pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
 
-/* Fold-away tab: hangs off the legend column's right edge, halfway down the map. With the column
-   folded away (#app.collar-hidden) it sits against the screen edge and its chevron turns to point out.
-   Where the column is a drawer (narrow screens, Astronaut display) the tab is not used. */
-#collar-tab { position: absolute; left: 0; top: 50%; z-index: 850; transform: translateY(-50%);
-  width: 26px; min-height: 0; height: 76px; padding: 0; display: grid; place-items: center;
-  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-left: 0; border-radius: 0 6px 6px 0;
-  box-shadow: 2px 0 6px rgba(0, 0, 0, .35); }
-#collar-tab:hover { background: var(--paper-2); }
-#collar-tab svg { width: 10px; height: 18px; transition: transform .2s ease; }
-#app.collar-hidden #collar-tab svg { transform: scaleX(-1); }
+/* Edge tabs: hang off the legend column's right edge, at the top of the map. The open part's tab joins the
+   column (same paper, no border between them). With the column folded away they sit against the screen edge.
+   On narrow screens the column is a drawer and, while it is open, the tabs ride on its edge. */
+#tabs { position: absolute; left: -1.5px; top: 12px; z-index: 850; display: flex; flex-direction: column; gap: 5px; }
+#tabs button { width: 44px; height: 48px; min-height: 0; padding: 0 0 0 2px; display: grid; place-items: center;
+  background: var(--paper-2); color: var(--ink-2); border: 1.5px solid var(--ink); border-left: 0; border-radius: 0 7px 7px 0;
+  box-shadow: 2px 1px 6px rgba(0, 0, 0, .4); }
+#tabs button:hover { background: var(--paper); color: var(--ink); }
+#tabs button[aria-pressed="true"] { width: 50px; background: var(--paper); color: var(--ink); }
+#tabs button[aria-pressed="true"] .ico { stroke-width: 2.4; }
 @media (min-width: 861px) {
-  body:not([data-display="astronaut"]) #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
-  body:not([data-display="astronaut"]) #app.collar-hidden #collar { display: none; }
+  #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+  #app.collar-hidden #collar { display: none; }
 }
-body[data-display="astronaut"] #collar-tab { display: none; }
 /* Close button inside the drawer (shown wherever .only-narrow is) */
 .sheet-title { position: relative; }
 #collar-close { position: absolute; right: -6px; top: -6px; width: 40px; padding: 0; font-size: 22px; }
@@ -829,7 +862,7 @@ body[data-display="astronaut"] #collar-tab { display: none; }
   #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
   #collar.open { transform: none; }
   .only-narrow { display: inline-block; }
-  #collar-tab { display: none; }
+  #app.drawer-open #tabs { position: fixed; left: calc(min(320px, 88vw) - 1.5px); z-index: 1201; }
   #strip { grid-template-columns: minmax(0, 1fr); }
   #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
   #strip dd { font-size: 18px; }
@@ -840,7 +873,7 @@ body[data-display="astronaut"] #collar-tab { display: none; }
   #pad button { min-height: 46px; }
   #pad p { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { #collar, #collar-tab svg { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #collar { transition: none; } }
 
 /* ---------- legend tick, layer readout, recording, saved trails ---------- */
 .ramp i, #p-bar { position: relative; }
@@ -876,43 +909,98 @@ body[data-display="astronaut"] #collar-tab { display: none; }
 .lmk dt { font: 600 13px/1.35 var(--label); color: var(--ink-2); }
 .lmk dd { margin: 0; }
 
-/* ---------- settings panel ---------- */
-#settings { position: absolute; top: 12px; left: 12px; bottom: 12px; z-index: 1000; width: min(330px, calc(100% - 24px)); overflow-y: auto;
-  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 3px; padding: 12px 14px 14px; }
-#settings header { display: flex; justify-content: space-between; align-items: center; }
-#settings h2 { font: 700 22px/1 var(--label); margin: 0; }
-#settings h3 { font: 600 16px/1.2 var(--label); margin: 14px 0 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
-#settings-close { min-height: 34px; width: 34px; padding: 0; font-size: 20px; }
+/* ---------- settings: gear button and full-screen page ---------- */
+#bar { position: relative; z-index: 900; }                       /* lets the gear's label sit over the map */
+#btn-settings { position: relative; }
+#btn-settings svg { width: 22px; height: 22px; display: block; }
+#tip { position: fixed; z-index: 2100; pointer-events: none; max-width: 260px; font: 600 13px/1.25 var(--label); padding: 6px 9px; border-radius: 3px;
+  background: var(--ink); color: var(--paper); box-shadow: 0 2px 8px rgba(0, 0, 0, .3); }
+.ico { width: 22px; height: 22px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ico .f { fill: currentColor; stroke: none; }
+.ico .rec-dot { fill: #D7263D; }
+button.ib { width: 44px; padding: 0; display: inline-grid; place-items: center; flex: none; font-size: 20px; }
+button.ib.sm { width: 36px; padding: 0; }
+button.ib.sm .ico { width: 18px; height: 18px; }
+.row.icons { justify-content: flex-start; }
+.select.inline.ico-label { gap: 4px; }
+.ico-label > span[data-icon] { display: inline-grid; color: var(--ink-2); }
+.ico-label .ico { width: 21px; height: 21px; }
+
+body.set-open { overflow: hidden; }
+#settings { position: fixed; inset: 0; z-index: 1500; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); }
+#settings .set-head { display: flex; align-items: center; gap: 16px; padding: 12px max(16px, calc((100% - 1120px) / 2)); border-bottom: 1.5px solid var(--ink); background: var(--paper); }
+#settings h2 { display: flex; align-items: center; gap: 10px; font: 700 26px/1 var(--label); margin: 0; }
+#settings h2 svg { width: 26px; height: 26px; }
+#settings .set-head .note { flex: 1; margin: 0; color: var(--ink-2); font-size: 13px; }
+#settings-close { min-width: 96px; }
+#settings .set-body { flex: 1; overflow-y: auto; padding: 20px max(16px, calc((100% - 1120px) / 2)) 28px; }
+#settings .set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+#settings .set-card { border: 1.5px solid var(--ink); border-radius: 3px; padding: 14px 16px 16px; background: var(--field); min-width: 0; }
+#settings .set-wide { grid-column: 1 / -1; }
+#settings h3 { font: 700 19px/1.2 var(--label); margin: 0 0 10px; }
+#settings h4 { font: 600 15px/1.2 var(--label); color: var(--ink-2); margin: 16px 0 6px; padding-top: 10px; border-top: 1px solid var(--rule); }
+#settings .note { font-size: 13px; color: var(--ink-2); margin: 8px 0 0; }
+#settings .set-card > .note:first-of-type { margin-top: 0; }
 #settings .seg { display: flex; }
 #settings .seg button { flex: 1; padding: 0 6px; }
-#settings .row { margin-top: 6px; }
+#settings .row { margin-top: 8px; }
 #settings .row > * { flex: 1; min-width: 0; }
+#settings .ro-tools { max-width: 320px; }
+#settings .ro-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 4px 10px; }
+#settings .check { grid-template-columns: 20px 1fr; align-items: start; padding: 8px 8px; border: 1px solid var(--rule); background: var(--paper); }
+#settings .check input { margin-top: 1px; }
+#settings .check .dsub { font-weight: 500; }
+#settings .check:has(input:checked) { background: var(--paper); color: var(--ink); border-color: var(--ink); box-shadow: inset 0 0 0 0.5px var(--ink); }
+#settings .check:has(input:checked) .dsub, #settings .check .dsub { color: var(--ink-2); }
+#settings .check:hover { background: var(--paper-2); }
+#settings .set-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px 20px; }
+#settings .set-lab { display: block; font: 600 13px/1 var(--label); color: var(--ink-2); margin: 2px 0 6px; }
+#settings .set-pair + .note { margin: 8px 0 10px; }
+#set-theme { display: grid; grid-template-columns: repeat(auto-fill, minmax(98px, 1fr)); gap: 10px; }
+#settings #set-theme button { display: grid; gap: 6px; min-height: 0; padding: 6px 6px 8px; text-align: left; font: 600 13px/1.2 var(--label);
+  background: var(--paper); color: var(--ink); }
+#settings #set-theme button:hover { background: var(--paper-2); }
+#settings #set-theme button[aria-pressed="true"] { background: var(--paper-2); color: var(--ink); outline: 3px solid var(--ink); outline-offset: 2px; }
+.tt-prev { display: grid; grid-template-columns: 1fr 14px; grid-template-rows: 6px 1fr; gap: 4px; height: 44px; padding: 6px;
+  background: var(--paper); border: 1px solid var(--rule); border-radius: 2px; }
+.tt-prev i:nth-child(1) { grid-column: 1 / -1; background: var(--ink); border-radius: 1px; width: 70%; }
+.tt-prev i:nth-child(2) { background: var(--paper-2); border: 1px solid var(--ink); border-radius: 1px; }
+.tt-prev i:nth-child(3) { background: var(--me); border-radius: 50%; align-self: end; height: 14px; }
+#settings .set-foot { margin-top: 18px; max-width: 320px; }
 #settings input[type="text"], #settings select { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); }
+@media (max-width: 640px) {
+  #settings .set-head .note { display: none; }
+  #settings .set-head h2 { flex: 1; }
+  #settings .set-grid { grid-template-columns: minmax(0, 1fr); }
+}
 .sws { display: flex; gap: 6px; }
 .sw { flex: 1; min-height: 34px; padding: 0; border-width: 1.5px; }
 .sw[aria-pressed="true"] { outline: 3px solid var(--ink); outline-offset: 2px; }
 button:disabled { opacity: .45; cursor: default; }
 
-/* ---------- display modes (Settings > Display) ----------
-   .plan  = only the planner needs it      .robot = only the robot display shows it */
-.robot { display: none !important; }
-body[data-display="robot"] .robot { display: flex !important; }
+/* ---------- bottom readouts (Settings > Display) ---------- */
+#strip .ro-off, #strip.ro-off { display: none !important; }
+#strip:has(> dl.ro-off) { grid-template-columns: minmax(0, 1fr); }
+#strip dl.ro-off + dl { border-left: 0; border-top: 0; }
 body[data-move="click"] #pad { display: none; }
-
-/* Astronaut: the map and a few large readouts. The legend column becomes a drawer behind "Layers". */
-body[data-display="astronaut"] .plan { display: none !important; }
-body[data-display="astronaut"] #app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
-body[data-display="astronaut"] #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
-body[data-display="astronaut"] #collar.open { transform: none; }
-body[data-display="astronaut"] .only-narrow { display: inline-block; }
-body[data-display="astronaut"] #bar button, body[data-display="astronaut"] #bar select { min-height: 52px; font-size: 18px; padding: 0 16px; }
-body[data-display="astronaut"] #strip { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
-body[data-display="astronaut"] #strip dl { gap: 6px 40px; padding: 10px 16px 12px; }
-body[data-display="astronaut"] #strip dd { font-size: 38px; }
-body[data-display="astronaut"] #strip dt { font-size: 16px; }
-body[data-display="astronaut"] #pad { grid-template-columns: repeat(3, 72px); }
-body[data-display="astronaut"] #pad button { min-height: 68px; font-size: 26px; }
-@media (prefers-reduced-motion: reduce) { body[data-display="astronaut"] #collar { transition: none; } }
+body.ro-large #strip dl { gap: 6px 40px; padding: 10px 16px 12px; }
+body.ro-large #strip dd { font-size: 38px; }
+body.ro-large #strip dt { font-size: 16px; }
+body.ro-large #strip button.info { width: 22px; height: 22px; font-size: 14px; }
+body.ro-large #strip #dust-read { max-width: 460px; }
+:root { --col-w: 270px; }
+body.ro-large { --col-w: 380px; }
+@media (min-width: 861px) {
+  body.ro-col:not(.ro-empty) #app { grid-template-columns: 300px minmax(0, 1fr) var(--col-w); grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: "collar bar bar" "collar stage strip"; }
+  body.ro-col:not(.ro-empty) #app.collar-hidden { grid-template-columns: minmax(0, 1fr) var(--col-w); grid-template-areas: "bar bar" "stage strip"; }
+  body.ro-col #strip { border-top: 0; border-left: 1.5px solid var(--ink); grid-template-columns: minmax(0, 1fr); align-content: start; overflow-y: auto; min-height: 0; }
+  body.ro-col #strip dl { flex-direction: column; flex-wrap: nowrap; gap: 12px; padding: 12px 14px 14px; }
+  body.ro-col #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
+  body.ro-col #strip dl > div, body.ro-col #strip #nav > div:first-child, body.ro-col #strip #probe, body.ro-col #strip #dust-read { min-width: 0; max-width: none; flex: none; }
+  body.ro-col #strip dd { white-space: normal; }
+  body.ro-col #strip .note { margin-top: 0; }
+}
 
 /* ---------- dust storm activity (js/dust-ui.js) ---------- */
 #collar .dustsec h3 { font: 600 15px/1.2 var(--label); margin: 14px 0 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
@@ -958,16 +1046,11 @@ body[data-display="astronaut"] #pad button { min-height: 68px; font-size: 26px; 
 #dust-warn button { min-height: 28px; padding: 0 8px; margin-left: 4px; font-size: 13px; }
 #strip #dust-read { min-width: 150px; max-width: 300px; }
 #strip #dust-read dt { white-space: normal; }
-body[data-display="astronaut"] #strip #dust-read { max-width: 460px; }
 
 /* ---------- the four parts of the legend column, and the buttons that choose one ---------- */
 #collar { display: flex; flex-direction: column; }
 #collar > * { flex: 0 0 auto; }
-#tabs { position: sticky; bottom: -12px; z-index: 5; margin: auto -18px -12px; display: grid; grid-template-columns: repeat(4, 1fr);
-  background: var(--paper); border-top: 1.5px solid var(--ink); box-shadow: 0 -14px 0 var(--paper); }   /* the shadow keeps a clear gap above the bar */
-#collar > footer, #collar > section:last-of-type, #collar > section[data-tab]:not([data-tab="menu"]) { margin-bottom: 26px; }
-#tabs button { min-height: 48px; padding: 2px 4px; border: 0; border-left: 1.5px solid var(--ink); border-radius: 0; font-size: 14px; line-height: 1.1; white-space: normal; }
-#tabs button:first-child { border-left: 0; }
+#collar > *:last-child { margin-bottom: 8px; }
 
 /* ---------- (i) buttons and their pop-up ---------- */
 button.info { display: inline-grid; place-items: center; width: 17px; height: 17px; min-height: 0 !important; padding: 0 !important; flex: none !important; margin: 0 0 0 2px; vertical-align: -2px;
@@ -979,7 +1062,6 @@ button.info:hover, button.info[aria-expanded="true"] { background: var(--ink); c
 #info-pop p { margin: 6px 0 0; }
 #info-pop .basis { color: var(--ink-2); }
 #info-close { position: absolute; right: 6px; top: 6px; width: 26px; min-height: 26px; padding: 0; font-size: 17px; }
-body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-size: 14px; }
 
 </style>
 </head>
@@ -994,7 +1076,7 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
       <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
     </header>
 
-    <!-- The four parts of this column: data-tab says which button at the bottom shows each one (app.js, setTab) -->
+    <!-- The four parts of this column: data-tab says which tab on the column's edge shows each one (app.js, setTab) -->
     <section data-tab="overlay" hidden>
       <h2>Data over the photo map</h2>
       <div id="layer-list" role="radiogroup" aria-label="Data layer"></div>
@@ -1054,7 +1136,7 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
         <p id="dust-when" class="note"></p>
         <div class="row">
           <button id="dust-prev" type="button" aria-label="Previous observation">◀</button>
-          <button id="dust-play" type="button" aria-pressed="false">Play</button>
+          <button id="dust-play" type="button" class="ib" aria-pressed="false" aria-label="Play" data-tip="Play" data-icon="play"></button>
           <button id="dust-next" type="button" aria-label="Next observation">▶</button>
           <label class="select"><span class="sr">Animation speed</span>
             <select id="dust-fps"><option value="2">Slow</option><option value="4" selected>Normal</option><option value="10">Fast</option></select>
@@ -1077,8 +1159,10 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
       </ul>
       <p class="note">The line darkens each time you cross the same ground. Tap it to see every pass in order.</p>
       <p id="rec-status" class="rec" role="status" hidden></p>
-      <div class="row">
-        <button id="btn-rec" type="button" aria-pressed="false">Record a new trail</button>
+      <div class="row icons">
+        <button id="btn-rec" type="button" class="ib" aria-pressed="false" aria-label="Record a new trail" data-tip="Record a new trail" data-icon="record"></button>
+        <button id="btn-back" type="button" class="ib" aria-pressed="false" aria-label="Show way back" data-tip="Show way back" data-icon="wayback"></button>
+        <button id="btn-clear" type="button" class="ib" aria-label="Clear trail" data-tip="Clear trail" data-icon="trash"></button>
       </div>
       <form id="save-form" hidden>
         <label for="save-name">Name this trail</label>
@@ -1088,18 +1172,14 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
           <button id="btn-discard" type="button">Don't save</button>
         </div>
       </form>
-      <div class="row">
-        <button id="btn-back" type="button" aria-pressed="false">Show way back</button>
-        <button id="btn-clear" type="button">Clear trail</button>
-      </div>
     </section>
 
     <section data-tab="menu">
       <h2>Saved routes and trails</h2>
       <ul id="saved"></ul>
       <p id="store-msg" class="note" role="status" hidden></p>
-      <div class="row">
-        <button id="btn-import" type="button">Import a trail file</button>
+      <div class="row icons">
+        <button id="btn-import" type="button" class="ib" aria-label="Import a trail file" data-tip="Import a trail file" data-icon="upload"></button>
       </div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
     </section>
@@ -1118,24 +1198,16 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
       <p>Imagery and layers: NASA/JPL Mars Trek (MRO HiRISE and CTX, Viking, Odyssey THEMIS, MGS TES and MOLA, Mars Express HRSC). Route, weather and rover photos: NASA/JPL-Caltech Curiosity (MSL, REMS, Navcam). Radiation is a model built on the published RAD surface average. Dust optical depth: Montabone et al. climatology (MGS TES, Odyssey THEMIS, MRO MCS), CC BY-SA 3.0.</p>
     </footer>
 
-    <!-- Bottom of the column: which part is shown -->
-    <nav id="tabs" aria-label="Panel sections">
-      <button type="button" data-tab-btn="menu" aria-pressed="true">Menu</button>
-      <button type="button" data-tab-btn="overlay" aria-pressed="false">Map Overlay</button>
-      <button type="button" data-tab-btn="dust" aria-pressed="false">Dust Storm</button>
-      <button type="button" data-tab-btn="time" aria-pressed="false">Timeline</button>
-    </nav>
   </aside>
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
-    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Menu</button>
     <div class="seg" role="group" aria-label="Who moves the pointer">
-      <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
-      <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
+      <button id="mode-replay" type="button" class="ib" aria-pressed="true" aria-label="Replay Curiosity's drive" data-tip="Replay Curiosity's drive" data-icon="route"></button>
+      <button id="mode-manual" type="button" class="ib" aria-pressed="false" aria-label="Walk it yourself" data-tip="Walk it yourself" data-icon="walk"></button>
     </div>
-    <button id="btn-play" type="button">Start</button>
-    <label class="select inline plan"><span>Speed</span>
+    <button id="btn-play" type="button" class="ib" aria-label="Start" data-tip="Start" data-icon="play"></button>
+    <label class="select inline ico-label" data-tip="Speed"><span data-icon="speed"></span><span class="sr">Speed</span>
       <select id="speed">
         <option value="1">Real time</option>
         <option value="10">10×</option>
@@ -1144,27 +1216,30 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
       </select>
     </label>
     <span class="spacer"></span>
-    <label class="select inline plan"><span>Walker</span><select id="walker"></select></label>
-    <button id="btn-settings" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
-    <button id="btn-follow" type="button" aria-pressed="true">Follow me</button>
-    <div class="seg plan" role="group" aria-label="Map scale">
-      <button id="z-walk" type="button">Walk</button>
-      <button id="z-crater" type="button">Crater</button>
-      <button id="z-planet" type="button">Planet</button>
+    <label class="select inline ico-label" data-tip="Walker"><span data-icon="person"></span><span class="sr">Walker</span><select id="walker"></select></label>
+    <!-- Map scale. Walk also keeps the walker in view (it is pressed while the map follows them); dragging the map stops that. -->
+    <div class="seg" role="group" aria-label="Map scale">
+      <button id="z-walk" type="button" class="ib" aria-pressed="true" aria-label="Walk scale, following the walker" data-tip="Walk scale: follow the walker" data-icon="locate"></button>
+      <button id="z-crater" type="button" class="ib" aria-label="Crater scale" data-tip="Crater scale" data-icon="crater"></button>
+      <button id="z-planet" type="button" class="ib" aria-label="Planet scale" data-tip="Planet scale" data-icon="globe"></button>
     </div>
     <div class="seg" role="group" aria-label="Zoom">
-      <button id="z-out" type="button" aria-label="Zoom out">−</button>
-      <button id="z-in" type="button" aria-label="Zoom in">+</button>
+      <button id="z-out" type="button" class="ib" aria-label="Zoom out" data-tip="Zoom out">−</button>
+      <button id="z-in" type="button" class="ib" aria-label="Zoom in" data-tip="Zoom in">+</button>
     </div>
+    <button id="btn-settings" class="ib" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings" aria-label="Settings" data-tip="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M20.22 9.46 L22.76 9.71 L22.76 14.29 L20.22 14.54 L19.61 16.01 L21.23 17.99 L17.99 21.23 L16.01 19.61 L14.54 20.22 L14.29 22.76 L9.71 22.76 L9.46 20.22 L7.99 19.61 L6.01 21.23 L2.77 17.99 L4.39 16.01 L3.78 14.54 L1.24 14.29 L1.24 9.71 L3.78 9.46 L4.39 7.99 L2.77 6.01 L6.01 2.77 L7.99 4.39 L9.46 3.78 L9.71 1.24 L14.29 1.24 L14.54 3.78 L16.01 4.39 L17.99 2.77 L21.23 6.01 L19.61 7.99 Z M15.6 12 A3.6 3.6 0 1 0 8.4 12 A3.6 3.6 0 1 0 15.6 12 Z"/></svg></button>
   </div>
 
   <!-- ============ the map ============ -->
   <main id="stage">
     <div id="map" aria-label="Map of the walk"></div>
-    <!-- Tab on the legend column's edge: folds the column away (wide screens, Planner and Robot displays) -->
-    <button id="collar-tab" type="button" aria-controls="collar" aria-expanded="true" aria-label="Hide panel" title="Hide panel">
-      <svg viewBox="0 0 10 18" aria-hidden="true"><polyline points="8,2 2,9 8,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    <!-- Tabs on the legend column's edge: each shows its part of the column; the open part's tab folds the column away -->
+    <nav id="tabs" aria-label="Panel sections">
+      <button type="button" data-tab-btn="menu" aria-pressed="true" aria-controls="collar" aria-label="Menu: your trail and saved routes" data-tip="Menu" data-tip-side="right" data-icon="menu"></button>
+      <button type="button" data-tab-btn="overlay" aria-pressed="false" aria-controls="collar" aria-label="Map overlay" data-tip="Map overlay" data-tip-side="right" data-icon="layers"></button>
+      <button type="button" data-tab-btn="dust" aria-pressed="false" aria-controls="collar" aria-label="Dust storm" data-tip="Dust storm" data-tip-side="right" data-icon="dust"></button>
+      <button type="button" data-tab-btn="time" aria-pressed="false" aria-controls="collar" aria-label="Timeline" data-tip="Timeline" data-tip-side="right" data-icon="clock"></button>
+    </nav>
     <div id="banner" role="alert" hidden></div>
     <div id="dust-warn" role="status" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
@@ -1188,73 +1263,108 @@ body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-siz
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
-    <!-- Settings panel: wired up in settings.js, choices listed in config.js -->
-    <section id="settings" role="dialog" aria-label="Settings" hidden>
-      <header><h2>Settings</h2><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
-
-      <h3>Walker</h3>
-      <label class="select"><span class="sr">Active walker</span><select id="set-walker"></select></label>
-      <div class="row">
-        <input id="set-walker-name" type="text" maxlength="30" autocomplete="off" aria-label="Walker's name">
-        <select id="set-walker-type" aria-label="Kind of walker"><option value="astronaut">Astronaut</option><option value="robot">Robot</option></select>
-      </div>
-      <div class="row">
-        <button id="set-walker-add" type="button">Add a walker</button>
-        <button id="set-walker-remove" type="button">Remove this one</button>
-      </div>
-      <p class="note">Every recorded trail carries its walker's name and kind, and landmark visits are counted per walker.</p>
-
-      <h3>Display</h3>
-      <div id="set-display" class="seg"></div>
-      <p class="note">Planner shows everything. Astronaut keeps a few large readouts for a glance through a visor. Robot gives exact coordinates.</p>
-
-      <h3>App colours</h3>
-      <div id="set-theme" class="seg"></div>
-
-      <h3>Trail</h3>
-      <div id="set-trail-colour" class="sws" role="group" aria-label="Trail colour"></div>
-      <label class="slider"><span>Width</span><input id="set-trail-width" type="range" min="0.5" max="2.5" step="0.25"></label>
-
-      <h3>Pointer</h3>
-      <div id="set-pointer-colour" class="sws" role="group" aria-label="Pointer colour"></div>
-      <label class="slider"><span>Size</span><input id="set-pointer-size" type="range" min="0.7" max="2.2" step="0.1"></label>
-
-      <h3>Moving the pointer</h3>
-      <div id="set-move" class="seg"></div>
-      <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
-
-      <div class="row"><button id="set-reset" type="button">Back to the original look</button></div>
-    </section>
   </main>
 
   <!-- ============ bottom strip: the head-up readouts ============ -->
   <div id="strip" aria-label="Position and conditions">
     <dl id="nav">
-      <div class="plan"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
-      <div class="robot"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
-      <div class="plan"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
-      <div><dd id="r-hdg">–</dd><dt>looking</dt></div>
-      <div><dd id="r-dist">–</dd><dt>walked</dt></div>
-      <div><dd id="r-home">–</dd><dt id="r-home-l">straight back to base</dt></div>
-      <div><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
+      <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
+      <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
+      <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="hdg"><dd id="r-hdg">–</dd><dt>bearing</dt></div>
+      <div data-ro="dist"><dd id="r-dist">–</dd><dt>distance travelled</dt></div>
+      <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
+      <div data-ro="time"><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
     </dl>
     <dl id="env">
-      <div id="probe" hidden>
+      <div id="probe" data-ro="probe" hidden>
         <dd id="p-val">–</dd>
         <i id="p-bar" aria-hidden="true"><b id="p-tick"></b></i>
         <dt id="p-lab"></dt>
       </div>
-      <div class="plan"><dd id="e-air">–</dd><dt>air <button type="button" class="info" data-info="temperature" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-gnd">–</dd><dt>ground</dt></div>
-      <div class="plan"><dd id="e-p">–</dd><dt>pressure <button type="button" class="info" data-info="pressure" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
-      <div><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
-      <div id="dust-read"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
-      <p id="e-src" class="note plan"></p>
+      <div data-ro="air"><dd id="e-air">–</dd><dt>air <button type="button" class="info" data-info="temperature" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="gnd"><dd id="e-gnd">–</dd><dt>ground</dt></div>
+      <div data-ro="p"><dd id="e-p">–</dd><dt>pressure <button type="button" class="info" data-info="pressure" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="uv"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="rad"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
   </div>
 </div>
+
+<!-- ============ Settings: a full-screen page over the app. Wired up in settings.js, choices listed in config.js ============ -->
+<section id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <header class="set-head">
+    <h2 id="settings-title"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M20.22 9.46 L22.76 9.71 L22.76 14.29 L20.22 14.54 L19.61 16.01 L21.23 17.99 L17.99 21.23 L16.01 19.61 L14.54 20.22 L14.29 22.76 L9.71 22.76 L9.46 20.22 L7.99 19.61 L6.01 21.23 L2.77 17.99 L4.39 16.01 L3.78 14.54 L1.24 14.29 L1.24 9.71 L3.78 9.46 L4.39 7.99 L2.77 6.01 L6.01 2.77 L7.99 4.39 L9.46 3.78 L9.71 1.24 L14.29 1.24 L14.54 3.78 L16.01 4.39 L17.99 2.77 L21.23 6.01 L19.61 7.99 Z M15.6 12 A3.6 3.6 0 1 0 8.4 12 A3.6 3.6 0 1 0 15.6 12 Z"/></svg>Settings</h2>
+    <p class="note">Changes apply straight away and are kept for your next visit.</p>
+    <button id="settings-close" type="button" aria-label="Close settings">Done</button>
+  </header>
+  <div class="set-body">
+    <div class="set-grid">
+
+      <section class="set-card set-wide" aria-labelledby="set-display-h">
+        <h3 id="set-display-h">Display</h3>
+        <p class="note">Tick the readouts you want to see beside the map.</p>
+        <div class="row ro-tools">
+          <button id="set-ro-all" type="button">Show all</button>
+          <button id="set-ro-none" type="button">Hide all</button>
+        </div>
+        <div id="set-readouts"></div>
+        <h4>How the readouts look</h4>
+        <div class="set-pair">
+          <div><span class="set-lab">Units</span><div id="set-units" class="seg" role="group" aria-label="Units"></div></div>
+          <div><span class="set-lab">Layout</span><div id="set-layout" class="seg" role="group" aria-label="Layout of the readouts"></div></div>
+        </div>
+        <p class="note">US units: feet, °F, psi and millirem. The column sits beside the map on wide screens; on narrow screens the readouts always run along the bottom.</p>
+        <div class="ro-list">
+          <label class="check"><input id="set-ro-large" type="checkbox"><span>Large readouts<span class="dsub">Big numbers for a glance through a visor</span></span></label>
+          <label class="check"><input id="set-ro-exact" type="checkbox"><span>Exact numbers<span class="dsub">Full precision: distances to two decimals, time in seconds, heading to a tenth of a degree</span></span></label>
+        </div>
+      </section>
+
+      <section class="set-card set-wide" aria-labelledby="set-theme-h">
+        <h3 id="set-theme-h">App colours</h3>
+        <div id="set-theme" role="group" aria-label="App colours"></div>
+        <p class="note">The night themes are easier on the eyes in the dark; Night red keeps them adjusted to it. High contrast is for bright light.</p>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-walker-h">
+        <h3 id="set-walker-h">Walker</h3>
+        <label class="select"><span class="sr">Active walker</span><select id="set-walker"></select></label>
+        <div class="row">
+          <input id="set-walker-name" type="text" maxlength="30" autocomplete="off" aria-label="Walker's name">
+          <select id="set-walker-type" aria-label="Kind of walker"><option value="astronaut">Astronaut</option><option value="robot">Robot</option></select>
+        </div>
+        <div class="row">
+          <button id="set-walker-add" type="button">Add a walker</button>
+          <button id="set-walker-remove" type="button">Remove this one</button>
+        </div>
+        <p class="note">Every recorded trail carries its walker's name and kind, and landmark visits are counted per walker.</p>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-trail-h">
+        <h3 id="set-trail-h">Trail</h3>
+        <div id="set-trail-colour" class="sws" role="group" aria-label="Trail colour"></div>
+        <label class="slider"><span>Width</span><input id="set-trail-width" type="range" min="0.5" max="2.5" step="0.25"></label>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-pointer-h">
+        <h3 id="set-pointer-h">Pointer</h3>
+        <div id="set-pointer-colour" class="sws" role="group" aria-label="Pointer colour"></div>
+        <label class="slider"><span>Size</span><input id="set-pointer-size" type="range" min="0.7" max="2.2" step="0.1"></label>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-move-h">
+        <h3 id="set-move-h">Moving the pointer</h3>
+        <div id="set-move" class="seg"></div>
+        <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
+      </section>
+
+    </div>
+    <div class="row set-foot"><button id="set-reset" type="button">Back to the original look</button></div>
+  </div>
+</section>
 
 <!-- One small pop-up shared by every (i) button; the texts are GLOSSARY in config.js -->
 <div id="info-pop" role="dialog" aria-label="Explanation" hidden></div>
@@ -1301,9 +1411,28 @@ MW.config = {
   },
   POINTER_COLOURS: { blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
   THEMES: {                       // name shown in Settings; colours live in css/style.css under body[data-theme]
-    blue: 'Blue', night: 'Night blue', grey: 'Grey'
+    blue: 'Blue', grey: 'Grey', sand: 'Sand', green: 'Green', violet: 'Violet', contrast: 'High contrast',
+    night: 'Night blue', teal: 'Night teal', black: 'Black', red: 'Night red'
   },
-  DISPLAYS: { planner: 'Planner', astronaut: 'Astronaut', robot: 'Robot' },
+  READOUTS: [                     // the readouts along the bottom of the screen, ticked on or off in Settings > Display
+    { group: 'Position and movement', key: 'pos',   name: 'Position from base',   what: 'how far east and north of base',      on: true },
+    { group: 'Position and movement', key: 'll',    name: 'Latitude and longitude', what: 'to six decimal places',             on: false },
+    { group: 'Position and movement', key: 'z',     name: 'Height',               what: 'above the MOLA datum',                on: true },
+    { group: 'Position and movement', key: 'hdg',   name: 'Bearing',              what: 'which way the walker is facing',     on: true },
+    { group: 'Position and movement', key: 'dist',  name: 'Distance travelled',   what: 'since the walk began',                on: true },
+    { group: 'Position and movement', key: 'home',  name: 'Displacement from base', what: 'straight line, or back along the trail when Show way back is on',  on: true },
+    { group: 'Position and movement', key: 'time',  name: 'Time on the surface',  what: 'and the local time of day',           on: true },
+    { group: 'Conditions',            key: 'probe', name: 'Map layer reading',    what: 'when a map overlay is switched on',   on: true },
+    { group: 'Conditions',            key: 'air',   name: 'Air temperature',      what: 'just above the ground',                                  on: true },
+    { group: 'Conditions',            key: 'gnd',   name: 'Ground temperature',   what: 'at the surface',                                  on: true },
+    { group: 'Conditions',            key: 'p',     name: 'Air pressure',         what: 'of the thin Martian air',               on: true },
+    { group: 'Conditions',            key: 'uv',    name: 'UV level',             what: 'low to very high',                    on: true },
+    { group: 'Conditions',            key: 'rad',   name: 'Radiation dose rate',  what: 'per hour, from the surface',            on: true },
+    { group: 'Conditions',            key: 'dose',  name: 'Dose this walk',       what: 'received so far',                       on: true },
+    { group: 'Conditions',            key: 'dust',  name: 'Dust activity',        what: 'dust storm class here and now',       on: true }
+  ],
+  UNITS: { si: 'SI (metres, °C)', us: 'US (feet, °F)' },
+  RO_LAYOUTS: { row: 'Row along the bottom', column: 'Column beside the map' },
   MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
   DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
 
@@ -2147,6 +2276,81 @@ window.MARSWALK_DATA = {
 
 </script>
 <script>
+/* ui.js — MW.ui: the line icons on buttons, and the small label that names an icon button.
+ *
+ *   MW.ui.icon('play')                       the <svg> for one icon, as text
+ *   MW.ui.setButton(btn, 'play', 'Start')    give a button an icon and its words (hover label and screen readers)
+ *
+ * In the page, data-icon="name" on an element puts that icon inside it. Any element with data-tip="words"
+ * shows those words in a label while the pointer rests on it or it has keyboard focus: below it, or to its
+ * right with data-tip-side="right". The label floats over everything, so scrolling panels never clip it.
+ */
+(function () {
+  'use strict';
+  var P = {
+    route:   '<circle cx="5" cy="18.5" r="2.3"/><circle cx="19" cy="5" r="2.3"/><path d="M7.3 18.5H14a3.6 3.6 0 0 0 0-7.2h-4a3.15 3.15 0 0 1 0-6.3h6.7"/>',
+    walk:    '<path class="f" d="M8.2 2.8c-1.8 0-3 2.1-3 4.8 0 2 .8 3.5 1 4.7h3.8c.2-1.2 1-2.7 1-4.7 0-2.7-1.1-4.8-2.8-4.8z"/><path class="f" d="M6.4 13.6h3.8v1.5a1.9 1.9 0 0 1-3.8 0z"/>' +
+             '<path class="f" d="M16.2 7.8c-1.8 0-3 2.1-3 4.8 0 2 .8 3.5 1 4.7h3.8c.2-1.2 1-2.7 1-4.7 0-2.7-1.1-4.8-2.8-4.8z"/><path class="f" d="M14.4 18.6h3.8v1.1a1.9 1.9 0 0 1-3.8 0z"/>',
+    play:    '<path class="f" d="M7 4.5v15L19.5 12z"/>',
+    pause:   '<rect class="f" x="6" y="4.5" width="4" height="15" rx="1"/><rect class="f" x="14" y="4.5" width="4" height="15" rx="1"/>',
+    restart: '<path d="M5 12.5a7 7 0 1 0 2.1-5"/><path d="M6.6 3v4.6h4.6"/>',
+    speed:   '<path d="M3.6 17.5a9 9 0 1 1 16.8 0"/><path d="M12 14.5l4.2-5.2"/><circle class="f" cx="12" cy="14.5" r="1.7"/>',
+    person:  '<circle cx="12" cy="7.5" r="3.8"/><path d="M4.5 20.5c.7-4.3 3.7-6.6 7.5-6.6s6.8 2.3 7.5 6.6"/>',
+    locate:  '<circle cx="12" cy="12" r="6.5"/><circle class="f" cx="12" cy="12" r="2.3"/><path d="M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"/>',
+    crater:  '<circle cx="12" cy="12" r="9"/><circle cx="12.6" cy="12.6" r="4.3"/><path d="M9.2 15.3a4.3 4.3 0 0 0 6.8-4.9" stroke-width="3.2" opacity=".45"/>',
+    globe:   '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.4 3.8 9s-1.3 6.6-3.8 9c-2.5-2.4-3.8-5.4-3.8-9S9.5 5.4 12 3z"/>',
+    record:  '<circle class="f rec-dot" cx="12" cy="12" r="6.5"/>',
+    stop:    '<rect class="f" x="6.5" y="6.5" width="11" height="11" rx="1.5"/>',
+    wayback: '<path d="M9 13.5 4 8.5l5-5"/><path d="M4 8.5h10.5a5.5 5.5 0 0 1 0 11H10"/>',
+    trash:   '<path d="M4 6.5h16M9.5 6.5V4h5v2.5M6 6.5l1 13.5h10l1-13.5M10 10.5v6M14 10.5v6"/>',
+    upload:  '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4 14.5V20h16v-5.5"/>',
+    download:'<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M4 14.5V20h16v-5.5"/>',
+    eye:     '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff:  '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 20 20 4"/>',
+    menu:    '<path d="M4 6.5h16M4 12h16M4 17.5h16"/>',
+    layers:  '<path d="M12 3 2.5 8 12 13l9.5-5z"/><path d="M2.5 12l9.5 5 9.5-5"/><path d="M2.5 16l9.5 5 9.5-5"/>',
+    dust:    '<path d="M3 8.5h10.5a3 3 0 1 0-3-3"/><path d="M3 12.5h15a3 3 0 1 1-3 3"/><path d="M3 16.5h6"/>',
+    clock:   '<circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.5 2.1"/>'
+  };
+  function icon(name) { return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (P[name] || '') + '</svg>'; }
+
+  /* ---- the hover label ---- */
+  var tip = document.createElement('div'), cur = null, timer = null;
+  tip.id = 'tip'; tip.setAttribute('aria-hidden', 'true'); tip.hidden = true; document.body.appendChild(tip);
+  function show(el) {
+    var t = el.getAttribute('data-tip'); if (!t || !el.isConnected || !el.getClientRects().length) { hide(); return; }
+    tip.textContent = t; tip.hidden = false;
+    var r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight, x, y;
+    if (el.getAttribute('data-tip-side') === 'right') { x = r.right + 8; y = r.top + r.height / 2 - h / 2; }
+    else { x = r.left + r.width / 2 - w / 2; y = r.bottom + 7; if (y + h > window.innerHeight - 4) y = r.top - h - 7; }
+    tip.style.left = Math.max(4, Math.min(window.innerWidth - w - 4, x)) + 'px'; tip.style.top = Math.max(4, y) + 'px';
+  }
+  function hide() { clearTimeout(timer); tip.hidden = true; }
+  document.addEventListener('mouseover', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (el === cur) return;
+    cur = el; hide(); if (el) timer = setTimeout(function () { show(el); }, 250);
+  });
+  document.addEventListener('focusin', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-tip]') : null;
+    if (el && e.target.matches(':focus-visible')) { cur = el; show(el); }
+  });
+  document.addEventListener('focusout', function () { if (cur && !cur.matches(':hover')) { cur = null; hide(); } });
+  document.addEventListener('pointerdown', function (e) { if (e.pointerType !== 'mouse') { cur = null; hide(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+
+  function setButton(b, name, label) {
+    b.innerHTML = icon(name); b.setAttribute('aria-label', label); b.setAttribute('data-tip', label);
+    if (b === cur && !tip.hidden) show(b);                 // the words changed under the pointer (Start becomes Pause)
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-icon]'), function (el) { el.insertAdjacentHTML('afterbegin', icon(el.getAttribute('data-icon'))); });
+
+  MW.ui = { icon: icon, setButton: setButton, hideTip: hide };
+})();
+</script>
+<script>
 /* settings.js — MW.settings: the user's choices, kept between visits, and the Settings panel.
  *
  *   MW.settings.get('trailColour')        read one value
@@ -2162,17 +2366,27 @@ window.MARSWALK_DATA = {
 (function () {
   'use strict';
   var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
+  function readoutDefaults() { var o = {}; C.READOUTS.forEach(function (r) { o[r.key] = r.on; }); return o; }
   var DEFAULTS = {
-    theme: 'blue', display: 'planner', move: 'hybrid',
+    theme: 'blue', move: 'hybrid',
+    readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'row',
     trailColour: 'magenta', trailWidth: 1,
     pointerColour: 'blue', pointerSize: 1,
     walkers: C.DEFAULT_WALKERS, walker: 'w1'
   };
   var v = JSON.parse(JSON.stringify(DEFAULTS)), listeners = [];
-  try { var saved = JSON.parse(window.localStorage.getItem(KEY) || '{}'); Object.keys(DEFAULTS).forEach(function (k) { if (saved[k] !== undefined) v[k] = saved[k]; }); } catch (e) {}
+  try {
+    var saved = JSON.parse(window.localStorage.getItem(KEY) || '{}'); Object.keys(DEFAULTS).forEach(function (k) { if (saved[k] !== undefined) v[k] = saved[k]; });
+    /* Visits from before the readout list kept one of three display modes: carry over what each one meant. */
+    if (saved.display === 'astronaut' && saved.roLarge === undefined) v.roLarge = true;
+    if (saved.display === 'robot' && saved.roExact === undefined) { v.roExact = true; if (!saved.readouts) v.readouts.ll = true; }
+  } catch (e) {}
   /* Never trust stored values blindly: fall back to the default if a choice no longer exists. */
   if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
-  if (!C.DISPLAYS[v.display]) v.display = DEFAULTS.display;
+  var ro = readoutDefaults(); if (v.readouts && typeof v.readouts === 'object') Object.keys(ro).forEach(function (k) { if (typeof v.readouts[k] === 'boolean') ro[k] = v.readouts[k]; }); v.readouts = ro;
+  v.roLarge = v.roLarge === true; v.roExact = v.roExact === true;
+  if (!C.UNITS[v.units]) v.units = DEFAULTS.units;
+  if (!C.RO_LAYOUTS[v.roLayout]) v.roLayout = DEFAULTS.roLayout;
   if (!C.MOVES[v.move]) v.move = DEFAULTS.move;
   if (!C.TRAIL_PALETTES[v.trailColour]) v.trailColour = DEFAULTS.trailColour;
   if (!C.POINTER_COLOURS[v.pointerColour]) v.pointerColour = DEFAULTS.pointerColour;
@@ -2182,11 +2396,21 @@ window.MARSWALK_DATA = {
   function save() { try { window.localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} }
   function walker() { return v.walkers.filter(function (w) { return w.id === v.walker; })[0]; }
 
-  /* Styling that needs no redraw. */
+  /* Styling that needs no redraw. A new theme fades in over half a second instead of switching at once
+     (html.theme-fade in the stylesheet), unless the system asks for less motion. */
+  var fadeTimer = null, reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   function applyStyle() {
     var root = document.documentElement.style, pal = C.TRAIL_PALETTES[v.trailColour], pc = C.POINTER_COLOURS[v.pointerColour];
+    var was = document.body.getAttribute('data-theme');
+    if (was && was !== v.theme && !reduceMotion.matches) {
+      document.documentElement.classList.add('theme-fade'); clearTimeout(fadeTimer);
+      fadeTimer = setTimeout(function () { document.documentElement.classList.remove('theme-fade'); }, 700);
+    }
     document.body.setAttribute('data-theme', v.theme);
-    document.body.setAttribute('data-display', v.display);
+    document.body.classList.toggle('ro-large', v.roLarge);
+    document.body.classList.toggle('ro-exact', v.roExact);
+    document.body.classList.toggle('ro-col', v.roLayout === 'column');
+    applyReadouts();
     document.body.setAttribute('data-move', v.move);
     pal.forEach(function (c, i) { root.setProperty('--t' + (i + 1), c); });
     root.setProperty('--me-colour', pc);
@@ -2194,6 +2418,49 @@ window.MARSWALK_DATA = {
     root.setProperty('--me-scale', v.pointerSize);
   }
   function changed() { save(); applyStyle(); render(); listeners.forEach(function (fn) { fn(v); }); }
+
+  /* Show or hide each readout along the bottom. A column with nothing ticked folds away, and so does the strip. */
+  function applyReadouts() {
+    Array.prototype.forEach.call(document.querySelectorAll('#strip [data-ro]'), function (el) { el.classList.toggle('ro-off', !v.readouts[el.getAttribute('data-ro')]); });
+    var any = false;
+    Array.prototype.forEach.call(document.querySelectorAll('#strip > dl'), function (dl) {
+      var on = Array.prototype.some.call(dl.querySelectorAll('[data-ro]'), function (el) { return v.readouts[el.getAttribute('data-ro')]; });
+      dl.classList.toggle('ro-off', !on); any = any || on;
+    });
+    $('strip').classList.toggle('ro-off', !any); document.body.classList.toggle('ro-empty', !any);
+  }
+  function readoutList() {
+    var box = $('set-readouts'); if (box.childElementCount) { syncReadouts(); return; }    // built once; afterwards only the ticks change
+    var groups = {};
+    C.READOUTS.forEach(function (r) {
+      if (!groups[r.group]) {
+        var h = document.createElement('h4'); h.textContent = r.group; box.appendChild(h);
+        groups[r.group] = document.createElement('div'); groups[r.group].className = 'ro-list'; box.appendChild(groups[r.group]);
+      }
+      var l = document.createElement('label'), i = document.createElement('input'), t = document.createElement('span'), d = document.createElement('span');
+      l.className = 'check'; i.type = 'checkbox'; i.setAttribute('data-ro-set', r.key);
+      t.textContent = r.name; d.className = 'dsub'; d.textContent = r.what; t.appendChild(d);
+      i.addEventListener('change', function () { v.readouts[r.key] = this.checked; changed(); });
+      l.appendChild(i); l.appendChild(t); groups[r.group].appendChild(l);
+    });
+    syncReadouts();
+  }
+  function syncReadouts() {
+    Array.prototype.forEach.call(document.querySelectorAll('#set-readouts input[data-ro-set]'), function (i) { i.checked = !!v.readouts[i.getAttribute('data-ro-set')]; });
+    $('set-ro-large').checked = v.roLarge; $('set-ro-exact').checked = v.roExact;
+  }
+
+  /* The full-screen page: opened by the gear, closed by Done or Escape. Focus stays inside while it is open. */
+  var opener = null;
+  function openPage() {
+    opener = document.activeElement; $('settings').hidden = false; $('btn-settings').setAttribute('aria-expanded', 'true');
+    document.body.classList.add('set-open'); $('settings-close').focus();
+  }
+  function closePage() {
+    if ($('settings').hidden) return;
+    $('settings').hidden = true; $('btn-settings').setAttribute('aria-expanded', 'false'); document.body.classList.remove('set-open');
+    (opener && opener.isConnected ? opener : $('btn-settings')).focus();
+  }
 
   /* ---------------- the panel ---------------- */
   function swatches(boxId, key, choices, paint) {
@@ -2215,14 +2482,28 @@ window.MARSWALK_DATA = {
       box.appendChild(b);
     });
   }
+  function themeTiles() {                              // one tile per theme, painted in that theme's own colours
+    var box = $('set-theme'); box.innerHTML = '';
+    Object.keys(C.THEMES).forEach(function (name) {
+      var b = document.createElement('button'), pv = document.createElement('span'), t = document.createElement('span');
+      b.type = 'button'; b.setAttribute('aria-pressed', v.theme === name);
+      pv.className = 'tt-prev'; pv.setAttribute('data-theme-preview', name); pv.setAttribute('aria-hidden', 'true'); pv.innerHTML = '<i></i><i></i><i></i>';
+      t.textContent = C.THEMES[name];
+      b.appendChild(pv); b.appendChild(t);
+      b.addEventListener('click', function () { v.theme = name; changed(); });
+      box.appendChild(b);
+    });
+  }
   function fillWalkers(sel) {
     sel.innerHTML = '';
     v.walkers.forEach(function (w) { var o = document.createElement('option'); o.value = w.id; o.textContent = w.name + (w.type === 'robot' ? ' (robot)' : ''); sel.appendChild(o); });
     sel.value = v.walker;
   }
   function render() {
-    choice('set-display', 'display', C.DISPLAYS);
-    choice('set-theme', 'theme', C.THEMES);
+    readoutList();
+    choice('set-units', 'units', C.UNITS);
+    choice('set-layout', 'roLayout', C.RO_LAYOUTS);
+    themeTiles();
     choice('set-move', 'move', C.MOVES);
     swatches('set-trail-colour', 'trailColour', C.TRAIL_PALETTES, function (p) { return 'linear-gradient(90deg,' + p.join(',') + ')'; });
     swatches('set-pointer-colour', 'pointerColour', C.POINTER_COLOURS, function (c) { return c; });
@@ -2234,8 +2515,20 @@ window.MARSWALK_DATA = {
   }
 
   function wire() {
-    $('btn-settings').addEventListener('click', function () { var p = $('settings'); p.hidden = !p.hidden; this.setAttribute('aria-expanded', !p.hidden); });
-    $('settings-close').addEventListener('click', function () { $('settings').hidden = true; $('btn-settings').setAttribute('aria-expanded', 'false'); $('btn-settings').focus(); });
+    $('btn-settings').addEventListener('click', function () { if ($('settings').hidden) openPage(); else closePage(); });
+    $('settings-close').addEventListener('click', closePage);
+    $('settings').addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.stopPropagation(); closePage(); return; }
+      if (e.key !== 'Tab') return;                                            // keep Tab inside the page
+      var f = Array.prototype.filter.call(this.querySelectorAll('button, input, select'), function (el) { return !el.disabled && el.offsetParent !== null; });
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    });
+    $('set-ro-all').addEventListener('click', function () { Object.keys(v.readouts).forEach(function (k) { v.readouts[k] = true; }); changed(); });
+    $('set-ro-none').addEventListener('click', function () { Object.keys(v.readouts).forEach(function (k) { v.readouts[k] = false; }); changed(); });
+    $('set-ro-large').addEventListener('change', function () { v.roLarge = this.checked; changed(); });
+    $('set-ro-exact').addEventListener('change', function () { v.roExact = this.checked; changed(); });
     $('set-trail-width').addEventListener('input', function () { v.trailWidth = +this.value; changed(); });
     $('set-pointer-size').addEventListener('input', function () { v.pointerSize = +this.value; changed(); });
     [$('set-walker'), $('walker')].forEach(function (sel) { sel.addEventListener('change', function () { v.walker = this.value; changed(); }); });
@@ -2260,7 +2553,8 @@ window.MARSWALK_DATA = {
     get: function (k) { return v[k]; },
     set: function (k, val) { v[k] = val; changed(); },
     onChange: function (fn) { listeners.push(fn); },
-    walker: walker
+    walker: walker,
+    open: openPage, close: closePage
   };
   applyStyle(); wire(); render();
 })();
@@ -2572,13 +2866,13 @@ window.MARSWALK_DATA = {
   function startRecording() {
     if (S.mode !== 'manual') setManual();
     clearTrail(); recording = true;
-    $('save-form').hidden = true; $('btn-rec').textContent = 'Stop and save'; $('btn-rec').setAttribute('aria-pressed', 'true');
+    $('save-form').hidden = true; MW.ui.setButton($('btn-rec'), 'stop', 'Stop and save'); $('btn-rec').setAttribute('aria-pressed', 'true');
     setPlaying(true);
   }
   function stopRecording(offerSave) {
     if (!recording) return;
     recording = false; setPlaying(false);
-    $('btn-rec').textContent = 'Record a new trail'; $('btn-rec').setAttribute('aria-pressed', 'false');
+    MW.ui.setButton($('btn-rec'), 'record', 'Record a new trail'); $('btn-rec').setAttribute('aria-pressed', 'false');
     var st = $('rec-status');
     if (!offerSave) { st.hidden = true; return; }
     var lastPt = trail.pts[trail.pts.length - 1];
@@ -2604,13 +2898,13 @@ window.MARSWALK_DATA = {
     var row = function (id, name, metaText, acts) {
       var li = document.createElement('li');
       li.innerHTML = '<strong>' + G.escapeHtml(name) + '</strong><span>' + metaText + '</span><div>' +
-        acts.map(function (a) { return '<button type="button" data-act="' + a[0] + '" data-id="' + id + '">' + a[1] + '</button>'; }).join('') + '</div>';
+        acts.map(function (a) { return '<button type="button" class="ib sm" data-act="' + a[0] + '" data-id="' + id + '" aria-label="' + a[2] + '" data-tip="' + a[2] + '">' + MW.ui.icon(a[1]) + '</button>'; }).join('') + '</div>';
       ul.appendChild(li);
     };
-    row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [['replay', 'Replay']]);
+    row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [['replay', 'play', 'Replay']]);
     store.list().forEach(function (r) {
       row(r.id, r.name, (r.walker ? G.escapeHtml(r.walker.name) + (r.walker.type === 'robot' ? ' (robot)' : '') + ', ' : '') + fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-        [['show', shown.has(r.id) ? 'Hide' : 'Show'], ['replay', 'Replay'], ['file', 'Download'], ['del', 'Delete']]);
+        [['show', shown.has(r.id) ? 'eyeoff' : 'eye', shown.has(r.id) ? 'Hide from the map' : 'Show on the map'], ['replay', 'play', 'Replay'], ['file', 'download', 'Download'], ['del', 'trash', 'Delete']]);
     });
   }
   function toggleShown(rec) {
@@ -2685,30 +2979,32 @@ window.MARSWALK_DATA = {
   }
 
   var UV = ['', 'low', 'moderate', 'high', 'very high'];
+  /* Units (Settings > Display): the data stay in SI; only what is written changes. */
+  var FT = 3.28084;                                     // feet in a metre
+  function us() { return settings.get('units') === 'us'; }
+  function len(m, d) { return us() ? fmt(m * FT, d) + ' ft' : fmt(m, d) + ' m'; }
   function updateReadouts() {
     nearestOnRoute();
     var c = conditions(), off = S.near.d > 25;
-    var exact = settings.get('display') === 'robot', ll = toLL(S.x, S.y);   // Robot display: full precision
-    $('r-pos').textContent = exact ? 'E ' + S.x.toFixed(2) + ' m, N ' + S.y.toFixed(2) + ' m' : 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    var exact = settings.get('roExact'), ll = toLL(S.x, S.y);   // Settings > Display > Exact numbers: full precision
+    var k = us() ? FT : 1, u = us() ? ' ft' : ' m';
+    $('r-pos').textContent = exact ? 'E ' + (S.x * k).toFixed(2) + u + ', N ' + (S.y * k).toFixed(2) + u : 'E ' + G.signed(S.x * k) + u + ', N ' + G.signed(S.y * k) + u;
     $('r-ll').textContent = ll[0].toFixed(6) + '°, ' + ll[1].toFixed(6) + '°';
-    $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z, 1) + ' m';
+    $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z * k, 1) + u;
     $('r-z-l').textContent = off ? 'height of nearest route point' : 'height, MOLA datum';
     $('r-hdg').textContent = exact ? norm(S.heading).toFixed(1) + '°' : String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
-    $('r-dist').textContent = exact ? S.dist.toFixed(1) + ' m' : fmt(S.dist) + ' m';
-    if (showBack) { $('r-home').textContent = fmt(MW.Trail.pathLength(trail.wayBack())) + ' m'; $('r-home-l').textContent = 'back to the trail start along your trail'; }
-    else { $('r-home').textContent = fmt(Math.hypot(S.x, S.y)) + ' m'; $('r-home-l').textContent = 'straight back to base'; }
+    $('r-dist').textContent = exact ? (S.dist * k).toFixed(1) + u : len(S.dist);
+    if (showBack) { $('r-home').textContent = len(MW.Trail.pathLength(trail.wayBack())); $('r-home-l').textContent = 'back to the trail start along your trail'; }
+    else { $('r-home').textContent = len(Math.hypot(S.x, S.y)); $('r-home-l').textContent = 'displacement from base'; }
     $('r-time').textContent = exact ? Math.round(S.t) + ' s' : clock(S.t);
     $('r-time-l').textContent = 'on the surface, ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local';
-    $('e-air').textContent = minus(c.air) + ' °C';
-    $('e-gnd').textContent = minus(c.gnd) + ' °C';
-    $('e-p').textContent = c.p + ' Pa';
+    $('e-air').textContent = us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C';
+    $('e-gnd').textContent = us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C';
+    $('e-p').textContent = us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa';
     $('e-uv').textContent = UV[c.uv] || '–';
-    $('e-rad').textContent = fmt(c.rate, 1) + ' µSv/h';
-    $('e-dose').textContent = fmt(S.dose, 1) + ' µSv';
-    var w = WP[S.near.i];
-    $('e-src').textContent = 'Weather: Curiosity REMS low and high for sol ' + w.sol + (w.wxMeasured ? '' : ' (last sol in the feed)') +
-      ', with the hourly curve modelled. Radiation: modelled from the RAD surface average, 0.67 mSv a day.';
-    if (recording) { var st = $('rec-status'); st.textContent = 'Recording: ' + fmt(S.dist) + ' m, ' + clock(S.t); st.className = 'rec on'; st.hidden = false; }
+    $('e-rad').textContent = us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h';        // 1 mrem = 10 µSv
+    $('e-dose').textContent = us() ? fmt(S.dose / 10, 2) + ' mrem' : fmt(S.dose, 1) + ' µSv';
+    if (recording) { var st = $('rec-status'); st.textContent = 'Recording: ' + len(S.dist) + ', ' + clock(S.t); st.className = 'rec on'; st.hidden = false; }
     updateProbe(); drawProfile();
   }
 
@@ -2749,11 +3045,16 @@ window.MARSWALK_DATA = {
     pg.beginPath(); pg.arc(x, y, 7, 0, 7); pg.fillStyle = '#0B5FFF'; pg.fill(); pg.strokeStyle = '#fff'; pg.lineWidth = 2.5; pg.stroke();
   }
 
-  function updateScale() {
-    var mpp = G.metresPerPixel(map.getZoom()), want = mpp * 130;
-    var p = Math.pow(10, Math.floor(Math.log10(want))), n = want / p, len = (n >= 5 ? 5 : n >= 2 ? 2 : 1) * p;
-    $('scale').firstElementChild.style.width = (len / mpp) + 'px';
-    $('scale').lastElementChild.textContent = len >= 1000 ? fmt(len / 1000) + ' km' : fmt(len) + ' m';
+  function nice(w) { var p = Math.pow(10, Math.floor(Math.log10(w))), n = w / p; return (n >= 5 ? 5 : n >= 2 ? 2 : 1) * p; }
+  function updateScale() {                              // a round length about 130 px long, in the chosen units
+    var mpp = G.metresPerPixel(map.getZoom()), want = mpp * 130, m, lab;
+    if (us()) {
+      var ft = want * FT;
+      if (ft >= 5280) { var mi = nice(ft / 5280); m = mi * 1609.344; lab = fmt(mi) + ' mi'; }
+      else { var f = nice(ft); m = f / FT; lab = fmt(f) + ' ft'; }
+    } else { m = nice(want); lab = m >= 1000 ? fmt(m / 1000) + ' km' : fmt(m) + ' m'; }
+    $('scale').firstElementChild.style.width = (m / mpp) + 'px';
+    $('scale').lastElementChild.textContent = lab;
   }
   map.on('zoomend', updateScale); updateScale();
   if (window.ResizeObserver) new ResizeObserver(function () { map.invalidateSize({ pan: false }); }).observe($('map'));   // the margins can reflow
@@ -2761,13 +3062,12 @@ window.MARSWALK_DATA = {
   /* ================================================================== 8. Controls and the main loop */
   function setPlaying(p) {
     S.playing = p;
-    $('btn-play').textContent = p ? 'Pause'
-      : S.mode === 'replay' && atRouteEnd() ? 'Replay from the start'
-      : S.dist === 0 ? 'Start' : 'Resume';
+    var end = !p && S.mode === 'replay' && atRouteEnd();
+    MW.ui.setButton($('btn-play'), p ? 'pause' : end ? 'restart' : 'play', p ? 'Pause' : end ? 'Replay from the start' : S.dist === 0 ? 'Start' : 'Resume');
   }
   function showMode() {
     $('mode-replay').setAttribute('aria-pressed', S.mode === 'replay'); $('mode-manual').setAttribute('aria-pressed', S.mode === 'manual');
-    $('mode-replay').textContent = route === CURIOSITY ? "Replay Curiosity's drive" : 'Replay “' + route.name + '”';
+    MW.ui.setButton($('mode-replay'), 'route', route === CURIOSITY ? "Replay Curiosity's drive" : 'Replay “' + route.name + '”');
     $('pad').hidden = S.mode !== 'manual';
   }
   function setManual() { S.mode = 'manual'; target = null; showMode(); setPlaying(false); }
@@ -2778,8 +3078,7 @@ window.MARSWALK_DATA = {
     setPlaying(!S.playing);
   });
   $('speed').addEventListener('change', function (e) { S.factor = +e.target.value; });
-  function setFollow(f) { S.follow = f; $('btn-follow').setAttribute('aria-pressed', f); }
-  $('btn-follow').addEventListener('click', function () { setFollow(!S.follow); if (S.follow) map.panTo(toLL(S.x, S.y)); });
+  function setFollow(f) { S.follow = f; $('z-walk').setAttribute('aria-pressed', f); }     // Walk is pressed while the map follows the walker
   map.on('dragstart', function () { setFollow(false); });
   $('z-walk').addEventListener('click', function () { setFollow(true); map.setView(toLL(S.x, S.y), 16); });
   $('z-crater').addEventListener('click', function () { setFollow(false); map.setView([-5.1, 137.8], 7); });
@@ -2788,36 +3087,47 @@ window.MARSWALK_DATA = {
   $('z-out').addEventListener('click', function () { map.zoomOut(1); });
   $('btn-clear').addEventListener('click', function () { stopRecording(false); clearTrail(); setPlaying(false); });
   $('btn-back').addEventListener('click', function () {
-    showBack = !showBack; this.setAttribute('aria-pressed', showBack); this.textContent = showBack ? 'Hide way back' : 'Show way back';
+    showBack = !showBack; this.setAttribute('aria-pressed', showBack); MW.ui.setButton(this, 'wayback', showBack ? 'Hide way back' : 'Show way back');
     drawTrail();
   });
-  /* Legend column. Wide screens (Planner, Robot): the tab on its edge folds it away, remembered between
-     visits. Narrow screens and the Astronaut display: it is a drawer, opened by "Layers", closed by × or Escape. */
-  var COLLAR_KEY = 'marswalk.collarHidden';
-  function setCollarHidden(hid) {
-    $('app').classList.toggle('collar-hidden', hid);
-    var t = $('collar-tab'), lab = hid ? 'Show panel' : 'Hide panel';
-    t.setAttribute('aria-expanded', !hid); t.setAttribute('aria-label', lab); t.title = lab;
+  /* Legend column. The four tabs on its edge choose which part it shows; the open part's own tab folds it away.
+     Wide screens: whether it is folded away is remembered between visits. Narrow screens: it is a drawer over
+     the map, closed by its tab, by × or by Escape, and the tabs ride on the drawer's edge while it is open. */
+  var COLLAR_KEY = 'marswalk.collarHidden', tab = 'menu', narrow = window.matchMedia('(max-width: 860px)');
+  function panelOpen() { return narrow.matches ? $('collar').classList.contains('open') : !$('app').classList.contains('collar-hidden'); }
+  function showTabs() {
+    var open = panelOpen();
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) {
+      b.setAttribute('aria-pressed', open && b.getAttribute('data-tab-btn') === tab); b.setAttribute('aria-expanded', open);
+    });
   }
-  try { setCollarHidden(window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) { setCollarHidden(false); }
-  $('collar-tab').addEventListener('click', function () {
-    var hid = !$('app').classList.contains('collar-hidden');
-    setCollarHidden(hid);
+  function setCollarHidden(hid) {
+    $('app').classList.toggle('collar-hidden', hid); showTabs();
     try { window.localStorage.setItem(COLLAR_KEY, hid ? '1' : '0'); } catch (e) {}
-  });
-  function setDrawer(open) { $('collar').classList.toggle('open', open); $('btn-collar').setAttribute('aria-expanded', open); }
-  $('btn-collar').addEventListener('click', function () { setDrawer(!$('collar').classList.contains('open')); });
-  function closeDrawer() { if ($('collar').classList.contains('open')) { setDrawer(false); $('btn-collar').focus(); } }
+  }
+  function setDrawer(open) { $('collar').classList.toggle('open', open); $('app').classList.toggle('drawer-open', open); showTabs(); }
+  function openPanel(open) { if (narrow.matches) setDrawer(open); else setCollarHidden(!open); }
+  function closeDrawer() {
+    if (!$('collar').classList.contains('open')) return;
+    setDrawer(false); document.querySelector('#tabs [data-tab-btn="' + tab + '"]').focus();
+  }
+  try { $('app').classList.toggle('collar-hidden', window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) {}
+  showTabs();
+  if (narrow.addEventListener) narrow.addEventListener('change', showTabs);
   $('collar-close').addEventListener('click', closeDrawer);
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* The legend column has four parts. The buttons at its bottom choose which one is shown; Menu is shown first. */
-  function setTab(name) {
+  function setTab(name) {                               // show one part of the column (the column itself may stay folded)
+    tab = name;
     Array.prototype.forEach.call(document.querySelectorAll('#collar > [data-tab]'), function (s) { s.hidden = s.getAttribute('data-tab') !== name; });
-    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tab-btn') === name); });
-    $('collar').scrollTop = 0; closeInfo();
+    $('collar').scrollTop = 0; closeInfo(); showTabs();
   }
-  $('tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-tab-btn]'); if (b) setTab(b.getAttribute('data-tab-btn')); });
+  function openTab(name) { setTab(name); openPanel(true); }
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab-btn]'); if (!b) return;
+    var name = b.getAttribute('data-tab-btn');
+    if (panelOpen() && name === tab) openPanel(false); else openTab(name);
+  });
 
   /* (i) buttons: any button.info with data-info="key" opens the matching GLOSSARY entry (config.js) in one shared pop-up. */
   var infoBtn = null;
@@ -2842,7 +3152,7 @@ window.MARSWALK_DATA = {
 
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
-    var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || !$('settings').hidden) return;
     if (settings.get('move') === 'click') return;        // Settings: taps only
     if (S.mode !== 'manual') setManual();
     keys[k] = true; if (!S.playing) setPlaying(true); e.preventDefault();
@@ -2891,8 +3201,8 @@ window.MARSWALK_DATA = {
     var mv = settings.get('move');
     $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
     if (mv === 'keys') target = null;
-    renderSaved();
-    setTimeout(function () { map.invalidateSize({ pan: false }); }, 0);   // a display mode can change the map's size
+    renderSaved(); updateScale();
+    setTimeout(function () { map.invalidateSize({ pan: false }); }, 0);   // hiding readouts or moving them can change the map's size
   }
   settings.onChange(applySettings);
 
@@ -2917,6 +3227,7 @@ window.MARSWALK_DATA = {
     savedTrails: function () { return store.list(); },
     _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; },
     _route: function () { return route; },               // the route being replayed; dust-ui.js checks the dust along it
+    openTab: openTab,                                    // show that part and open the column if it is folded away
     setTab: setTab                                       // 'menu', 'overlay', 'dust' or 'time': show that part of the legend column
   };
 })();
@@ -4504,7 +4815,7 @@ window.MARSWALK_DUST.data =
   }
   function setPlaying(p) {
     st.playing = p; clearInterval(timer); timer = null;
-    $('dust-play').textContent = p ? 'Pause' : 'Play'; $('dust-play').setAttribute('aria-pressed', p);
+    MW.ui.setButton($('dust-play'), p ? 'pause' : 'play', p ? 'Pause' : 'Play'); $('dust-play').setAttribute('aria-pressed', p);
     if (p && !st.on) setOn(true);                          // playing the timeline shows what it plays
     if (p) timer = setInterval(function () { step(1); }, 1000 / st.fps);
   }
@@ -4786,7 +5097,7 @@ window.MARSWALK_DUST.data =
     $('dust-unpin').addEventListener('click', function () { st.pin = null; map.closePopup(); renderAll(); });
     $('dust-warn').addEventListener('click', function (e) {
       if (e.target.id !== 'dust-warn-more') return;
-      $('app').classList.remove('collar-hidden'); $('collar').classList.add('open'); app.setTab('dust'); $('dust-route').scrollIntoView({ block: 'start' });
+      app.openTab('dust'); $('dust-route').scrollIntoView({ block: 'start' });
     });
     map.on('popupclose', function (e) { if (e.popup.options.className === 'dust-pop' && st.pin !== null) { pinLine.setLatLngs([]); } });
     MW.settings.onChange(function () { if (ready) drawChart(); });
