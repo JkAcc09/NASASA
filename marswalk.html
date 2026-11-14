@@ -965,7 +965,7 @@ body[data-display="astronaut"] #strip #dust-read { max-width: 460px; }
 #collar > * { flex: 0 0 auto; }
 #tabs { position: sticky; bottom: -12px; z-index: 5; margin: auto -18px -12px; display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--paper); border-top: 1.5px solid var(--ink); box-shadow: 0 -14px 0 var(--paper); }   /* the shadow keeps a clear gap above the bar */
-#collar > footer, #collar > section:last-of-type { margin-bottom: 26px; }
+#collar > footer, #collar > section:last-of-type, #collar > section[data-tab]:not([data-tab="menu"]) { margin-bottom: 26px; }
 #tabs button { min-height: 48px; padding: 2px 4px; border: 0; border-left: 1.5px solid var(--ink); border-radius: 0; font-size: 14px; line-height: 1.1; white-space: normal; }
 #tabs button:first-child { border-left: 0; }
 
@@ -3878,6 +3878,8 @@ window.MARSWALK_DUST.data =
   "AuD6y4D79LFr2WtJEUKECMHepv+GbcrpdRS3nbQETPB1oXZ00tqAQ67T8IbZOqu1tALeiKnXNJET3vFAVtg/ouo0UpchjkggDi8oiLHpdCn4BEPkiW0wSY+BJMaqxKA6hnYoj383g7Z0WvzetUEzKGBfJoCRr/0giXfpt/HSvynw6lv4tIQIEWK035cONRa+sE0/raeXpidHG9JYLIxfFjXcAMDhMfRIzf3IlxRoA6USSyhKSL2FfFaBDcmiaGctQEKc8NJFssRtXeRAeAOKJXGHZXjiNfpMXhZvZOETPSF+mwJVfu+5oQdbfPnSM6P/5Zuzk69fxx/z1zeON/54jx+i76/wmn+04M4QId4Y3vDNU231HKcNlwOiwSusgRLppEoIUiSS2kCkoMAI+X8RSrEPo0YUum9nXTdCk60lSCnSle7I5e9sXYhO2cQSWqTLRW9b8aXz21J7bAj6WDqduSHeQHzupj4a2ZEvfRiYL/5HvvSCOn2P5FsLG/StH4D5veNVvo2+TL04oa9vn5v5NgkCavHIQodbiDcYpihDFCZqHeeiua7COYqVR7rR4CNqI4jUflis0rQbnn2p31BQSeURWo3NHrRyxURdhf83S9G+q35hPwwQnmOrlkTu1W2unvz9cAiKACACtdKBN34Ll28qNmHvpJ4XIgT7MHpRrXBij1AxZ6oQ89HEYWgqUFlpscsuxrYLB6y0K0AY1U+WdO/Pm2gxUWe5VH1Alq6RBZmRK48PNqgQsXzpvB8UGCHecx58WuwTkFSIEB8piiePvD30rfB+PrPbXYma4P+v5BwIJzK1C6ZoDHQLy3KiKKQduZ83wOhke5qfCjxDiMC+sJcuRYUIEYJ9LP+NoZCibHbtyGvkIEzFdZRhmnDkeD+fe+AG4Q21CwsXgXtXqoGHnCoiUojhUgXaQbQDitCKGiLEeH7jt88uNPn8CjKEqWtDhAjxHOEVarY3sKonHKGFMb6keUJspjt61agiV4gFsIRvlwKZEDzIdLlDAR5awn4U5Rsrh5tQ0IU1VFQy2oY9mfQiRIhXohk++6DA6MW9l37mwdonA7UAhM9POjZNvdxl+Np7Zo6lH/W6t6/4STm/0toQIVoj74zmogmhCgcOdK2X/uIIGmps4oIVvjtJiBhLFTdTKNlFygRaAJoDZ8WqMyx0QNGGFrJgthXiF497ABefR/c2fP7t82g64+Hx4zES5ze569Op49nb8IcQwh+F7yYbM6vK/rLiYOZb8WtPiebKaj7ptWhZCzXdlSa7In60CRfVryLOrJ5e79I0OGjWfVY761eXYJRPtJ8Kpqy88jGE6BG3zzwJ/TKSSmjd//V6N37t3d11zMleYZ93T8xSXMNQ+eFxczN4yTpctfdNN2TaOK+ObFkKNKFJJuxqhlib6sWClZxKYrWNWI0l7cHQBEMUWFKFMJwtFuZeqYuVKTaByhxSPiE2VUdCBRzRe7pqsKNY4f/M2WqLxRt+n6uqZ49K/tYBbgg9dm/gGIZl5o0LJiak58tlwurLJXyAnjoOQ7c/hGv2ftHD4HvqrRi7DrNQNeAhAUJuTBbF4ej1zLV6NnxDo4j5MMk3LeaiF6uhmWAo3IJaT2GMIRGIK9mgzeo8Ks6vKmne6lIpPoUeFP/JUeW5rlokEnnfBpSm9P+Cd/3bESmg+5kXi3Az8zZj00GqnHujpMt5GILZbvS1t0Nomp3+1+AsncRL3P3CLNmN98c+sX8TiPnXieZvU2mFvRjgUL2GPKZ6N2u9pcQMWV64gEPMfEfwIBULmqZStbHCvzXSkIPf1RT4sl/8fxC66N2AqOUA";
 
 </script>
+<!-- Precomputed dust baselines, made by build_dust_baselines.js. Optional: without it the page works them out itself (slower). -->
+<script src="dust-baselines.js"></script>
 <script>
 /* dust.js — MW.dust: dust optical depth observations, the seasonal baseline and the anomaly detection.
  * Pure logic: no map, no page. It also runs under Node (see dust_test.js).
@@ -3946,8 +3948,67 @@ window.MARSWALK_DUST.data =
       P = { grid: g, n: n, years: years, lut: lut, source: pack.source, quantity: pack.quantity, built: pack.built,
             stepSols: pack.time.stepSols, notIncluded: pack.notIncluded || [] };
       analyses.clear(); records.clear();
-      return api;
+      return loadBaselines(pack).then(function () { return api; });
     });
+  }
+
+  /* ------------------------------------------------------------------ precomputed baselines (dust-baselines.js) */
+  /* Working the baselines out here froze the page for about a second per Martian Year. build_dust_baselines.js
+     precomputes them into dust-baselines.js; this reads that file. Without it, or if it was built from other data
+     or other settings, baselineForBin works them out as before: same results, just slower. */
+  var pre = null;                  // { T: decoded planes, yi: Martian Year -> index, has: stored bins per year }
+  function baselineFingerprint(pack) {     // data pack + the settings that shape a baseline (FNV-1a)
+    var s = JSON.stringify([pack.built, pack.encoding.scale, K.LS_BIN, K.LS_WINDOW, K.MIN_YEARS, K.MIN_VALUES, K.SIGMA_REL, K.SIGMA_ABS]) + pack.data, h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0).toString(16);
+  }
+  function gunzipBase64(b64) {
+    var bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    var gz = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) gz[i] = bin.charCodeAt(i);
+    return new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+  function loadBaselines(pack) {
+    pre = null;
+    var F = root.MARSWALK_DUST_BASELINES, bins = Math.round(360 / K.LS_BIN), yrs = P.years.map(function (y) { return y.my; });
+    if (!F) return Promise.resolve();
+    if (F.format !== 'marswalk-dust-baselines' || F.version !== 1 || F.n !== P.n || F.bins !== bins || F.years.join() !== yrs.join() ||
+        F.fingerprint !== baselineFingerprint(pack)) {
+      console.warn('dust-baselines.js does not match this dust data or these settings, so the page works the baselines out itself (slower). Rebuild it with: node build_dust_baselines.js');
+      return Promise.resolve();
+    }
+    return gunzipBase64(F.data).then(function (bytes) {
+      var Y = yrs.length, E = bins * P.n * Y, pl = [], i, j;
+      if (bytes.length !== 9 * E) throw new Error('wrong size');
+      for (i = 0; i < 9; i++) {                            // each plane is stored as differences from the entry before
+        var a = bytes.subarray(i * E, (i + 1) * E), prev = 0;
+        for (j = 0; j < E; j++) { prev = (prev + a[j]) & 255; a[j] = prev; }
+        pl.push(a);
+      }
+      var plus = function (a, b) { for (var k = 0; k < E; k++) b[k] = (b[k] + a[k]) & 255; return b; };   // second of a pair: stored relative to the first
+      var cnt = new Uint16Array(E);
+      for (j = 0; j < E; j++) cnt[j] = pl[7][j] | (pl[8][j] << 8);
+      var yi = new Map(); yrs.forEach(function (my, k) { yi.set(my, k); });
+      pre = { yi: yi, has: F.has, T: { Y: Y, n: P.n, mA: pl[0], mB: plus(pl[0], pl[1]), pA: pl[2], pB: plus(pl[2], pl[3]),
+                                       dA: pl[4], dB: plus(pl[4], pl[5]), yrs: pl[6], cnt: cnt } };
+    }).catch(function (e) { pre = null; console.warn('dust-baselines.js could not be read (' + e.message + '), so the page works the baselines out itself (slower).'); });
+  }
+  /* One Ls bin's baseline from the stored readings: the same arithmetic as baselineForBin, so the same Float32 values. */
+  function pairAt(a, b, m, x, k) { return k + 1 < m ? a + (b - a) * (x - k) : a; }
+  function decodeBaselineBin(T, yi, bin) {
+    var n = T.n, lut = P.lut;
+    var out = { med: new Float32Array(n), p90: new Float32Array(n), sig: new Float32Array(n), cnt: new Uint16Array(n), yrs: new Uint8Array(n) };
+    for (var c = 0; c < n; c++) {
+      var e = (bin * n + c) * T.Y + yi, m = T.cnt[e], yrs = T.yrs[e];
+      out.cnt[c] = m; out.yrs[c] = yrs;
+      if (yrs < K.MIN_YEARS || m < K.MIN_VALUES) { out.med[c] = out.p90[c] = out.sig[c] = NAN; continue; }
+      var xm = (m - 1) * 0.5, km = Math.floor(xm), xp = (m - 1) * 0.9, kp = Math.floor(xp);
+      var med = pairAt(lut[T.mA[e]], lut[T.mB[e]], m, xm, km);
+      var da = Math.fround(Math.abs(lut[T.dA[e]] - med)), db = Math.fround(Math.abs(lut[T.dB[e]] - med));
+      out.med[c] = med; out.p90[c] = pairAt(lut[T.pA[e]], lut[T.pB[e]], m, xp, kp);
+      out.sig[c] = Math.max(1.4826 * pairAt(da, db, m, xm, km), K.SIGMA_REL * med, K.SIGMA_ABS);
+    }
+    return out;
   }
   var ready = null;
   function load() {
@@ -3991,7 +4052,11 @@ window.MARSWALK_DUST.data =
     return k + 1 < n ? sorted[k] + (sorted[k + 1] - sorted[k]) * f : sorted[k];
   }
   /* For every cell: statistics of the OBSERVED values near one season, from every year except `excludeMy`. */
-  function baselineForBin(excludeMy, bin) {
+  function baselineForBin(excludeMy, bin, compute) {     // compute: ignore dust-baselines.js (the build script's reference)
+    if (pre && !compute) {
+      var yi = pre.yi.get(excludeMy);
+      if (yi !== undefined && pre.has[yi].charAt(bin) === '1') return decodeBaselineBin(pre.T, yi, bin);
+    }
     var n = P.n, centre = (bin + 0.5) * K.LS_BIN, lut = P.lut;
     var out = { med: new Float32Array(n), p90: new Float32Array(n), sig: new Float32Array(n), cnt: new Uint16Array(n), yrs: new Uint8Array(n) };
     var picks = [];
@@ -4283,6 +4348,7 @@ window.MARSWALK_DUST.data =
     get pack() { return P; },
     years: function () { return P.years.map(function (y) { return y.my; }); },
     year: year, cellAt: cellAt, cellBounds: cellBounds, frameAtLs: frameAtLs, framesInLs: framesInLs, lsDiff: lsDiff,
+    baselineFingerprint: baselineFingerprint, decodeBaselineBin: decodeBaselineBin, usingPrecomputed: function () { return !!pre; },
     analyse: analyse, assess: assess, series: series, seasonalRisk: seasonalRisk, routeExposure: routeExposure,
     implications: implications, baselineForBin: baselineForBin,
     record: function (my) { return records.get(my) || null; },
