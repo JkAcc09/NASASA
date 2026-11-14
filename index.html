@@ -16,6 +16,7 @@
   <!-- ============ left column: the map's legend ============ -->
   <aside id="collar" aria-label="Map layers, trail and route data">
     <header class="sheet-title">
+      <button id="collar-close" type="button" class="only-narrow" aria-label="Close panel">×</button>
       <h1>Marswalk</h1>
       <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
     </header>
@@ -85,7 +86,7 @@
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
-    <button id="btn-collar" type="button" class="only-narrow" aria-expanded="false">Layers</button>
+    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Layers</button>
     <div class="seg" role="group" aria-label="Who moves the pointer">
       <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
       <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
@@ -117,6 +118,10 @@
   <!-- ============ the map ============ -->
   <main id="stage">
     <div id="map" aria-label="Map of the walk"></div>
+    <!-- Tab on the legend column's edge: folds the column away (wide screens, Planner and Robot displays) -->
+    <button id="collar-tab" type="button" aria-controls="collar" aria-expanded="true" aria-label="Hide panel" title="Hide panel">
+      <svg viewBox="0 0 10 18" aria-hidden="true"><polyline points="8,2 2,9 8,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <div id="banner" role="alert" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
