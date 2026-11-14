@@ -965,7 +965,7 @@ body[data-display="astronaut"] #strip #dust-read { max-width: 460px; }
 #collar > * { flex: 0 0 auto; }
 #tabs { position: sticky; bottom: -12px; z-index: 5; margin: auto -18px -12px; display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--paper); border-top: 1.5px solid var(--ink); box-shadow: 0 -14px 0 var(--paper); }   /* the shadow keeps a clear gap above the bar */
-#collar > footer, #collar > section:last-of-type { margin-bottom: 26px; }
+#collar > footer, #collar > section:last-of-type, #collar > section[data-tab]:not([data-tab="menu"]) { margin-bottom: 26px; }
 #tabs button { min-height: 48px; padding: 2px 4px; border: 0; border-left: 1.5px solid var(--ink); border-radius: 0; font-size: 14px; line-height: 1.1; white-space: normal; }
 #tabs button:first-child { border-left: 0; }
 
