@@ -752,6 +752,21 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 .seg button:last-child { border-radius: 0 3px 3px 0; }
 .only-narrow { display: none; }
 
+/* ---------- wide screens: the collar can be folded away to give the map the full width ---------- */
+@media (min-width: 861px) {
+  #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+  #app.collar-hidden #collar { display: none; }
+}
+/* the fold-away tab: hangs off the collar's right edge, halfway down the map; with the
+   collar folded it sits against the screen edge and its chevron turns to point back out */
+#collar-tab { position: absolute; left: 0; top: 50%; z-index: 850; transform: translateY(-50%);
+  width: 26px; min-height: 0; height: 76px; padding: 0; display: grid; place-items: center;
+  background: var(--paper); border: 1.5px solid var(--ink); border-left: 0; border-radius: 0 6px 6px 0;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, .35); }
+#collar-tab:hover { background: var(--paper-2); }
+#collar-tab svg { width: 10px; height: 18px; transition: transform .2s ease; }
+#app.collar-hidden #collar-tab svg { transform: scaleX(-1); }
+
 /* ---------- map stage ---------- */
 #stage { grid-area: stage; position: relative; min-height: 0; background: #1b1b1b; }
 #map { position: absolute; inset: 0; background: #1b1b1b; font: inherit; }
@@ -803,7 +818,10 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
   #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
   #collar.open { transform: none; }
+  .sheet-title { position: relative; }
+  #collar-close { position: absolute; right: -6px; top: -6px; width: 40px; padding: 0; font-size: 22px; }
   .only-narrow { display: inline-block; }
+  #collar-tab { display: none; }
   #strip { grid-template-columns: minmax(0, 1fr); }
   #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
   #strip dd { font-size: 18px; }
@@ -814,7 +832,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #pad button { min-height: 46px; }
   #pad p { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { #collar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #collar, #collar-tab svg { transition: none; } }
 
 /* ---------- legend tick, layer readout, recording, saved trails ---------- */
 .ramp i, #p-bar { position: relative; }
@@ -846,6 +864,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   <!-- ============ left column: the map's legend ============ -->
   <aside id="collar" aria-label="Map layers, trail and route data">
     <header class="sheet-title">
+      <button id="collar-close" type="button" class="only-narrow" aria-label="Close panel">×</button>
       <h1>Marswalk</h1>
       <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
     </header>
@@ -915,7 +934,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
-    <button id="btn-collar" type="button" class="only-narrow" aria-expanded="false">Layers</button>
+    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Layers</button>
     <div class="seg" role="group" aria-label="Who moves the pointer">
       <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
       <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
@@ -945,6 +964,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   <!-- ============ the map ============ -->
   <main id="stage">
     <div id="map" aria-label="Map of the walk"></div>
+    <button id="collar-tab" type="button" aria-controls="collar" aria-expanded="true" aria-label="Hide panel" title="Hide panel">
+      <svg viewBox="0 0 10 18" aria-hidden="true"><polyline points="8,2 2,9 8,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
     <div id="banner" role="alert" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
@@ -2044,7 +2066,25 @@ window.MARSWALK_DATA = {
     showBack = !showBack; this.setAttribute('aria-pressed', showBack); this.textContent = showBack ? 'Hide way back' : 'Show way back';
     drawTrail();
   });
-  $('btn-collar').addEventListener('click', function () { var o = $('collar').classList.toggle('open'); this.setAttribute('aria-expanded', o); });
+  /* Left panel. Wide screens: the tab on the map's left edge folds the column away
+     (remembered between visits). Narrow screens: the column is a drawer, opened by "Layers". */
+  var COLLAR_KEY = 'marswalk.collarHidden';
+  function setCollarHidden(hid) {
+    $('app').classList.toggle('collar-hidden', hid);
+    var t = $('collar-tab'), lab = hid ? 'Show panel' : 'Hide panel';
+    t.setAttribute('aria-expanded', !hid); t.setAttribute('aria-label', lab); t.title = lab;
+  }
+  try { setCollarHidden(window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) { setCollarHidden(false); }
+  $('collar-tab').addEventListener('click', function () {
+    var hid = !$('app').classList.contains('collar-hidden');
+    setCollarHidden(hid);
+    try { window.localStorage.setItem(COLLAR_KEY, hid ? '1' : '0'); } catch (e) {}
+  });
+  function setDrawer(open) { $('collar').classList.toggle('open', open); $('btn-collar').setAttribute('aria-expanded', open); }
+  $('btn-collar').addEventListener('click', function () { setDrawer(!$('collar').classList.contains('open')); });
+  function closeDrawer() { if ($('collar').classList.contains('open')) { setDrawer(false); $('btn-collar').focus(); } }
+  $('collar-close').addEventListener('click', closeDrawer);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
