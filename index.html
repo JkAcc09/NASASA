@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Marswalk: Mount Sharp boxwork field map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ left column: the map's legend ============ -->
+  <aside id="collar" aria-label="Map layers, trail and route data">
+    <header class="sheet-title">
+      <h1>Marswalk</h1>
+      <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
+    </header>
+
+    <section>
+      <h2>Data over the photo map</h2>
+      <div id="layer-list" role="radiogroup" aria-label="Data layer"></div>
+      <label class="slider"><span>Layer strength</span>
+        <input id="opacity" type="range" min="0" max="100" value="65" aria-label="Layer strength">
+      </label>
+      <div id="layer-key" class="ramp" hidden><span></span><i><b id="layer-tick" hidden></b></i><span></span></div>
+      <p id="layer-key-note" class="note" hidden></p>
+      <p id="layer-note" class="note"></p>
+    </section>
+
+    <section>
+      <h2>Your trail</h2>
+      <ul class="trail-key" aria-label="Trail colour by number of passes">
+        <li><i style="background:var(--t1)"></i>once</li>
+        <li><i style="background:var(--t2)"></i>twice</li>
+        <li><i style="background:var(--t3)"></i>3 times</li>
+        <li><i style="background:var(--t4)"></i>4 or more</li>
+      </ul>
+      <p class="note">The line darkens each time you cross the same ground. Tap it to see every pass in order.</p>
+      <p id="rec-status" class="rec" role="status" hidden></p>
+      <div class="row">
+        <button id="btn-rec" type="button" aria-pressed="false">Record a new trail</button>
+      </div>
+      <form id="save-form" hidden>
+        <label for="save-name">Name this trail</label>
+        <input id="save-name" type="text" maxlength="60" autocomplete="off">
+        <div class="row">
+          <button type="submit">Save trail</button>
+          <button id="btn-discard" type="button">Don't save</button>
+        </div>
+      </form>
+      <div class="row">
+        <button id="btn-back" type="button" aria-pressed="false">Show way back</button>
+        <button id="btn-clear" type="button">Clear trail</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Saved routes and trails</h2>
+      <ul id="saved"></ul>
+      <p id="store-msg" class="note" role="status" hidden></p>
+      <div class="row">
+        <button id="btn-import" type="button">Import a trail file</button>
+      </div>
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
+    </section>
+
+    <section>
+      <h2>Measured along the route</h2>
+      <label class="select"><span class="sr">Colour the route stops by</span>
+        <select id="route-var"></select>
+      </label>
+      <div id="route-legend" class="ramp" hidden><span id="ramp-min"></span><i></i><span id="ramp-max"></span></div>
+      <canvas id="profile" width="536" height="150" aria-label="Elevation along the route"></canvas>
+      <p class="note">Height along the route, from Curiosity's own position fixes. The blue mark is you.</p>
+    </section>
+
+    <footer>
+      <p>Imagery and layers: NASA/JPL Mars Trek (MRO HiRISE and CTX, Viking, Odyssey THEMIS, MGS TES and MOLA, Mars Express HRSC). Route, weather and rover photos: NASA/JPL-Caltech Curiosity (MSL, REMS, Navcam). Radiation is a model built on the published RAD surface average.</p>
+    </footer>
+  </aside>
+
+  <!-- ============ top bar: who moves the pointer, and the view ============ -->
+  <div id="bar" role="toolbar" aria-label="Movement and view">
+    <button id="btn-collar" type="button" class="only-narrow" aria-expanded="false">Layers</button>
+    <div class="seg" role="group" aria-label="Who moves the pointer">
+      <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
+      <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
+    </div>
+    <button id="btn-play" type="button">Start</button>
+    <label class="select inline"><span>Speed</span>
+      <select id="speed">
+        <option value="1">Real time</option>
+        <option value="10">10×</option>
+        <option value="30" selected>30×</option>
+        <option value="120">120×</option>
+      </select>
+    </label>
+    <span class="spacer"></span>
+    <button id="btn-follow" type="button" aria-pressed="true">Follow me</button>
+    <div class="seg" role="group" aria-label="Map scale">
+      <button id="z-walk" type="button">Walk</button>
+      <button id="z-crater" type="button">Crater</button>
+      <button id="z-planet" type="button">Planet</button>
+    </div>
+    <div class="seg" role="group" aria-label="Zoom">
+      <button id="z-out" type="button" aria-label="Zoom out">−</button>
+      <button id="z-in" type="button" aria-label="Zoom in">+</button>
+    </div>
+  </div>
+
+  <!-- ============ the map ============ -->
+  <main id="stage">
+    <div id="map" aria-label="Map of the walk"></div>
+    <div id="banner" role="alert" hidden></div>
+    <div id="scale" aria-hidden="true"><i></i><span></span></div>
+
+    <figure id="pov" hidden>
+      <img id="pov-img" alt="">
+      <figcaption>
+        <strong id="pov-title"></strong>
+        <span id="pov-sub"></span>
+        <a id="pov-link" target="_blank" rel="noopener">Open full image on mars.nasa.gov</a>
+      </figcaption>
+      <button id="pov-close" type="button" aria-label="Close rover view">×</button>
+    </figure>
+    <button id="pov-open" type="button" hidden>Rover view here</button>
+
+    <div id="pad" hidden aria-label="Walk controls">
+      <button data-k="left" type="button" aria-label="Turn left">⟲</button>
+      <button data-k="fwd" type="button" aria-label="Walk forward">▲</button>
+      <button data-k="right" type="button" aria-label="Turn right">⟳</button>
+      <button data-k="back" type="button" aria-label="Step back">▼</button>
+      <p>W A S D or arrow keys. Tap the map to walk to a spot.</p>
+    </div>
+  </main>
+
+  <!-- ============ bottom strip: the head-up readouts ============ -->
+  <div id="strip" aria-label="Position and conditions">
+    <dl id="nav">
+      <div><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
+      <div><dd id="r-z">–</dd><dt id="r-z-l">height, MOLA datum</dt></div>
+      <div><dd id="r-hdg">–</dd><dt>looking</dt></div>
+      <div><dd id="r-dist">–</dd><dt>walked</dt></div>
+      <div><dd id="r-home">–</dd><dt id="r-home-l">straight back to base</dt></div>
+      <div><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
+    </dl>
+    <dl id="env">
+      <div id="probe" hidden>
+        <dd id="p-val">–</dd>
+        <i id="p-bar" aria-hidden="true"><b id="p-tick"></b></i>
+        <dt id="p-lab"></dt>
+      </div>
+      <div><dd id="e-air">–</dd><dt>air</dt></div>
+      <div><dd id="e-gnd">–</dd><dt>ground</dt></div>
+      <div><dd id="e-p">–</dd><dt>pressure</dt></div>
+      <div><dd id="e-uv">–</dd><dt>UV</dt></div>
+      <div><dd id="e-rad">–</dd><dt>dose rate</dt></div>
+      <div><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <p id="e-src" class="note"></p>
+    </dl>
+  </div>
+</div>
+
+<!-- Load order matters: each file adds to the one global, MW. See README.md, "Where things live". -->
+<script src="vendor/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/geo.js"></script>
+<script src="js/tiles.js"></script>
+<script src="js/trail.js"></script>
+<script src="js/store.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
