@@ -114,6 +114,25 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
 #pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
 
+/* Fold-away tab: hangs off the legend column's right edge, halfway down the map. With the column
+   folded away (#app.collar-hidden) it sits against the screen edge and its chevron turns to point out.
+   Where the column is a drawer (narrow screens, Astronaut display) the tab is not used. */
+#collar-tab { position: absolute; left: 0; top: 50%; z-index: 850; transform: translateY(-50%);
+  width: 26px; min-height: 0; height: 76px; padding: 0; display: grid; place-items: center;
+  background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-left: 0; border-radius: 0 6px 6px 0;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, .35); }
+#collar-tab:hover { background: var(--paper-2); }
+#collar-tab svg { width: 10px; height: 18px; transition: transform .2s ease; }
+#app.collar-hidden #collar-tab svg { transform: scaleX(-1); }
+@media (min-width: 861px) {
+  body:not([data-display="astronaut"]) #app.collar-hidden { grid-template-columns: minmax(0, 1fr); grid-template-areas: "bar" "stage" "strip"; }
+  body:not([data-display="astronaut"]) #app.collar-hidden #collar { display: none; }
+}
+body[data-display="astronaut"] #collar-tab { display: none; }
+/* Close button inside the drawer (shown wherever .only-narrow is) */
+.sheet-title { position: relative; }
+#collar-close { position: absolute; right: -6px; top: -6px; width: 40px; padding: 0; font-size: 22px; }
+
 #pad { position: absolute; right: 12px; bottom: 12px; z-index: 800; display: grid; grid-template-columns: repeat(3, 56px); gap: 6px; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; padding: 8px; }
 #pad button { min-height: 52px; font-size: 20px; padding: 0; touch-action: none; }
 #pad button[data-k="back"] { grid-column: 2; }
@@ -136,6 +155,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #collar { position: fixed; inset: 0 auto 0 0; width: min(320px, 88vw); z-index: 1200; transform: translateX(-102%); transition: transform .2s ease; }
   #collar.open { transform: none; }
   .only-narrow { display: inline-block; }
+  #collar-tab { display: none; }
   #strip { grid-template-columns: minmax(0, 1fr); }
   #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
   #strip dd { font-size: 18px; }
@@ -146,7 +166,7 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
   #pad button { min-height: 46px; }
   #pad p { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { #collar { transition: none; } }
+@media (prefers-reduced-motion: reduce) { #collar, #collar-tab svg { transition: none; } }
 
 /* ---------- legend tick, layer readout, recording, saved trails ---------- */
 .ramp i, #p-bar { position: relative; }
@@ -219,3 +239,70 @@ body[data-display="astronaut"] #strip dt { font-size: 16px; }
 body[data-display="astronaut"] #pad { grid-template-columns: repeat(3, 72px); }
 body[data-display="astronaut"] #pad button { min-height: 68px; font-size: 26px; }
 @media (prefers-reduced-motion: reduce) { body[data-display="astronaut"] #collar { transition: none; } }
+
+/* ---------- dust storm activity (js/dust-ui.js) ---------- */
+#collar .dustsec h3 { font: 600 15px/1.2 var(--label); margin: 14px 0 6px; padding-top: 8px; border-top: 1px solid var(--rule); }
+.check { display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 6px; padding: 5px 4px; border-radius: 3px; cursor: pointer; font: 600 15px/1.2 var(--label); }
+.check:hover { background: var(--paper-2); }
+.check input { margin: 0; width: 16px; height: 16px; accent-color: var(--ink); }
+.check .res { font: 500 13px/1 var(--label); color: var(--ink-2); }
+.check:has(input:checked) { background: var(--ink); color: var(--paper); }
+.check:has(input:checked) .res { color: var(--paper-2); }
+.check.sub { font-weight: 500; font-size: 14px; margin-top: 6px; }
+.check.sub:has(input:checked) { background: none; color: inherit; }
+#collar .dustsec .select { display: block; margin-top: 8px; }
+#collar .dustsec .row.pair > label { flex: 1; min-width: 0; margin-top: 0; font: 500 13px/1.3 var(--label); color: var(--ink-2); }
+#collar .dustsec .row.pair select, #collar .dustsec .num input { width: 100%; min-height: 36px; padding: 0 6px; }
+.num input { font: 600 15px/1 var(--label); color: var(--ink); background: var(--field); border: 1.5px solid var(--ink); border-radius: 3px; }
+#dust-frame { width: 100%; margin: 12px 0 0; accent-color: var(--ink); }
+#collar .dustsec .row button { min-height: 36px; padding: 0 8px; }
+#collar .dustsec .row .select { flex: 1.4; margin-top: 0; }
+#collar .dustsec .row .select select { min-height: 36px; padding: 0 6px; }
+#dust-chart { width: 100%; height: 115px; margin-top: 10px; display: block; border: 1px solid var(--rule); background: var(--field); }
+#dust-events button { display: block; width: 100%; min-height: 0; padding: 7px 8px; margin-top: 5px; text-align: left; font: 500 13px/1.3 var(--label); }
+#dust-panel { margin: 0; display: grid; grid-template-columns: 1fr; gap: 0; }
+#dust-panel dt { font: 600 13px/1.3 var(--label); color: var(--ink-2); margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--rule); }
+#dust-panel dt:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+#dust-panel dd { margin: 1px 0 0; font-size: 14px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.dsub { display: block; color: var(--ink-2); font-size: 12px; line-height: 1.35; margin-top: 1px; }
+#dust-why { padding-left: 18px; }
+#dust-why li { margin: 3px 0; }
+/* the four data labels and the four activity classes: small tags, always the same colours */
+.dtag { display: inline-block; font: 600 10.5px/1 var(--label); letter-spacing: .05em; padding: 2px 4px; border: 1px solid currentColor; border-radius: 2px; vertical-align: 1px; white-space: nowrap; }
+.dtag.interpolated, .dtag.no-data { border-style: dashed; }
+.dcls { display: inline-block; font: 700 12px/1 var(--label); letter-spacing: .05em; padding: 3px 6px; border-radius: 2px; color: #fff; background: #7C8794; white-space: nowrap; }
+.dcls.c1 { background: #2E8B8B; } .dcls.c2 { background: #F2C744; color: #2A1D00; } .dcls.c3 { background: #E8742A; color: #2A1000; } .dcls.c4 { background: #B01E3C; }
+#dust-route p { margin: 8px 0 0; font-size: 14px; line-height: 1.4; }
+.dsecs, .dimp { margin: 6px 0 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.4; }
+.dsecs li { padding: 6px 0 6px 8px; border-left: 5px solid #7C8794; margin-top: 6px; }
+.dsecs li.c1 { border-color: #2E8B8B; } .dsecs li.c2 { border-color: #F2C744; } .dsecs li.c3 { border-color: #E8742A; } .dsecs li.c4 { border-color: #B01E3C; }
+.dimp { list-style: disc; padding-left: 18px; }
+.dpop ul { list-style: none; padding: 0; }
+#dust-warn { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 790; max-width: min(520px, calc(100% - 24px)); background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink); border-left: 8px solid #E8742A; border-radius: 3px; padding: 7px 10px; font-size: 14px; line-height: 1.35; }
+#dust-warn.c4 { border-left-color: #B01E3C; }
+#dust-warn button { min-height: 28px; padding: 0 8px; margin-left: 4px; font-size: 13px; }
+#strip #dust-read { min-width: 150px; max-width: 300px; }
+#strip #dust-read dt { white-space: normal; }
+body[data-display="astronaut"] #strip #dust-read { max-width: 460px; }
+
+/* ---------- the four parts of the legend column, and the buttons that choose one ---------- */
+#collar { display: flex; flex-direction: column; }
+#collar > * { flex: 0 0 auto; }
+#tabs { position: sticky; bottom: -12px; z-index: 5; margin: auto -18px -12px; display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--paper); border-top: 1.5px solid var(--ink); box-shadow: 0 -14px 0 var(--paper); }   /* the shadow keeps a clear gap above the bar */
+#collar > footer, #collar > section:last-of-type { margin-bottom: 26px; }
+#tabs button { min-height: 48px; padding: 2px 4px; border: 0; border-left: 1.5px solid var(--ink); border-radius: 0; font-size: 14px; line-height: 1.1; white-space: normal; }
+#tabs button:first-child { border-left: 0; }
+
+/* ---------- (i) buttons and their pop-up ---------- */
+button.info { display: inline-grid; place-items: center; width: 17px; height: 17px; min-height: 0 !important; padding: 0 !important; flex: none !important; margin: 0 0 0 2px; vertical-align: -2px;
+  border: 1.5px solid currentColor; border-radius: 50%; background: none; color: inherit; font: italic 700 11px/1 Georgia, "Times New Roman", serif; }
+button.info:hover, button.info[aria-expanded="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+#info-pop { position: fixed; z-index: 2000; width: min(300px, calc(100vw - 16px)); background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 3px; padding: 10px 12px 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); font-size: 13px; line-height: 1.4; }
+#info-pop h4 { font: 600 16px/1.2 var(--label); margin: 0 26px 6px 0; }
+#info-pop p { margin: 6px 0 0; }
+#info-pop .basis { color: var(--ink-2); }
+#info-close { position: absolute; right: 6px; top: 6px; width: 26px; min-height: 26px; padding: 0; font-size: 17px; }
+body[data-display="astronaut"] button.info { width: 22px; height: 22px; font-size: 14px; }

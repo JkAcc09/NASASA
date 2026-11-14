@@ -67,7 +67,11 @@
   (function buildLayerList() {
     var box = $('layer-list');
     C.LAYERS.forEach(function (l) {
-      if (l.group) { var h = document.createElement('div'); h.className = 'grp'; h.textContent = l.group; box.appendChild(h); return; }
+      if (l.group) {
+        var h = document.createElement('div'); h.className = 'grp'; h.textContent = l.group + ' ';
+        if (l.info) h.insertAdjacentHTML('beforeend', '<button type="button" class="info" data-info="' + l.info + '" aria-label="What does this mean?">i</button>');
+        box.appendChild(h); return;
+      }
       var lab = document.createElement('label');
       lab.innerHTML = '<input type="radio" name="layer" value="' + l.key + '"' + (l.key === 'none' ? ' checked' : '') + '><span>' + l.name + '</span><span class="res">' + l.res + '</span>';
       box.appendChild(lab);
@@ -518,7 +522,54 @@
     showBack = !showBack; this.setAttribute('aria-pressed', showBack); this.textContent = showBack ? 'Hide way back' : 'Show way back';
     drawTrail();
   });
-  $('btn-collar').addEventListener('click', function () { var o = $('collar').classList.toggle('open'); this.setAttribute('aria-expanded', o); });
+  /* Legend column. Wide screens (Planner, Robot): the tab on its edge folds it away, remembered between
+     visits. Narrow screens and the Astronaut display: it is a drawer, opened by "Layers", closed by × or Escape. */
+  var COLLAR_KEY = 'marswalk.collarHidden';
+  function setCollarHidden(hid) {
+    $('app').classList.toggle('collar-hidden', hid);
+    var t = $('collar-tab'), lab = hid ? 'Show panel' : 'Hide panel';
+    t.setAttribute('aria-expanded', !hid); t.setAttribute('aria-label', lab); t.title = lab;
+  }
+  try { setCollarHidden(window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) { setCollarHidden(false); }
+  $('collar-tab').addEventListener('click', function () {
+    var hid = !$('app').classList.contains('collar-hidden');
+    setCollarHidden(hid);
+    try { window.localStorage.setItem(COLLAR_KEY, hid ? '1' : '0'); } catch (e) {}
+  });
+  function setDrawer(open) { $('collar').classList.toggle('open', open); $('btn-collar').setAttribute('aria-expanded', open); }
+  $('btn-collar').addEventListener('click', function () { setDrawer(!$('collar').classList.contains('open')); });
+  function closeDrawer() { if ($('collar').classList.contains('open')) { setDrawer(false); $('btn-collar').focus(); } }
+  $('collar-close').addEventListener('click', closeDrawer);
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+
+  /* The legend column has four parts. The buttons at its bottom choose which one is shown; Menu is shown first. */
+  function setTab(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('#collar > [data-tab]'), function (s) { s.hidden = s.getAttribute('data-tab') !== name; });
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tab-btn') === name); });
+    $('collar').scrollTop = 0; closeInfo();
+  }
+  $('tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-tab-btn]'); if (b) setTab(b.getAttribute('data-tab-btn')); });
+
+  /* (i) buttons: any button.info with data-info="key" opens the matching GLOSSARY entry (config.js) in one shared pop-up. */
+  var infoBtn = null;
+  function closeInfo() { $('info-pop').hidden = true; if (infoBtn) infoBtn.setAttribute('aria-expanded', 'false'); infoBtn = null; }
+  function openInfo(b) {
+    var g = C.GLOSSARY[b.getAttribute('data-info')], pop = $('info-pop'); if (!g) return;
+    pop.innerHTML = '<button type="button" id="info-close" aria-label="Close explanation">×</button><h4>' + g.term + '</h4><p>' + g.what + '</p>' +
+      '<p><b>Why it matters.</b> ' + g.why + '</p><p class="basis"><b>Where it comes from.</b> ' + g.basis + '</p>';
+    pop.hidden = false; infoBtn = b; b.setAttribute('aria-expanded', 'true');
+    var r = b.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;     // beside the button, kept on screen
+    pop.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left - 12)) + 'px';
+    pop.style.top = (r.bottom + 8 + h > window.innerHeight ? Math.max(8, r.top - h - 8) : r.bottom + 8) + 'px';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('button.info');
+    if (b) { e.preventDefault(); if (infoBtn === b) closeInfo(); else { closeInfo(); openInfo(b); } return; }
+    if (!$('info-pop').hidden && (e.target.id === 'info-close' || !e.target.closest('#info-pop'))) closeInfo();
+  });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && infoBtn) { var b = infoBtn; closeInfo(); if (b.isConnected) b.focus(); } });
+  window.addEventListener('resize', closeInfo);
+  $('collar').addEventListener('scroll', closeInfo);
 
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
@@ -536,6 +587,7 @@
   });
   map.on('click', function (e) {
     if (inspectTrail(e.latlng)) return;
+    if (MW.dustUI && MW.dustUI.inspect(e.latlng)) return;   // dust layer on and zoomed out: the tap reads that dust cell (js/dust-ui.js)
     if (S.mode === 'manual' && settings.get('move') !== 'keys') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }   // Settings: keys only switches this off
   });
 
@@ -594,6 +646,8 @@
     getTrail: function () { return trail.toRecord('live', 'live', settings.walker()); },
     clearTrail: clearTrail,
     savedTrails: function () { return store.list(); },
-    _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; }
+    _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; },
+    _route: function () { return route; },               // the route being replayed; dust-ui.js checks the dust along it
+    setTab: setTab                                       // 'menu', 'overlay', 'dust' or 'time': show that part of the legend column
   };
 })();
