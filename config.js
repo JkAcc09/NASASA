@@ -19,7 +19,22 @@ MW.config = {
   CELL: 3,                    // m, size of the spatial-index cells
   NEAR: 2.5,                  // m, "the same ground"
   REVISIT_GAP: 12,            // m walked away before coming back counts as a new pass
-  TRAIL_COLOURS: ['#FFC2E2', '#FF5FB0', '#D4148C', '#6E0A63'],   // once, twice, 3 times, 4 or more
+
+  /* ---- choices offered in Settings (js/settings.js). The first of each is the default. ---- */
+  TRAIL_PALETTES: {               // four shades each: passed once, twice, 3 times, 4 or more
+    magenta: ['#FFC2E2', '#FF5FB0', '#D4148C', '#6E0A63'],
+    cyan:    ['#C9F5FF', '#5CD3F5', '#0E9BC9', '#06486B'],
+    lime:    ['#E9FBB5', '#B6E64C', '#6FAE12', '#34590A'],
+    orange:  ['#FFE3BF', '#FFAB52', '#E8590C', '#7A2E06'],
+    white:   ['#FFFFFF', '#CFCFCF', '#8C8C8C', '#3A3A3A']
+  },
+  POINTER_COLOURS: { blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
+  THEMES: {                       // name shown in Settings; colours live in css/style.css under body[data-theme]
+    blue: 'Blue', night: 'Night blue', grey: 'Grey'
+  },
+  DISPLAYS: { planner: 'Planner', astronaut: 'Astronaut', robot: 'Robot' },
+  MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
+  DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
 
   /* ---- NASA Mars Trek tiles ---- */
   TREK: 'https://trek.nasa.gov/tiles/Mars/EQ/',

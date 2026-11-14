@@ -5,7 +5,8 @@ NASA Space Apps 2026 challenge "Interplanetary Survival Guide: Martian Map".
 
 It shows a layered NASA map of the site, a pointer for where the walker (astronaut or robot) is
 and which way they are looking, and a trail that remembers every pass over the same ground in order.
-Trails can be recorded, saved, replayed and shared as files.
+Trails can be recorded per walker, saved, replayed and shared as files. Named landmarks can be tapped
+for their details and outline, and the look and controls are adjustable in Settings.
 
 ![Night infrared over the HiRISE photo map, with Curiosity's route](docs/night-infrared-over-hirise.jpg)
 
@@ -32,6 +33,8 @@ and they load in this order (see the bottom of `index.html`):
 | `js/tiles.js` | `MW.SmoothTiles`: the tile layer (over-zoom, recolouring, reading values) | change how tiles are drawn or sampled |
 | `js/trail.js` | `MW.Trail`: trail points, pass counting, way back, saved-trail format | change what counts as "the same ground" |
 | `js/store.js` | `MW.store`: saved trails in the browser's storage | keep trails somewhere else (a server, a suit computer) |
+| `js/landmarks.js` | `MW.landmarks`: named places, their outlines, the rules for showing names | add a landmark or change when names appear |
+| `js/settings.js` | `MW.settings`: the user's choices and the Settings panel | add a setting |
 | `js/app.js` | The page: map, pointer, movement, recording, readouts, main loop | change behaviour or the interface |
 | `css/style.css` | All styling | change the look |
 | `tools/build.py` | Packs everything into `dist/marswalk.html` | you changed any file above: run `python tools/build.py` |
@@ -39,6 +42,9 @@ and they load in this order (see the bottom of `index.html`):
 
 `js/app.js` is divided into eight numbered sections listed at its top. `trail.js` and `store.js`
 do not touch the map or the page, so they can be reused or tested on their own.
+Choices offered in Settings (trail palettes, pointer colours, themes, display and movement modes,
+default walkers) are plain lists in `js/config.js`; theme colours are the `body[data-theme]` blocks
+at the top of `css/style.css`.
 
 ### Common changes
 
@@ -56,6 +62,12 @@ to `LAYERS` in `js/config.js`:
 `{TREK}{id}/1.0.0/default/default028mm/{z}/{y}/{x}.{ext}` at rising `z` until it returns 404.
 The fields `read`, `ramp`, `stretch`, `legend`, `ends` and `what` are explained above `LAYERS`.
 The legend bar, the readout under the map and the tick on the bar all follow from the entry.
+
+**Add a landmark.** Add one entry to `LIST` in `js/landmarks.js`; the comment at the top of that
+file explains each field. Its name, outline, popup and visit counts follow from the entry.
+
+**Add a colour theme.** Add a `body[data-theme="name"]` block in `css/style.css` and the name to
+`THEMES` in `js/config.js`.
 
 **Feed a real position.** Call this from any script, as often as fixes arrive:
 
@@ -108,6 +120,45 @@ walker's own value. The same value is shown as a number under the map.
 To get physical units for the regional layers, the next step is to download the numeric TES grids
 from the PDS and sample those instead of the pictures.
 
+## Walkers, display modes and settings
+
+A **walker** is a named astronaut or robot (Settings, or the Walker list in the top bar). Each saved
+trail carries its walker's name and kind, and landmark visits are counted for the active walker.
+There is one pointer on the map at a time: the active walker's.
+
+Three **display modes** show the same data for different users:
+
+| Mode | For | What changes |
+|---|---|---|
+| Planner | planning in the habitat | everything is shown |
+| Astronaut | a glance through a visor | the legend column becomes a drawer; five large readouts (looking, walked, back to base, time, dose); larger buttons |
+| Robot | a rover or its operator | exact latitude and longitude (6 decimals), metres to the centimetre, heading to 0.1° |
+
+**Settings** also change the trail's colour (five palettes, each four shades from pale to deep) and
+width, the pointer's colour and size, how the pointer is moved (keys and taps, keys only, taps only)
+and the app's colours (Blue, Night blue, Grey). Choices are kept in the browser
+(`localStorage`, key `marswalk.settings.v1`).
+
+## Landmarks
+
+31 named places: the main features and landing sites of the planet, and the places Curiosity has
+worked in Gale crater. Tapping a name shows its function, size, the missions that have visited,
+the active walker's own visits (this trail plus their saved trails) and a note, and draws its outline.
+
+Names follow map conventions: higher rank and larger places show first and in larger type; a name
+disappears when its place is too small to matter at the current zoom or has grown larger than the
+screen; names never overlap, the higher rank wins. The thresholds are at the top of the label code
+in `js/landmarks.js`.
+
+What the outlines are, and are not:
+
+- Planet-scale features and Gale crater are circles or ellipses from the catalogued centre and size.
+  They are approximate.
+- The Gale places (Yellowknife Bay to Gediz Vallis) are the ground Curiosity actually covered there,
+  computed from its position fixes (`MSL_waypoints.json`) with a 25 m margin. They are not geological
+  boundaries, and the sol range attached to each name is approximate.
+- "Visited by missions" counts surface missions, not individual drives or sols.
+
 ## The trail
 
 A point is stored every 1.5 m with its time, odometer and look direction. A new pass over a spot
@@ -124,7 +175,7 @@ drawing cost does not grow with the number of colours. Tapping the trail lists e
 
 ```json
 { "format": "marswalk-trail", "version": 1, "id": "t…", "name": "Ridge loop",
-  "savedAt": "2026-11-14T08:30:00.000Z", "source": "walked",
+  "savedAt": "2026-11-14T08:30:00.000Z", "source": "walked", "walker": { "name": "Astronaut 1", "type": "astronaut" },
   "site": "Mount Sharp boxwork, Gale crater, Mars", "base": { "lat": -4.799847, "lon": 137.383541 },
   "distance_m": 84.2, "duration_s": 157,
   "fields": ["lat", "lon", "seconds", "heading_deg"],
@@ -144,6 +195,8 @@ Height is metres relative to the MOLA geoid. Heading is degrees clockwise from n
 - The map needs a live connection to NASA's servers. An offline tile pack is the main step
   before any use where the link can drop.
 - No oxygen, battery or turn-back budget, no position-uncertainty ring, no notes on waypoints.
+- One pointer at a time: two walkers cannot yet be shown moving together.
+- Landmark outlines are approximations (see Landmarks); proper outlines need the USGS geologic map.
 - REMS weather ends at sol 4995 in the public feed; later stops reuse that sol.
 - Saved trails stay in one browser unless downloaded.
 

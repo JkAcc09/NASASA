@@ -98,12 +98,13 @@
   };
 
   /* A saved-trail record: plain data that store.js keeps and that can be shared as a .json file. */
-  Trail.prototype.toRecord = function (name, source) {
+  Trail.prototype.toRecord = function (name, source, walker) {
     var pts = this.pts, last = pts[pts.length - 1] || { d: 0, t: 0 };
     return {
       format: 'marswalk-trail', version: 1,
       id: 't' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
       name: name, savedAt: new Date().toISOString(), source: source,
+      walker: walker ? { name: walker.name, type: walker.type } : null,      // who made it: astronaut or robot
       site: 'Mount Sharp boxwork, Gale crater, Mars',
       base: { lat: G.ORIGIN.lat, lon: G.ORIGIN.lon },
       distance_m: Math.round(last.d * 10) / 10, duration_s: Math.round(last.t - (pts[0] ? pts[0].t : 0)),
