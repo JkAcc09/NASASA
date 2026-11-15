@@ -10,7 +10,7 @@
  * Service workers need a web address (http://localhost, or https). A file opened by double-click cannot use one.
  */
 'use strict';
-var SHELL = 'marswalk-shell-v1', TILES = 'marswalk-tiles-v1', FONTS = 'marswalk-fonts-v1', MAX_TILES = 20000;
+var SHELL = 'marswalk-shell-v2', TILES = 'marswalk-tiles-v1', FONTS = 'marswalk-fonts-v1', PHOTOS = 'marswalk-photos-v1', MAX_TILES = 20000;
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(SHELL).then(function (cache) {
@@ -37,7 +37,7 @@ var puts = 0;
 function tileFirst(req) {
   return caches.open(TILES).then(function (cache) {
     return cache.match(req.url).then(function (hit) {
-      if (hit) return hit;
+      if (hit && !(req.mode === 'cors' && hit.type === 'opaque')) return hit;   // a tile kept without CORS cannot serve a page that reads its pixels
       return fetch(req).then(function (res) {
         if (res.ok || res.type === 'opaque') { cache.put(req.url, res.clone()); if (++puts % 200 === 0) trim(cache); }
         return res;
@@ -65,10 +65,19 @@ function staleWhileRevalidate(req) {
     });
   });
 }
+function keep(req, store, first) {                     // first: from the store when there; otherwise the network first
+  return caches.open(store).then(function (cache) {
+    var net = function () { return fetch(req).then(function (res) { if (res.ok || res.type === 'opaque') cache.put(req, res.clone()); return res; }); };
+    if (first) return cache.match(req).then(function (hit) { return hit || net(); });
+    return net().catch(function () { return cache.match(req).then(function (hit) { return hit || Response.error(); }); });
+  });
+}
 self.addEventListener('fetch', function (e) {
   var req = e.request; if (req.method !== 'GET') return;
   var u = new URL(req.url);
   if (u.hostname === 'trek.nasa.gov' && u.pathname.indexOf('/tiles/') === 0) e.respondWith(tileFirst(req));
   else if (u.hostname === 'fonts.googleapis.com' || u.hostname === 'fonts.gstatic.com') e.respondWith(staleWhileRevalidate(req));
+  else if (u.hostname === 'mars.nasa.gov' && u.pathname.indexOf('/msl-raw-images/') === 0) e.respondWith(keep(req, PHOTOS, true));    // a rover photo never changes
+  else if (u.hostname === 'mars.nasa.gov' && u.pathname.indexOf('/api/v1/raw_image_items') === 0) e.respondWith(keep(req, PHOTOS, false));   // the list: fresh when online
   else if (u.origin === self.location.origin) e.respondWith(networkFirst(req));
 });

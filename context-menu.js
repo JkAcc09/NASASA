@@ -20,6 +20,7 @@
   function items() {
     return '<p class="ctx-where">' + llText(at.lat, at.lng) + '</p><div role="none">' +
       '<button type="button" role="menuitem" data-ctx="info">' + icon('search') + '<span>Reveal information</span></button>' +
+      '<button type="button" role="menuitem" data-ctx="image">' + icon('eye') + '<span>View location image</span></button>' +
       '<button type="button" role="menuitem" data-ctx="go">' + icon('walk') + '<span>Travel to location</span></button>' +
       '<button type="button" role="menuitem" data-ctx="mark">' + icon('pin') + '<span>Mark as landmark</span></button></div>';
   }
@@ -48,6 +49,20 @@
     L.popup({ maxWidth: 340, className: 'spot-pop', autoPanPaddingTopLeft: [12, 12], autoPanPaddingBottomRight: [right, 60] }).setLatLng(at).setContent('<div class="pop spot"><h3>' + info.title + '</h3><dl>' + info.rows + '</dl>' +
       (info.notes ? '<p>' + info.notes + '</p>' : '') + '</div>').openOn(map);
   }
+  /* A small preview of the best NASA picture of the spot (imagery.js), with where it comes from. */
+  function picture(spot) {
+    var pov = $('pov'), right = pov && !pov.hidden && pov.offsetWidth ? pov.offsetWidth + 72 : 60;     // clear of the picture panel and the tabs
+    var pop = L.popup({ maxWidth: 270, minWidth: 240, className: 'spot-pop img-pop', autoPanPaddingTopLeft: [12, 12], autoPanPaddingBottomRight: [right, 60] })
+      .setLatLng(spot).setContent('<div class="pop"><h3>Looking for a NASA picture…</h3><p>' + llText(spot.lat, spot.lng) + '</p></div>').openOn(map);
+    MW.imagery.best(spot.lat, spot.lng, {}).then(function (r) {
+      if (!map.hasLayer(pop)) return;
+      if (r.kind === 'none') { pop.setContent('<div class="pop"><h3>No imagery available for this location.</h3><p>' + esc(r.note) + '</p></div>'); return; }
+      pop.setContent('<div class="pop locimg"><h3>' + esc(r.title) + '</h3><img src="' + esc(r.src) + '" alt="' + esc(r.title + ': ' + r.where) + '" ' +
+        'onerror="this.replaceWith(Object.assign(document.createElement(\'p\'),{textContent:\'No imagery available for this location: the picture did not load (it needs an internet connection).\'}))">' +
+        '<p>' + esc(r.where) + '</p><p class="meta">' + esc(r.source) + '<br>' + esc(r.date) + (r.note ? '<br>' + esc(r.note) : '') + '</p>' +
+        (r.link ? '<p><a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + (r.kind === 'rover' ? 'Open the full image at NASA' : 'Open NASA Mars Trek') + '</a></p>' : '') + '</div>');
+    });
+  }
   function travel(sure) {
     var S = app._state;
     if (!sure && S.dist > 5) {                           // a walk is under way: say what travelling does first
@@ -65,6 +80,7 @@
     var b = e.target.closest('[data-ctx]'); if (!b || !at) return;
     var act = b.getAttribute('data-ctx'), spot = at;
     if (act === 'info') { reveal(); close(); }
+    else if (act === 'image') { picture(spot); close(); }
     else if (act === 'go') travel(false);
     else if (act === 'go-sure') travel(true);
     else if (act === 'save') { close(); app.saveTrail(); }

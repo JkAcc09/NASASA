@@ -139,14 +139,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #scale { position: absolute; left: 12px; bottom: 12px; z-index: 800; display: flex; align-items: flex-end; gap: 6px; color: #fff; font: 600 14px/1 var(--label); text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
 #scale i { display: block; height: 7px; border: 2px solid #fff; border-top: 0; box-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
 
-#pov { position: absolute; right: 12px; top: 12px; z-index: 800; width: min(250px, 40%); margin: 0; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; }
+#pov { position: absolute; right: 60px; top: 12px; z-index: 800; width: min(250px, 40%); margin: 0; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; }
 #pov img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #2a2a2a; }
 #pov figcaption { padding: 8px 10px 10px; display: grid; gap: 2px; font-size: 13px; }
 #pov strong { font: 600 15px/1.2 var(--label); }
 #pov span { color: var(--ink-2); }
 #pov a { color: var(--ink); }
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
-#pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
+#pov-open { position: absolute; right: 60px; top: 12px; z-index: 790; }
 
 /* Edge tabs: hang off the legend column's right edge, at the top of the map. The open part's tab joins the
    column (same paper, no border between them). With the column folded away they sit against the screen edge.
@@ -317,9 +317,9 @@ body.ro-large #strip #dust-read { max-width: 460px; }
 :root { --col-w: 270px; }
 body.ro-large { --col-w: 380px; }
 @media (min-width: 861px) {
-  body.ro-col:not(.ro-empty) #app { grid-template-columns: 300px minmax(0, 1fr) var(--col-w); grid-template-rows: auto minmax(0, 1fr);
+  body.ro-col:not(.ro-empty):not(.ro-folded) #app { grid-template-columns: 300px minmax(0, 1fr) var(--col-w); grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: "collar bar bar" "collar stage strip"; }
-  body.ro-col:not(.ro-empty) #app.collar-hidden { grid-template-columns: minmax(0, 1fr) var(--col-w); grid-template-areas: "bar bar" "stage strip"; }
+  body.ro-col:not(.ro-empty):not(.ro-folded) #app.collar-hidden { grid-template-columns: minmax(0, 1fr) var(--col-w); grid-template-areas: "bar bar" "stage strip"; }
   body.ro-col #strip { border-top: 0; border-left: 1.5px solid var(--ink); grid-template-columns: minmax(0, 1fr); align-content: start; overflow-y: auto; min-height: 0; }
   body.ro-col #strip dl { flex-direction: column; flex-wrap: nowrap; gap: 12px; padding: 12px 14px 14px; }
   body.ro-col #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
@@ -694,23 +694,13 @@ body.ro-col #e-safe-f { display: block; }
 #season-text p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; }
 
 /* ---------- readouts in tabs beside the map (hud.js) ---------- */
-#ro-tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--ink); background: var(--paper-2); }
-#ro-tabs[hidden] { display: none; }
-#ro-tabs button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 4px; border: 0; border-right: 1px solid var(--rule); border-radius: 0; background: transparent;
-  display: flex; align-items: center; justify-content: center; gap: 5px; font: 600 13px/1 var(--label); color: var(--ink-2); white-space: nowrap; }
-#ro-tabs button:last-of-type { border-right: 0; }
-#ro-tabs button .ico { width: 16px; height: 16px; flex: none; }
-#ro-tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: inset 0 -3px 0 var(--ink); }
-#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
 body:not(.ro-focus) #strip { display: flex; flex-direction: column; }
 body:not(.ro-focus) #strip > dl:not(.ro-active) { display: none; }
 body:not(.ro-focus) #strip > dl + dl { border-left: 0; }
-body.ro-focus #ro-tabs { display: none; }
 body.ro-focus #strip #budget-ro::before { content: "Walk budget"; }
 body.ro-focus #strip dl + dl + dl { border-top: 1.5px solid var(--ink); }
 body.ro-col #strip > dl.ro-active { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
 @media (max-width: 860px) {
-  #ro-tabs button { min-height: 42px; font-size: 14px; }
   #app { grid-template-rows: auto 70vh auto; }
 }
 
@@ -749,3 +739,46 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
 .spot dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
 .spot dd { margin: 0; font: 600 14px/1.25 var(--label); font-variant-numeric: tabular-nums; }
 .spot-sub { display: block; font-weight: 500; font-size: 12px; color: var(--ink-2); }
+
+/* ---------- readout tabs: square, on the right edge of the map, the mirror of the panel tabs on its left (hud.js) ---------- */
+#ro-tabs { position: absolute; right: -1.5px; top: 12px; z-index: 850; display: flex; flex-direction: column; gap: 5px; }
+#ro-tabs[hidden] { display: none; }
+#ro-tabs button { width: 44px; height: 48px; min-height: 0; padding: 0 2px 0 0; display: grid; place-items: center;
+  background: var(--paper-2); color: var(--ink-2); border: 1.5px solid var(--ink); border-right: 0; border-radius: 7px 0 0 7px; box-shadow: -2px 1px 6px rgba(0, 0, 0, .4); }
+#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
+#ro-tabs button[aria-pressed="true"] { width: 50px; background: var(--paper); color: var(--ink); }
+#ro-tabs button[aria-pressed="true"] .ico { stroke-width: 2.4; }
+body.ro-folded:not(.ro-focus) #strip { display: none; }
+body.ro-focus #ro-tabs { display: none; }
+body.ro-col #strip > dl.ro-active { padding-top: 14px; }
+
+/* ---------- the picture of a place (imagery.js) and in the right-click menu ---------- */
+#pov figcaption .pov-meta { display: grid; gap: 1px; font-size: 11.5px; line-height: 1.3; color: var(--ink-2); }
+#pov figcaption .pov-meta span { color: var(--ink-2); }
+#pov.loading img { opacity: .35; }
+#pov[data-kind="none"] img { display: none; }
+#pov a[hidden] { display: none; }
+.locimg img { display: block; width: 100%; max-height: 190px; object-fit: cover; margin: 4px 0 6px; border: 1px solid var(--rule); background: #1b1b1b; }
+.locimg p { margin: 3px 0 0; font-size: 13px; }
+.locimg .meta { font-size: 11.5px; color: var(--ink-2); }
+
+/* ---------- marker photos (nav-ui.js) ---------- */
+#mk-photo-box img { display: block; max-width: 100%; max-height: 180px; margin: 4px 0; border: 1px solid var(--rule); border-radius: 3px; }
+#mk-photo-box .row { margin-top: 4px; }
+#mk-photo-box .note { margin-top: 4px; }
+.mkp .mk-photo { display: block; width: 100%; max-height: 200px; object-fit: cover; margin: 2px 0 6px; border: 1px solid var(--rule); border-radius: 3px; }
+
+/* ---------- the oxygen model in Settings (o2-model.js) ---------- */
+.o2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; margin-top: 10px; }
+.o2-field { display: grid; gap: 3px; font: 600 14px/1.2 var(--label); }
+.o2-field i { font-style: normal; font-weight: 500; color: var(--ink-2); }
+.o2-field input { font: 500 15px/1 var(--body); min-height: 38px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); }
+.o2-field input[aria-invalid="true"] { border-color: #B01E3C; box-shadow: 0 0 0 2px rgba(176, 30, 60, .3); }
+.o2-field small { min-height: 1em; font: 500 12px/1.2 var(--body); color: #B01E3C; }
+#o2-name { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); width: 100%; }
+.dtag.o2-yours { background: var(--ink); color: var(--paper); }
+#o2-card .row { flex-wrap: wrap; }
+#o2-card .row button { flex: 0 1 auto; padding: 0 14px; }
+@media (max-width: 860px) {
+  #pov, #pov-open { right: 56px; }
+}

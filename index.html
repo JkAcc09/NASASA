@@ -69,6 +69,14 @@
         <label id="mk-radius-row" class="num" hidden><span>Keep-clear distance, metres</span><input id="mk-radius" type="number" min="5" max="5000" step="5" value="50"></label>
         <label for="mk-note">Description</label>
         <textarea id="mk-note" rows="4" maxlength="2000" placeholder="What is here, what to watch for. **bold**, *italic* and - lists work."></textarea>
+        <span class="mk-lab">Photo</span>
+        <div id="mk-photo-box">
+          <img id="mk-photo-img" alt="This marker's photo" hidden>
+          <div class="row"><button id="mk-photo-add" type="button" class="lb" data-icon="upload"><span>Add a photo</span></button><button id="mk-photo-del" type="button" class="lb" data-icon="trash" hidden><span>Remove</span></button></div>
+          <p class="note">PNG, JPEG or WebP, up to 10 MB. Kept in this browser, shrunk to 800 px.</p>
+          <p id="mk-photo-msg" class="note" role="status" hidden></p>
+        </div>
+        <input id="mk-photo-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
         <p id="mk-where" class="note"></p>
         <div class="row">
           <button type="submit">Save marker</button>
@@ -327,16 +335,18 @@
     </div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
+    <!-- The best NASA picture of where the walker is: Curiosity's Navcam on its drive, orbital imagery elsewhere (imagery.js) -->
     <figure id="pov" hidden>
       <img id="pov-img" alt="">
       <figcaption>
         <strong id="pov-title"></strong>
         <span id="pov-sub"></span>
-        <a id="pov-link" target="_blank" rel="noopener">Open full image on mars.nasa.gov</a>
+        <span id="pov-meta" class="pov-meta"></span>
+        <a id="pov-link" target="_blank" rel="noopener">Open the full image at NASA</a>
       </figcaption>
-      <button id="pov-close" type="button" aria-label="Close rover view">×</button>
+      <button id="pov-close" type="button" aria-label="Close the picture">×</button>
     </figure>
-    <button id="pov-open" type="button" hidden>Rover view here</button>
+    <button id="pov-open" type="button" hidden>View from here</button>
 
     <div id="pad" hidden aria-label="Walk controls">
       <button data-k="left" type="button" aria-label="Turn left">⟲</button>
@@ -347,6 +357,12 @@
     </div>
 
     <!-- Mission status: always on the map, whatever tab or layout (hud.js). A press explains each one. -->
+    <!-- Readout tabs: on the right edge of the map, like the panel tabs on its left. Press the open one to fold the panel. -->
+    <nav id="ro-tabs" aria-label="Readouts">
+      <button type="button" data-ro-tab="nav" aria-controls="nav" aria-pressed="true" aria-label="Position readouts" data-tip="Position" data-icon="locate"></button>
+      <button type="button" data-ro-tab="env" aria-controls="env" aria-pressed="false" aria-label="Conditions readouts" data-tip="Conditions" data-icon="globe"></button>
+      <button type="button" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-pressed="false" aria-label="Walk budget readouts" data-tip="Budget" data-icon="clock"></button>
+    </nav>
     <div id="mission" role="group" aria-label="Mission status">
       <button type="button" id="m-o2" class="mchip" data-info="walkBudget" data-tip="Oxygen left" aria-label="Oxygen left"><span class="mi mi-o2" aria-hidden="true">O<sub>2</sub></span><b>–</b></button>
       <button type="button" id="m-batt" class="mchip" data-info="walkBudget" data-tip="Battery left" aria-label="Battery left"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="10" width="2.2" height="4" rx="1" fill="currentColor"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></svg><b>–</b></button>
@@ -359,12 +375,7 @@
 
   <!-- ============ bottom strip: the head-up readouts ============ -->
   <div id="strip" aria-label="Readouts">
-    <!-- Three groups of readouts; in the side layout the tabs show one at a time (hud.js) -->
-    <div id="ro-tabs" role="tablist" aria-label="Readouts">
-      <button type="button" role="tab" data-ro-tab="nav" aria-controls="nav" aria-selected="true"><span data-icon="locate"></span>Position</button>
-      <button type="button" role="tab" data-ro-tab="env" aria-controls="env" aria-selected="false"><span data-icon="globe"></span>Conditions</button>
-      <button type="button" role="tab" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-selected="false"><span data-icon="clock"></span>Budget</button>
-    </div>
+    <!-- Three groups of readouts; the square tabs on the map's right edge show one at a time (hud.js) -->
     <dl id="nav" role="tabpanel" aria-label="Position and movement">
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
@@ -435,6 +446,20 @@
           <label class="check"><input id="set-alarm-sound" type="checkbox"><span>Alarm sound<span class="dsub">Three short beeps with the warning</span></span></label>
           <label class="check"><input id="set-ro-exact" type="checkbox"><span>Exact numbers<span class="dsub">Full precision: distances to two decimals, time in seconds, heading to a tenth of a degree</span></span></label>
         </div>
+      </section>
+
+      <section class="set-card set-wide" id="o2-card" aria-labelledby="set-o2-h">
+        <h3 id="set-o2-h">Walk budget: oxygen model <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></h3>
+        <p id="o2-status" class="note"></p>
+        <div class="set-pair">
+          <div><span class="set-lab">Kind of model</span><div id="o2-kind" class="seg" role="group" aria-label="Kind of oxygen model"><button type="button" data-o2-kind="metabolic" aria-pressed="true">From effort</button><button type="button" data-o2-kind="fixed" aria-pressed="false">Fixed rates</button></div></div>
+          <div><label class="set-lab" for="o2-name">Name</label><input id="o2-name" type="text" maxlength="40" autocomplete="off" placeholder="My oxygen model"></div>
+        </div>
+        <div id="o2-fields" class="o2-grid"></div>
+        <div class="row ro-tools"><button id="o2-save" type="button">Save my model</button><button id="o2-reset" type="button">Use the defaults</button><button id="o2-export" type="button">Download</button><button id="o2-import" type="button">Import a file</button></div>
+        <input id="o2-file" type="file" accept=".json,application/json" hidden>
+        <p id="o2-msg" class="note" role="status" hidden></p>
+        <p class="note">"From effort" works oxygen out from the work done: standing, walking and climbing. "Fixed rates" uses the two rates you give, as a suit datasheet might quote them. A blank field takes the default shown in it. Nothing changes until you save, and the oxygen readouts then say "your oxygen model". The defaults (BUDGET in config.js) are never changed; "Use the defaults" brings them back.</p>
       </section>
 
       <section class="set-card set-wide" aria-labelledby="set-theme-h">
@@ -517,5 +542,7 @@
 <script src="offline.js"></script>
 <script src="hud.js"></script>
 <script src="context-menu.js"></script>
+<script src="imagery.js"></script>
+<script src="o2-model.js"></script>
 </body>
 </html>

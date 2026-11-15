@@ -95,6 +95,24 @@ ok(rc.whUsed < 500, 'a robot standing in sunlight recharges', (500 - rc.whUsed).
 const fr = B.forRoute('astronaut', { distance: 3000, climb: 100, moveTime: 2600, returnTime: 3000 }, -40);
 ok(fr.o2Pct > 50 && fr.o2Pct < 100 && !fr.short, 'a 3 km route out and back leaves most of the oxygen', Math.round(fr.o2Pct) + ' %');
 
+console.log('Custom oxygen model');
+const bad = B.validate({ model: 'fixed', o2Kg: '9', walkKgH: 'x', restKgH: 0.5 });
+ok(!bad.ok && /Between/.test(bad.errors.o2Kg) && /number/.test(bad.errors.walkKgH), 'out-of-range and non-numeric values are refused, with the unit', bad.errors.o2Kg);
+ok(!B.validate({ model: 'fixed', walkKgH: 0.05, restKgH: 0.08 }).ok, 'standing may not use more oxygen than walking');
+const blank = B.validate({ model: 'metabolic' });
+ok(blank.ok && blank.model.o2Kg === C.BUDGET.astronaut.o2Kg && blank.model.metRest === C.BUDGET.astronaut.metRest, 'blank fields take the defaults');
+const m0 = B.fresh(); B.step(m0, { kind: 'astronaut', dt: 3600, moved: 4320, air: -40 }); const o2Default = m0.o2Used;
+ok(B.setModel({ model: 'fixed', o2Kg: 1.0, walkKgH: 0.1, restKgH: 0.05, reserve: 20 }).ok, 'a fixed-rate model is accepted');
+const m1 = B.fresh(); B.step(m1, { kind: 'astronaut', dt: 3600, moved: 4320, air: -40 });
+const n1 = B.read(m1, { kind: 'astronaut', back: 0, air: -40 });
+ok(Math.abs(m1.o2Used - 0.1) < 1e-9 && Math.abs(n1.o2Pct - 90) < 1e-6 && n1.custom && B.reserve() === 0.2, 'it sets the oxygen used, the capacity and the reserve', (m1.o2Used * 1000).toFixed(0) + ' g, ' + n1.o2Pct.toFixed(1) + ' % left');
+ok(B.setModel({ model: 'metabolic', metRest: 200, kJPerL: 20.1 }).ok, 'a model from effort is accepted');
+const m2 = B.fresh(); B.step(m2, { kind: 'astronaut', dt: 3600, moved: 0, air: -40 });
+ok(Math.abs(m2.o2Used - 200 * 3600 * 1.429e-3 / 20100) < 1e-6, 'it follows the user\'s metabolism', (m2.o2Used * 1000).toFixed(1) + ' g in an hour standing at 200 W');
+B.setModel(null);
+const m3 = B.fresh(); B.step(m3, { kind: 'astronaut', dt: 3600, moved: 4320, air: -40 });
+ok(m3.o2Used === o2Default && B.reserve() === C.BUDGET.RESERVE && C.BUDGET.astronaut.o2Kg === 0.7, 'removing it brings back the defaults exactly; the defaults were never changed');
+
 MW.dust.load().then(() => {
   console.log('Best season (historical)');
   const D = MW.dust; while (D.analyseNext()) {}

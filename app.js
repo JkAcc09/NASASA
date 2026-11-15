@@ -278,7 +278,6 @@
         move -= left; replay.seg++; replay.f = 0; setPos(b.x, b.y);
         if (route.stops) {                           // a 12 second stop at each of Curiosity's positions
           replay.hold = 12 / S.factor; move = 0;
-          if (!$('pov').hidden && WP[replay.seg].pov) showPov(replay.seg);
         }
       }
     }
@@ -598,22 +597,8 @@
     updateProbe(); drawProfile(); checkFit();
   }
 
-  /* Rover view: the nearest Curiosity Navcam photo. */
-  function showPov(i) {
-    var k = i, step = 0;
-    while (!WP[k] || !WP[k].pov) { step++; k = i + (step % 2 ? 1 : -1) * Math.ceil(step / 2); if (step > 12) return; }
-    var w = WP[k], url = 'https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/' + String(w.sol).padStart(5, '0') + '/opgs/edr/ncam/NLB_' + w.pov + '_.JPG';
-    var img = $('pov-img');
-    img.alt = 'Curiosity Navcam photo of the ground at this stop, sol ' + w.sol;
-    img.onerror = function () { $('pov-sub').textContent = "The photo didn't load. Check the connection to mars.nasa.gov."; };
-    img.src = url;
-    $('pov-title').textContent = 'What you will see here';
-    $('pov-sub').textContent = 'Curiosity left Navcam, sol ' + w.sol + ', ' + fmt(Math.hypot(w.x - S.x, w.y - S.y)) + ' m from you';
-    $('pov-link').href = url;
-    $('pov').hidden = false; $('pov-open').hidden = true;
-  }
-  $('pov-close').addEventListener('click', function () { $('pov').hidden = true; $('pov-open').hidden = false; });
-  $('pov-open').addEventListener('click', function () { showPov(S.near.i); });
+  /* The picture of a place (imagery.js): here, the one for a Curiosity stop the user picked. */
+  function showPov(i) { if (MW.imagery) MW.imagery.show(WP[i].lat, WP[i].lon, { heading: WP[i].yaw, label: 'stop ' + (i + 1) + ', sol ' + WP[i].sol }); }
 
   /* Height along the reference route, with the walker's place on it. */
   var prof = $('profile'), pg = prof.getContext('2d'), look = { fill: '#ccc', ink: '#000', ink2: '#444' };
@@ -933,11 +918,11 @@
       $('e-turn').textContent = '–'; $('e-turn-l').textContent = 'a robot need not come back';
       $('e-turn').className = ''; warn.hidden = true; return;
     }
-    $('e-o2').textContent = pct(b.o2Pct); $('e-o2-l').textContent = 'oxygen left, about ' + hm(b.o2Hours * 3600) + ' at this pace (modelled)';
+    $('e-o2').textContent = pct(b.o2Pct); $('e-o2-l').textContent = 'oxygen left, about ' + hm(b.o2Hours * 3600) + ' at this pace (' + (b.custom ? 'your oxygen model' : 'modelled') + ')';
     $('e-batt').textContent = pct(b.battPct); $('e-batt-l').textContent = 'battery left, about ' + hm(b.battHours * 3600) + ' at this rate (modelled)';
     var late = b.turnS <= 0, soon = !late && b.turnS < 900;
     $('e-turn').textContent = late ? 'now' : hm(b.turnS);
-    $('e-turn-l').textContent = late ? 'turn back now: ' + b.limit + ' only just covers the way back' : 'until you must turn back (' + b.limit + ' sets the limit; modelled)';
+    $('e-turn-l').textContent = late ? 'turn back now: ' + b.limit + ' only just covers the way back' : 'until you must turn back (' + b.limit + ' sets the limit; ' + (b.custom ? 'your oxygen model' : 'modelled') + ')';
     $('e-turn').className = late || soon ? 'alert' : '';
     var out = S.dist > 1;
     if (out && (late || soon)) {
@@ -951,7 +936,7 @@
   setDataLayer('none');
   trail.add(0, 0, 0, meta());
   showMode(); setPlaying(false);
-  if (window.innerWidth > 860) showPov(0); else $('pov-open').hidden = false;   // small screens keep the map clear
+  /* the picture of where the walker stands is opened by imagery.js once it has loaded */
   requestAnimationFrame(frame);
 
   /* Hook for real hardware: feed position fixes (IMU, visual odometry, orbital relay) and look direction. */

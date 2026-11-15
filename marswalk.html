@@ -813,14 +813,14 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px s
 #scale { position: absolute; left: 12px; bottom: 12px; z-index: 800; display: flex; align-items: flex-end; gap: 6px; color: #fff; font: 600 14px/1 var(--label); text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
 #scale i { display: block; height: 7px; border: 2px solid #fff; border-top: 0; box-shadow: 0 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000; }
 
-#pov { position: absolute; right: 12px; top: 12px; z-index: 800; width: min(250px, 40%); margin: 0; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; }
+#pov { position: absolute; right: 60px; top: 12px; z-index: 800; width: min(250px, 40%); margin: 0; background: var(--paper); border: 1.5px solid var(--ink); border-radius: 3px; }
 #pov img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #2a2a2a; }
 #pov figcaption { padding: 8px 10px 10px; display: grid; gap: 2px; font-size: 13px; }
 #pov strong { font: 600 15px/1.2 var(--label); }
 #pov span { color: var(--ink-2); }
 #pov a { color: var(--ink); }
 #pov-close { position: absolute; right: 6px; top: 6px; min-height: 30px; width: 30px; padding: 0; font-size: 20px; }
-#pov-open { position: absolute; right: 12px; top: 12px; z-index: 790; }
+#pov-open { position: absolute; right: 60px; top: 12px; z-index: 790; }
 
 /* Edge tabs: hang off the legend column's right edge, at the top of the map. The open part's tab joins the
    column (same paper, no border between them). With the column folded away they sit against the screen edge.
@@ -991,9 +991,9 @@ body.ro-large #strip #dust-read { max-width: 460px; }
 :root { --col-w: 270px; }
 body.ro-large { --col-w: 380px; }
 @media (min-width: 861px) {
-  body.ro-col:not(.ro-empty) #app { grid-template-columns: 300px minmax(0, 1fr) var(--col-w); grid-template-rows: auto minmax(0, 1fr);
+  body.ro-col:not(.ro-empty):not(.ro-folded) #app { grid-template-columns: 300px minmax(0, 1fr) var(--col-w); grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas: "collar bar bar" "collar stage strip"; }
-  body.ro-col:not(.ro-empty) #app.collar-hidden { grid-template-columns: minmax(0, 1fr) var(--col-w); grid-template-areas: "bar bar" "stage strip"; }
+  body.ro-col:not(.ro-empty):not(.ro-folded) #app.collar-hidden { grid-template-columns: minmax(0, 1fr) var(--col-w); grid-template-areas: "bar bar" "stage strip"; }
   body.ro-col #strip { border-top: 0; border-left: 1.5px solid var(--ink); grid-template-columns: minmax(0, 1fr); align-content: start; overflow-y: auto; min-height: 0; }
   body.ro-col #strip dl { flex-direction: column; flex-wrap: nowrap; gap: 12px; padding: 12px 14px 14px; }
   body.ro-col #strip dl + dl { border-left: 0; border-top: 1px solid var(--rule); }
@@ -1368,23 +1368,13 @@ body.ro-col #e-safe-f { display: block; }
 #season-text p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; }
 
 /* ---------- readouts in tabs beside the map (hud.js) ---------- */
-#ro-tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--ink); background: var(--paper-2); }
-#ro-tabs[hidden] { display: none; }
-#ro-tabs button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 4px; border: 0; border-right: 1px solid var(--rule); border-radius: 0; background: transparent;
-  display: flex; align-items: center; justify-content: center; gap: 5px; font: 600 13px/1 var(--label); color: var(--ink-2); white-space: nowrap; }
-#ro-tabs button:last-of-type { border-right: 0; }
-#ro-tabs button .ico { width: 16px; height: 16px; flex: none; }
-#ro-tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: inset 0 -3px 0 var(--ink); }
-#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
 body:not(.ro-focus) #strip { display: flex; flex-direction: column; }
 body:not(.ro-focus) #strip > dl:not(.ro-active) { display: none; }
 body:not(.ro-focus) #strip > dl + dl { border-left: 0; }
-body.ro-focus #ro-tabs { display: none; }
 body.ro-focus #strip #budget-ro::before { content: "Walk budget"; }
 body.ro-focus #strip dl + dl + dl { border-top: 1.5px solid var(--ink); }
 body.ro-col #strip > dl.ro-active { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
 @media (max-width: 860px) {
-  #ro-tabs button { min-height: 42px; font-size: 14px; }
   #app { grid-template-rows: auto 70vh auto; }
 }
 
@@ -1423,6 +1413,49 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
 .spot dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
 .spot dd { margin: 0; font: 600 14px/1.25 var(--label); font-variant-numeric: tabular-nums; }
 .spot-sub { display: block; font-weight: 500; font-size: 12px; color: var(--ink-2); }
+
+/* ---------- readout tabs: square, on the right edge of the map, the mirror of the panel tabs on its left (hud.js) ---------- */
+#ro-tabs { position: absolute; right: -1.5px; top: 12px; z-index: 850; display: flex; flex-direction: column; gap: 5px; }
+#ro-tabs[hidden] { display: none; }
+#ro-tabs button { width: 44px; height: 48px; min-height: 0; padding: 0 2px 0 0; display: grid; place-items: center;
+  background: var(--paper-2); color: var(--ink-2); border: 1.5px solid var(--ink); border-right: 0; border-radius: 7px 0 0 7px; box-shadow: -2px 1px 6px rgba(0, 0, 0, .4); }
+#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
+#ro-tabs button[aria-pressed="true"] { width: 50px; background: var(--paper); color: var(--ink); }
+#ro-tabs button[aria-pressed="true"] .ico { stroke-width: 2.4; }
+body.ro-folded:not(.ro-focus) #strip { display: none; }
+body.ro-focus #ro-tabs { display: none; }
+body.ro-col #strip > dl.ro-active { padding-top: 14px; }
+
+/* ---------- the picture of a place (imagery.js) and in the right-click menu ---------- */
+#pov figcaption .pov-meta { display: grid; gap: 1px; font-size: 11.5px; line-height: 1.3; color: var(--ink-2); }
+#pov figcaption .pov-meta span { color: var(--ink-2); }
+#pov.loading img { opacity: .35; }
+#pov[data-kind="none"] img { display: none; }
+#pov a[hidden] { display: none; }
+.locimg img { display: block; width: 100%; max-height: 190px; object-fit: cover; margin: 4px 0 6px; border: 1px solid var(--rule); background: #1b1b1b; }
+.locimg p { margin: 3px 0 0; font-size: 13px; }
+.locimg .meta { font-size: 11.5px; color: var(--ink-2); }
+
+/* ---------- marker photos (nav-ui.js) ---------- */
+#mk-photo-box img { display: block; max-width: 100%; max-height: 180px; margin: 4px 0; border: 1px solid var(--rule); border-radius: 3px; }
+#mk-photo-box .row { margin-top: 4px; }
+#mk-photo-box .note { margin-top: 4px; }
+.mkp .mk-photo { display: block; width: 100%; max-height: 200px; object-fit: cover; margin: 2px 0 6px; border: 1px solid var(--rule); border-radius: 3px; }
+
+/* ---------- the oxygen model in Settings (o2-model.js) ---------- */
+.o2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px 14px; margin-top: 10px; }
+.o2-field { display: grid; gap: 3px; font: 600 14px/1.2 var(--label); }
+.o2-field i { font-style: normal; font-weight: 500; color: var(--ink-2); }
+.o2-field input { font: 500 15px/1 var(--body); min-height: 38px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); }
+.o2-field input[aria-invalid="true"] { border-color: #B01E3C; box-shadow: 0 0 0 2px rgba(176, 30, 60, .3); }
+.o2-field small { min-height: 1em; font: 500 12px/1.2 var(--body); color: #B01E3C; }
+#o2-name { font: 500 15px/1 var(--body); min-height: 40px; padding: 0 8px; border: 1.5px solid var(--ink); border-radius: 3px; background: var(--field); color: var(--ink); width: 100%; }
+.dtag.o2-yours { background: var(--ink); color: var(--paper); }
+#o2-card .row { flex-wrap: wrap; }
+#o2-card .row button { flex: 0 1 auto; padding: 0 14px; }
+@media (max-width: 860px) {
+  #pov, #pov-open { right: 56px; }
+}
 
 </style>
 </head>
@@ -1485,6 +1518,14 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
         <label id="mk-radius-row" class="num" hidden><span>Keep-clear distance, metres</span><input id="mk-radius" type="number" min="5" max="5000" step="5" value="50"></label>
         <label for="mk-note">Description</label>
         <textarea id="mk-note" rows="4" maxlength="2000" placeholder="What is here, what to watch for. **bold**, *italic* and - lists work."></textarea>
+        <span class="mk-lab">Photo</span>
+        <div id="mk-photo-box">
+          <img id="mk-photo-img" alt="This marker's photo" hidden>
+          <div class="row"><button id="mk-photo-add" type="button" class="lb" data-icon="upload"><span>Add a photo</span></button><button id="mk-photo-del" type="button" class="lb" data-icon="trash" hidden><span>Remove</span></button></div>
+          <p class="note">PNG, JPEG or WebP, up to 10 MB. Kept in this browser, shrunk to 800 px.</p>
+          <p id="mk-photo-msg" class="note" role="status" hidden></p>
+        </div>
+        <input id="mk-photo-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
         <p id="mk-where" class="note"></p>
         <div class="row">
           <button type="submit">Save marker</button>
@@ -1743,16 +1784,18 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
     </div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
+    <!-- The best NASA picture of where the walker is: Curiosity's Navcam on its drive, orbital imagery elsewhere (imagery.js) -->
     <figure id="pov" hidden>
       <img id="pov-img" alt="">
       <figcaption>
         <strong id="pov-title"></strong>
         <span id="pov-sub"></span>
-        <a id="pov-link" target="_blank" rel="noopener">Open full image on mars.nasa.gov</a>
+        <span id="pov-meta" class="pov-meta"></span>
+        <a id="pov-link" target="_blank" rel="noopener">Open the full image at NASA</a>
       </figcaption>
-      <button id="pov-close" type="button" aria-label="Close rover view">×</button>
+      <button id="pov-close" type="button" aria-label="Close the picture">×</button>
     </figure>
-    <button id="pov-open" type="button" hidden>Rover view here</button>
+    <button id="pov-open" type="button" hidden>View from here</button>
 
     <div id="pad" hidden aria-label="Walk controls">
       <button data-k="left" type="button" aria-label="Turn left">⟲</button>
@@ -1763,6 +1806,12 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
     </div>
 
     <!-- Mission status: always on the map, whatever tab or layout (hud.js). A press explains each one. -->
+    <!-- Readout tabs: on the right edge of the map, like the panel tabs on its left. Press the open one to fold the panel. -->
+    <nav id="ro-tabs" aria-label="Readouts">
+      <button type="button" data-ro-tab="nav" aria-controls="nav" aria-pressed="true" aria-label="Position readouts" data-tip="Position" data-icon="locate"></button>
+      <button type="button" data-ro-tab="env" aria-controls="env" aria-pressed="false" aria-label="Conditions readouts" data-tip="Conditions" data-icon="globe"></button>
+      <button type="button" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-pressed="false" aria-label="Walk budget readouts" data-tip="Budget" data-icon="clock"></button>
+    </nav>
     <div id="mission" role="group" aria-label="Mission status">
       <button type="button" id="m-o2" class="mchip" data-info="walkBudget" data-tip="Oxygen left" aria-label="Oxygen left"><span class="mi mi-o2" aria-hidden="true">O<sub>2</sub></span><b>–</b></button>
       <button type="button" id="m-batt" class="mchip" data-info="walkBudget" data-tip="Battery left" aria-label="Battery left"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="10" width="2.2" height="4" rx="1" fill="currentColor"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></svg><b>–</b></button>
@@ -1775,12 +1824,7 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
 
   <!-- ============ bottom strip: the head-up readouts ============ -->
   <div id="strip" aria-label="Readouts">
-    <!-- Three groups of readouts; in the side layout the tabs show one at a time (hud.js) -->
-    <div id="ro-tabs" role="tablist" aria-label="Readouts">
-      <button type="button" role="tab" data-ro-tab="nav" aria-controls="nav" aria-selected="true"><span data-icon="locate"></span>Position</button>
-      <button type="button" role="tab" data-ro-tab="env" aria-controls="env" aria-selected="false"><span data-icon="globe"></span>Conditions</button>
-      <button type="button" role="tab" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-selected="false"><span data-icon="clock"></span>Budget</button>
-    </div>
+    <!-- Three groups of readouts; the square tabs on the map's right edge show one at a time (hud.js) -->
     <dl id="nav" role="tabpanel" aria-label="Position and movement">
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
@@ -1851,6 +1895,20 @@ body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc
           <label class="check"><input id="set-alarm-sound" type="checkbox"><span>Alarm sound<span class="dsub">Three short beeps with the warning</span></span></label>
           <label class="check"><input id="set-ro-exact" type="checkbox"><span>Exact numbers<span class="dsub">Full precision: distances to two decimals, time in seconds, heading to a tenth of a degree</span></span></label>
         </div>
+      </section>
+
+      <section class="set-card set-wide" id="o2-card" aria-labelledby="set-o2-h">
+        <h3 id="set-o2-h">Walk budget: oxygen model <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></h3>
+        <p id="o2-status" class="note"></p>
+        <div class="set-pair">
+          <div><span class="set-lab">Kind of model</span><div id="o2-kind" class="seg" role="group" aria-label="Kind of oxygen model"><button type="button" data-o2-kind="metabolic" aria-pressed="true">From effort</button><button type="button" data-o2-kind="fixed" aria-pressed="false">Fixed rates</button></div></div>
+          <div><label class="set-lab" for="o2-name">Name</label><input id="o2-name" type="text" maxlength="40" autocomplete="off" placeholder="My oxygen model"></div>
+        </div>
+        <div id="o2-fields" class="o2-grid"></div>
+        <div class="row ro-tools"><button id="o2-save" type="button">Save my model</button><button id="o2-reset" type="button">Use the defaults</button><button id="o2-export" type="button">Download</button><button id="o2-import" type="button">Import a file</button></div>
+        <input id="o2-file" type="file" accept=".json,application/json" hidden>
+        <p id="o2-msg" class="note" role="status" hidden></p>
+        <p class="note">"From effort" works oxygen out from the work done: standing, walking and climbing. "Fixed rates" uses the two rates you give, as a suit datasheet might quote them. A blank field takes the default shown in it. Nothing changes until you save, and the oxygen readouts then say "your oxygen model". The defaults (BUDGET in config.js) are never changed; "Use the defaults" brings them back.</p>
       </section>
 
       <section class="set-card set-wide" aria-labelledby="set-theme-h">
@@ -2847,6 +2905,7 @@ window.MARSWALK_DATA = {
  */
 (function () {
   'use strict';
+  var PHOTO_KEY = 'marswalk.marker-photos.v1';         // { markerId: 'data:image/jpeg;base64,…' }: kept apart so the marker list stays small
   var C = MW.config, KEY = 'marswalk.markers.v1', ICON_KEY = 'marswalk.marker-icons.v1', FILTER_KEY = 'marswalk.marker-filter.v1';
   var persistent = true, mem = {}, listeners = [];
 
@@ -2906,7 +2965,15 @@ window.MARSWALK_DATA = {
     var rec = clean(m); if (!rec) return null;
     var l = list().filter(function (x) { return x.id !== rec.id; }); l.push(rec); write(KEY, l); changed('markers'); return rec;
   }
-  function remove(id) { write(KEY, list().filter(function (x) { return x.id !== id; })); var f = filterGet(); delete f.hidden[id]; write(FILTER_KEY, f); changed('markers'); }
+  function photoAll() { var p = read(PHOTO_KEY, {}); return p && typeof p === 'object' ? p : {}; }
+  function photoSet(id, dataUrl) {                     // false if the browser had no room for it
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(dataUrl || '')) return false;
+    var p = photoAll(); p[id] = dataUrl;
+    if (write(PHOTO_KEY, p)) { changed('photos'); return true; }
+    delete p[id]; mem[PHOTO_KEY] = p; return false;
+  }
+  function photoRemove(id) { var p = photoAll(); if (p[id]) { delete p[id]; write(PHOTO_KEY, p); changed('photos'); } }
+  function remove(id) { photoRemove(id); write(KEY, list().filter(function (x) { return x.id !== id; })); var f = filterGet(); delete f.hidden[id]; write(FILTER_KEY, f); changed('markers'); }
 
   /* ---------------- uploaded icons ---------------- */
   function addIcon(dataUrl, name) {
@@ -2964,6 +3031,7 @@ window.MARSWALK_DATA = {
     get persistent() { return persistent; },
     list: list, get: function (id) { return list().filter(function (m) { return m.id === id; })[0] || null; }, save: save, remove: remove,
     icons: { custom: customIcons, add: addIcon, remove: removeIcon, isCustom: isCustom, name: nameOf, colour: colourOf, valid: valid },
+    photos: { get: function (id) { return photoAll()[id] || null; }, set: photoSet, remove: photoRemove },   // a photo per marker (nav-ui.js)
     filter: { get: filterGet, set: filterSet, shows: shows, allOn: filterAllOn },
     badge: badge, art: art, render: render, escape: esc,
     onChange: function (fn) { listeners.push(fn); }
@@ -3276,7 +3344,7 @@ window.MARSWALK_DATA = {
   var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
   function readoutDefaults() { var o = {}; C.READOUTS.forEach(function (r) { o[r.key] = r.on; }); return o; }
   var DEFAULTS = {
-    theme: 'blue', move: 'hybrid',
+    theme: 'blue', move: 'hybrid', o2Model: null,       // o2Model: the user's oxygen model (o2-model.js), or null for the defaults
     readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'side',
     alarm: true, alarmSound: true, alarmAt: 50,          // the live safety alarm, and the index below which it sounds
     trailColour: 'magenta', trailWidth: 1,
@@ -3294,6 +3362,7 @@ window.MARSWALK_DATA = {
   if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
   var ro = readoutDefaults(); if (v.readouts && typeof v.readouts === 'object') Object.keys(ro).forEach(function (k) { if (typeof v.readouts[k] === 'boolean') ro[k] = v.readouts[k]; }); v.readouts = ro;
   v.roLarge = v.roLarge === true; v.roExact = v.roExact === true;
+  if (!v.o2Model || typeof v.o2Model !== 'object') v.o2Model = null;
   if (v.roLayout === 'row' || v.roLayout === 'column') v.roLayout = 'side';   // the strip under the map and the plain column are now the tabs beside it
   if (!C.UNITS[v.units]) v.units = DEFAULTS.units;
   if (!C.RO_LAYOUTS[v.roLayout]) v.roLayout = DEFAULTS.roLayout;
@@ -3464,8 +3533,8 @@ window.MARSWALK_DATA = {
       v.walkers = v.walkers.filter(function (w) { return w.id !== v.walker; }); v.walker = v.walkers[0].id; changed();
     });
     $('set-reset').addEventListener('click', function () {
-      var keep = { walkers: v.walkers, walker: v.walker };                 // resetting looks does not delete people
-      v = JSON.parse(JSON.stringify(DEFAULTS)); v.walkers = keep.walkers; v.walker = keep.walker; changed();
+      var keep = { walkers: v.walkers, walker: v.walker , o2Model: v.o2Model };                 // resetting looks does not delete people
+      v = JSON.parse(JSON.stringify(DEFAULTS)); v.walkers = keep.walkers; v.o2Model = keep.o2Model; v.walker = keep.walker; changed();
     });
   }
 
@@ -3495,20 +3564,66 @@ window.MARSWALK_DATA = {
  *                                                 back metres to the nearest base, pace m/s the walker covers ground at
  *   MW.budget.sunlight(lat, hour, ls, tau9)    W/m² on a flat panel: latitude, local solar hour, season, dust
  *   MW.budget.forRoute(kind, m, air)           oxygen and battery left at the end of a planned route (router.js metrics)
+ *   MW.budget.setModel(m) / model()            a user's own oxygen model (Settings > Walk budget model), or null for the
+ *                                              defaults in BUDGET. The defaults themselves are never changed.
+ *   MW.budget.validate(m)                      { ok, errors: { field: text }, model }: checks a model before it is used
+ *   MW.budget.FIELDS                           every field a user can set, with its unit, range and default
  */
 (function () {
   'use strict';
   var root = typeof window !== 'undefined' ? window : globalThis;
   var MW = root.MW = root.MW || {};
-  var C = MW.config, B = C.BUDGET, DEG = Math.PI / 180, G_MARS = 3.711;
+  var C = MW.config, B = C.BUDGET, DEG = Math.PI / 180, G_MARS = 3.711, O2_G_PER_L = 1.429;
+
+  /* ---------------------------------------------------------------- a user's own oxygen model */
+  /* model 'metabolic': oxygen follows the work done (the default way, with the user's numbers);
+     model 'fixed': oxygen is used at a set rate while walking and another while standing (a suit's quoted figures). */
+  var FIELDS = [
+    { key: 'o2Kg',      label: 'Oxygen carried',               unit: 'kg',      min: 0.05, max: 5,    step: 0.01, def: function () { return B.astronaut.o2Kg; } },
+    { key: 'reserve',   label: 'Reserve kept back',            unit: '%',       min: 0,    max: 50,   step: 1,    def: function () { return B.RESERVE * 100; } },
+    { key: 'metRest',   label: 'Metabolism standing',          unit: 'W',       min: 50,   max: 600,  step: 5,    def: function () { return B.astronaut.metRest; }, model: 'metabolic' },
+    { key: 'metPerMs',  label: 'Extra metabolism per m/s walked', unit: 'W per m/s', min: 0, max: 800, step: 5,    def: function () { return B.astronaut.metPerMs; }, model: 'metabolic' },
+    { key: 'mass',      label: 'Person and suit',              unit: 'kg',      min: 40,   max: 400,  step: 1,    def: function () { return B.astronaut.mass; }, model: 'metabolic' },
+    { key: 'climbEff',  label: 'Muscle efficiency climbing',   unit: '%',       min: 5,    max: 50,   step: 1,    def: function () { return B.astronaut.climbEff * 100; }, model: 'metabolic' },
+    { key: 'kJPerL',    label: 'Energy per litre of oxygen',   unit: 'kJ/L',    min: 15,   max: 25,   step: 0.1,  def: function () { return Math.round(O2_G_PER_L / 1000 / B.astronaut.o2PerJ / 1000 * 10) / 10; }, model: 'metabolic' },
+    { key: 'walkKgH',   label: 'Oxygen used walking',          unit: 'kg/h',    min: 0.005, max: 1,   step: 0.001, def: function () { return Math.round((B.astronaut.metRest + B.astronaut.metPerMs * C.WALK) * B.astronaut.o2PerJ * 3600 * 1000) / 1000; }, model: 'fixed' },
+    { key: 'restKgH',   label: 'Oxygen used standing',         unit: 'kg/h',    min: 0.005, max: 1,   step: 0.001, def: function () { return Math.round(B.astronaut.metRest * B.astronaut.o2PerJ * 3600 * 1000) / 1000; }, model: 'fixed' }
+  ];
+  var custom = null;                                   // the user's model, already validated, or null
+  function validate(m) {
+    var errors = {}, out = { model: m && m.model === 'fixed' ? 'fixed' : 'metabolic', name: String((m && m.name) || 'My oxygen model').slice(0, 40) };
+    FIELDS.forEach(function (f) {
+      if (f.model && f.model !== out.model) return;
+      var raw = m ? m[f.key] : undefined, v = typeof raw === 'string' ? (raw.trim() === '' ? NaN : Number(raw.replace(',', '.'))) : Number(raw);
+      if (raw === undefined || raw === null || raw === '') { out[f.key] = f.def(); return; }      // left blank: the default
+      if (!isFinite(v)) errors[f.key] = 'Enter a number, in ' + f.unit + '.';
+      else if (v < f.min || v > f.max) errors[f.key] = 'Between ' + f.min + ' and ' + f.max + ' ' + f.unit + '.';
+      else out[f.key] = v;
+    });
+    if (out.model === 'fixed' && !errors.walkKgH && !errors.restKgH && out.restKgH > out.walkKgH) errors.restKgH = 'Standing should not use more oxygen than walking.';
+    return { ok: !Object.keys(errors).length, errors: errors, model: out };
+  }
+  function setModel(m) { if (!m) { custom = null; return { ok: true }; } var v = validate(m); custom = v.ok ? v.model : null; return v; }
+  function A() {                                       // the astronaut's numbers in use: the defaults, with the user's on top
+    if (!custom) return B.astronaut;
+    var a = Object.assign({}, B.astronaut, { o2Kg: custom.o2Kg });
+    if (custom.model === 'metabolic') Object.assign(a, { metRest: custom.metRest, metPerMs: custom.metPerMs, mass: custom.mass, climbEff: custom.climbEff / 100, o2PerJ: O2_G_PER_L / 1000 / (custom.kJPerL * 1000) });
+    return a;
+  }
+  function reserve() { return custom ? custom.reserve / 100 : B.RESERVE; }
 
   function fresh() { return { o2Used: 0, whUsed: 0 }; }
   function air(a) { return a === null || a === undefined || a !== a ? B.astronaut.airUnknown : a; }
 
   /* Watts of metabolism for an astronaut walking at v m/s and climbing at up m/s. */
   function metabolic(v, up) {
-    var A = B.astronaut;
-    return A.metRest + A.metPerMs * Math.max(0, v) + Math.max(0, up) * A.mass * G_MARS / A.climbEff;
+    var a = A();
+    return a.metRest + a.metPerMs * Math.max(0, v) + Math.max(0, up) * a.mass * G_MARS / a.climbEff;
+  }
+  /* Oxygen used, kg per second. */
+  function o2Rate(v, up) {
+    if (custom && custom.model === 'fixed') return (v > 0.05 ? custom.walkKgH : custom.restKgH) / 3600;
+    return metabolic(v, up) * A().o2PerJ;
   }
   /* Watts drawn from the battery. */
   function draw(kind, moving, airC, sun) {
@@ -3523,36 +3638,36 @@ window.MARSWALK_DATA = {
   function step(s, q) {
     var dt = Math.max(0, q.dt || 0); if (!dt) return s;
     var v = (q.moved || 0) / dt, up = Math.max(0, q.climbed || 0) / dt;
-    if (q.kind !== 'robot') s.o2Used += metabolic(v, up) * B.astronaut.o2PerJ * dt;
+    if (q.kind !== 'robot') s.o2Used += o2Rate(v, up) * dt;
     s.whUsed += draw(q.kind, v > 0.05, q.air, q.sun) * dt / 3600;
     var cap = q.kind === 'robot' ? B.robot.battWh : B.astronaut.battWh;
     s.whUsed = Math.max(0, Math.min(cap, s.whUsed));                    // a robot's battery cannot charge past full
-    s.o2Used = Math.min(B.astronaut.o2Kg, s.o2Used);
+    s.o2Used = Math.min(A().o2Kg, s.o2Used);
     return s;
   }
 
   /* What is left, and the turn-back point: how long the walker can keep going outward (at walking cost) before
      what is left, less the reserve, only just covers the way back to base (at walking cost). */
   function read(s, q) {
-    var A = B.astronaut, robot = q.kind === 'robot', pace = q.pace || C.WALK;
-    var cap = robot ? B.robot.battWh : A.battWh, whLeft = cap - s.whUsed;
-    var out = { kind: robot ? 'robot' : 'astronaut', battPct: 100 * whLeft / cap, label: 'MODELLED' };
+    var a = A(), R = reserve(), robot = q.kind === 'robot', pace = q.pace || C.WALK;
+    var cap = robot ? B.robot.battWh : a.battWh, whLeft = cap - s.whUsed;
+    var out = { kind: robot ? 'robot' : 'astronaut', battPct: 100 * whLeft / cap, label: 'MODELLED', custom: !!custom && !robot, reserve: R };
     var backS = (q.back || 0) * C.ROUTER.RETURN_DETOUR / pace;
     var wWalk = draw(q.kind, true, q.air, q.sun), wNow = draw(q.kind, !!q.moving, q.air, q.sun);
     if (robot) {
       out.o2Pct = null;
       /* A robot need not come back (as in the route-finder). It is told how long its battery lasts at this rate. */
       out.chargingW = wNow < 0 ? -wNow : 0;
-      out.battHours = wNow > 0 ? (whLeft - B.RESERVE * cap) / wNow : Infinity;
+      out.battHours = wNow > 0 ? (whLeft - R * cap) / wNow : Infinity;
       out.turnS = null;
       return out;
     }
-    var o2Left = A.o2Kg - s.o2Used, o2Walk = metabolic(pace, 0) * A.o2PerJ;            // kg/s while walking
-    out.o2Pct = 100 * o2Left / A.o2Kg;
-    out.o2Hours = o2Left / (metabolic(q.moving ? pace : 0, 0) * A.o2PerJ) / 3600;
+    var o2Left = a.o2Kg - s.o2Used, o2Walk = o2Rate(pace, 0);                          // kg/s while walking
+    out.o2Pct = 100 * o2Left / a.o2Kg;
+    out.o2Hours = o2Left / o2Rate(q.moving ? pace : 0, 0) / 3600;
     out.battHours = whLeft / Math.max(1, wNow);
-    var spareO2 = o2Left - B.RESERVE * A.o2Kg - o2Walk * backS;                         // what is left after the reserve and the way back
-    var spareWh = whLeft - B.RESERVE * cap - wWalk * backS / 3600;
+    var spareO2 = o2Left - R * a.o2Kg - o2Walk * backS;                                // what is left after the reserve and the way back
+    var spareWh = whLeft - R * cap - wWalk * backS / 3600;
     var tO2 = spareO2 / o2Walk, tWh = spareWh / (wWalk / 3600);
     out.turnS = Math.min(tO2, tWh);                                                    // negative: past the turn-back point
     out.limit = tO2 <= tWh ? 'oxygen' : 'battery';
@@ -3578,10 +3693,13 @@ window.MARSWALK_DATA = {
     if (go > 0) step(s, { kind: kind, dt: go, moved: dist, climbed: m.climb || 0, air: airC, sun: 0 });
     if (back > 0) step(s, { kind: kind, dt: back, moved: back * C.WALK, climbed: 0, air: airC, sun: 0 });
     var r = read(s, { kind: kind, back: 0, air: airC });
-    return { o2Pct: r.o2Pct, battPct: r.battPct, short: r.o2Pct !== null && (r.o2Pct < 100 * B.RESERVE || r.battPct < 100 * B.RESERVE) };
+    return { o2Pct: r.o2Pct, battPct: r.battPct, custom: r.custom, short: r.o2Pct !== null && (r.o2Pct < 100 * reserve() || r.battPct < 100 * reserve()) };
   }
 
-  MW.budget = { fresh: fresh, step: step, read: read, sunlight: sunlight, forRoute: forRoute, metabolic: metabolic };
+  MW.budget = { fresh: fresh, step: step, read: read, sunlight: sunlight, forRoute: forRoute, metabolic: metabolic, o2Rate: o2Rate,
+    setModel: setModel, validate: validate, FIELDS: FIELDS, reserve: reserve,
+    model: function () { return custom ? JSON.parse(JSON.stringify(custom)) : null; } };
+  if (MW.settings && MW.settings.get) setModel(MW.settings.get('o2Model'));      // a model saved in an earlier visit (o2-model.js)
 })();
 
 </script>
@@ -3998,7 +4116,6 @@ window.MARSWALK_DATA = {
         move -= left; replay.seg++; replay.f = 0; setPos(b.x, b.y);
         if (route.stops) {                           // a 12 second stop at each of Curiosity's positions
           replay.hold = 12 / S.factor; move = 0;
-          if (!$('pov').hidden && WP[replay.seg].pov) showPov(replay.seg);
         }
       }
     }
@@ -4318,22 +4435,8 @@ window.MARSWALK_DATA = {
     updateProbe(); drawProfile(); checkFit();
   }
 
-  /* Rover view: the nearest Curiosity Navcam photo. */
-  function showPov(i) {
-    var k = i, step = 0;
-    while (!WP[k] || !WP[k].pov) { step++; k = i + (step % 2 ? 1 : -1) * Math.ceil(step / 2); if (step > 12) return; }
-    var w = WP[k], url = 'https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/' + String(w.sol).padStart(5, '0') + '/opgs/edr/ncam/NLB_' + w.pov + '_.JPG';
-    var img = $('pov-img');
-    img.alt = 'Curiosity Navcam photo of the ground at this stop, sol ' + w.sol;
-    img.onerror = function () { $('pov-sub').textContent = "The photo didn't load. Check the connection to mars.nasa.gov."; };
-    img.src = url;
-    $('pov-title').textContent = 'What you will see here';
-    $('pov-sub').textContent = 'Curiosity left Navcam, sol ' + w.sol + ', ' + fmt(Math.hypot(w.x - S.x, w.y - S.y)) + ' m from you';
-    $('pov-link').href = url;
-    $('pov').hidden = false; $('pov-open').hidden = true;
-  }
-  $('pov-close').addEventListener('click', function () { $('pov').hidden = true; $('pov-open').hidden = false; });
-  $('pov-open').addEventListener('click', function () { showPov(S.near.i); });
+  /* The picture of a place (imagery.js): here, the one for a Curiosity stop the user picked. */
+  function showPov(i) { if (MW.imagery) MW.imagery.show(WP[i].lat, WP[i].lon, { heading: WP[i].yaw, label: 'stop ' + (i + 1) + ', sol ' + WP[i].sol }); }
 
   /* Height along the reference route, with the walker's place on it. */
   var prof = $('profile'), pg = prof.getContext('2d'), look = { fill: '#ccc', ink: '#000', ink2: '#444' };
@@ -4653,11 +4756,11 @@ window.MARSWALK_DATA = {
       $('e-turn').textContent = '–'; $('e-turn-l').textContent = 'a robot need not come back';
       $('e-turn').className = ''; warn.hidden = true; return;
     }
-    $('e-o2').textContent = pct(b.o2Pct); $('e-o2-l').textContent = 'oxygen left, about ' + hm(b.o2Hours * 3600) + ' at this pace (modelled)';
+    $('e-o2').textContent = pct(b.o2Pct); $('e-o2-l').textContent = 'oxygen left, about ' + hm(b.o2Hours * 3600) + ' at this pace (' + (b.custom ? 'your oxygen model' : 'modelled') + ')';
     $('e-batt').textContent = pct(b.battPct); $('e-batt-l').textContent = 'battery left, about ' + hm(b.battHours * 3600) + ' at this rate (modelled)';
     var late = b.turnS <= 0, soon = !late && b.turnS < 900;
     $('e-turn').textContent = late ? 'now' : hm(b.turnS);
-    $('e-turn-l').textContent = late ? 'turn back now: ' + b.limit + ' only just covers the way back' : 'until you must turn back (' + b.limit + ' sets the limit; modelled)';
+    $('e-turn-l').textContent = late ? 'turn back now: ' + b.limit + ' only just covers the way back' : 'until you must turn back (' + b.limit + ' sets the limit; ' + (b.custom ? 'your oxygen model' : 'modelled') + ')';
     $('e-turn').className = late || soon ? 'alert' : '';
     var out = S.dist > 1;
     if (out && (late || soon)) {
@@ -4671,7 +4774,7 @@ window.MARSWALK_DATA = {
   setDataLayer('none');
   trail.add(0, 0, 0, meta());
   showMode(); setPlaying(false);
-  if (window.innerWidth > 860) showPov(0); else $('pov-open').hidden = false;   // small screens keep the map clear
+  /* the picture of where the walker stands is opened by imagery.js once it has loaded */
   requestAnimationFrame(frame);
 
   /* Hook for real hardware: feed position fixes (IMU, visual odometry, orbital relay) and look direction. */
@@ -7532,7 +7635,8 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   }
   function openMarker(m) {
     var d = fromHere(m.lat, m.lon), z = T.ready ? T.heightAt(m.lat, m.lon) : null;
-    var html = '<div class="pop mkp"><h3>' + MK.art(m.icon) + '<span>' + esc(m.name) + '</span></h3>' + (m.note ? '<div class="mk-text">' + MK.render(m.note) + '</div>' : '') + '<dl>' +
+    var ph = MK.photos.get(m.id);
+    var html = '<div class="pop mkp"><h3>' + MK.art(m.icon) + '<span>' + esc(m.name) + '</span></h3>' + (ph ? '<img class="mk-photo" src="' + ph + '" alt="Photo of ' + esc(m.name) + '">' : '') + (m.note ? '<div class="mk-text">' + MK.render(m.note) + '</div>' : '') + '<dl>' +
       '<dt>Position</dt><dd>' + llText(m.lat, m.lon) + '</dd>' +
       (z !== null ? '<dt>Height</dt><dd>about ' + height(z) + ' <span class="dsub">regional, from the MOLA shape model</span></dd>' : '') +
       '<dt>From the walker</dt><dd>' + dist(d) + ' in a straight line</dd>' +
@@ -7554,6 +7658,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     setMode(null); map.closePopup();
     editing = { id: m.id || null, lat: m.lat, lon: m.lon, icon: MK.icons.valid(m.icon || 'pin'), by: m.by || null, createdAt: m.createdAt || null };
     $('mk-name').value = m.name || ''; $('mk-note').value = m.note || ''; $('mk-radius').value = m.radius || K.DANGER_RADIUS;
+    editing.photo = undefined; showPhoto(m.id ? MK.photos.get(m.id) : null);     // undefined: unchanged; a data URL: new; null: removed
     $('mk-form').hidden = false; say('mk-msg', '');
     drawIcons(); drawDraft(); drawMarkers(); showWhere();
     app.openTab('nav'); $('mk-form').scrollIntoView({ block: 'nearest' }); $('mk-name').focus();
@@ -7754,7 +7859,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     var air = q.wx ? RT.airAt(q.wx, q.hour) : null, b = MW.budget.forRoute('astronaut', m, air);
     return '<p class="rt-budget' + (b.short ? ' short' : '') + '">' + (m.returnTime ? 'Back at base with about ' : 'On arrival, about ') +
       Math.max(0, Math.round(b.o2Pct)) + ' % oxygen and ' + Math.max(0, Math.round(b.battPct)) + ' % battery left' +
-      (b.short ? ': under the ' + Math.round(C.BUDGET.RESERVE * 100) + ' % reserve' : '') + ' <span class="dtag">MODELLED</span></p>';
+      (b.short ? ': under the ' + Math.round(MW.budget.reserve() * 100) + ' % reserve' : '') + ' <span class="dtag">' + (b.custom ? 'MODELLED: YOUR OXYGEN MODEL' : 'MODELLED') + '</span></p>';
   }
   function drawPlan(fit) {
     planLayer.clearLayers(); badgeLayer.clearLayers();
@@ -7884,8 +7989,11 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     e.preventDefault(); if (!editing) return;
     var rec = MK.save({ id: editing.id, lat: editing.lat, lon: editing.lon, icon: editing.icon, name: $('mk-name').value.trim() || $('mk-name').placeholder || 'Marker',
       note: $('mk-note').value, radius: +$('mk-radius').value, by: editing.by || settings.walker().name, createdAt: editing.createdAt });
+    var photo = editing.photo, photoNote = '';
+    if (rec && photo === null) MK.photos.remove(rec.id);
+    else if (rec && photo) photoNote = MK.photos.set(rec.id, photo) ? ' Photo saved.' : ' The photo was not kept: this browser has no room left for it. Try a smaller picture, or remove another photo.';
     closeForm();
-    say('mk-msg', rec ? 'Saved “' + rec.name + '”.' + (MK.persistent ? '' : ' This browser is not keeping markers between visits.') : "The marker couldn't be saved.");
+    say('mk-msg', rec ? 'Saved “' + rec.name + '”.' + photoNote + (MK.persistent ? '' : ' This browser is not keeping markers between visits.') : "The marker couldn't be saved.");
   });
   $('mk-icons').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || !editing) return;
@@ -7893,6 +8001,41 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     pickIcon(b.getAttribute('data-icon-key'));
   });
   $('mk-file').addEventListener('change', function () { var f = this.files[0]; this.value = ''; upload(f); });
+  /* ---- a photo for the marker: PNG, JPEG or WebP up to PHOTO_MAX bytes, shrunk to PHOTO_PX and kept as a JPEG ---- */
+  var PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp'], PHOTO_MAX = 10 * 1024 * 1024, PHOTO_PX = 800;
+  function showPhoto(src) {
+    var img = $('mk-photo-img');
+    img.hidden = !src; if (src) img.src = src; else img.removeAttribute('src');
+    $('mk-photo-add').querySelector('span').textContent = src ? 'Replace the photo' : 'Add a photo';
+    $('mk-photo-del').hidden = !src; say('mk-photo-msg', '');
+  }
+  function shrink(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, PHOTO_PX / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        var q = 0.8, out = cv.toDataURL('image/jpeg', q);
+        while (out.length > 400000 && q > 0.4) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); }   // keep each photo under about 300 KB
+        res(out);
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error('That file could not be read as a picture.')); };
+      im.src = url;
+    });
+  }
+  $('mk-photo-add').addEventListener('click', function () { $('mk-photo-file').click(); });
+  $('mk-photo-del').addEventListener('click', function () { if (!editing) return; editing.photo = null; showPhoto(null); say('mk-photo-msg', 'The photo will be removed when you save.'); });
+  $('mk-photo-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f || !editing) return;
+    if (PHOTO_TYPES.indexOf(f.type) < 0) { say('mk-photo-msg', 'Choose a PNG, JPEG or WebP picture (this one is ' + (f.type || 'an unknown type') + ').'); return; }
+    if (f.size > PHOTO_MAX) { say('mk-photo-msg', 'That picture is ' + (f.size / 1048576).toFixed(1) + ' MB; the largest allowed is 10 MB.'); return; }
+    shrink(f).then(function (d) {
+      if (!editing) return;
+      editing.photo = d; showPhoto(d); say('mk-photo-msg', 'Photo ready (' + Math.round(d.length * 0.75 / 1024) + ' KB). It is kept when you save the marker.');
+    }, function (e) { say('mk-photo-msg', e.message); });
+  });
   $('mk-role').addEventListener('click', function (e) {
     if (e.target.id !== 'mk-icon-del' || !editing) return;
     MK.icons.remove(editing.icon); editing.icon = 'pin'; drawIcons(); drawDraft(); say('mk-msg', 'Icon removed. Markers that used it now show the pin.');
@@ -7974,6 +8117,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   tickLive();
   MW.navUI = { mapClick: mapClick, routeTo: routeTo, clear: clearPlan, addMarker: openForm, get plan() { return plan; }, refresh: refresh,
     reset: function () { setting = null; if (plan) clearPlan(); tickLive(); },     // the site moved (app.js, setSite): bases and plans are out of date
+    openMarker: function (id) { var m = MK.get(id); if (m) openMarker(m); return !!m; },
     picking: function () { return !!mode; }, safetyAt: safetyAt, live: function () { return liveNow; },
     dustAt: function (lat, lon) { var d = dustState(); return d ? d.at(lat, lon) : null; } };
 })();
@@ -8622,10 +8766,11 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
 <script>
 /* hud.js — the readout tabs beside the map, and the mission status in the bottom-right corner of the map.
  *
- *   Readout tabs   The readouts (in #strip) are in three groups: Position, Conditions and Budget. In the side
- *                  layout one group shows at a time; its tab chooses it. A tab with nothing ticked in Settings >
- *                  Display is left out. The choice is kept in the browser (marswalk.roTab). In "Numbers first"
- *                  every group shows at once and the tabs are not needed.
+ *   Readout tabs   The readouts (in #strip) are in three groups: Position, Conditions and Budget. Three square tabs
+ *                  on the right edge of the map choose one; pressing the open group's tab again folds the panel away
+ *                  so the map gets the width. A tab with nothing ticked in Settings > Display is left out. The choice
+ *                  is kept in the browser (marswalk.roTab; 'none' = folded). In "Numbers first" every group shows at
+ *                  once and the tabs are not needed.
  *   Mission status Oxygen, battery and the live safety index as three small symbols that are always on the map,
  *                  whatever tab or layout is chosen. They turn amber and red at the thresholds below; a press
  *                  explains them. The values are the ones the readouts show (budget.js, router.js live).
@@ -8635,26 +8780,30 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
 (function () {
   'use strict';
   var C = MW.config, $ = MW.geo.$, app = window.Marswalk, settings = MW.settings, KEY = 'marswalk.roTab';
-  var WARN = 30, DANGER = 100 * C.BUDGET.RESERVE;      // % left: amber at 30 %, red at the reserve (15 %)
+  var WARN = 30;                                       // % left: amber at 30 %, red at the reserve (15 %, or the user's own)
 
   /* ================================================================ readout tabs */
-  var TABS = ['nav', 'env', 'budget-ro'], cur = 'nav';
+  var TABS = ['nav', 'env', 'budget-ro'], cur = 'nav', folded = false;
   try { cur = window.localStorage.getItem(KEY) || 'nav'; } catch (e) {}
+  if (cur === 'none') { folded = true; cur = 'nav'; }
   function tabBtn(id) { return document.querySelector('#ro-tabs [data-ro-tab="' + id + '"]'); }
   function syncTabs() {
     var avail = TABS.filter(function (id) { return !$(id).classList.contains('ro-off'); });
     if (avail.indexOf(cur) < 0) cur = avail[0] || 'nav';
     TABS.forEach(function (id) {
-      var b = tabBtn(id), sel = id === cur;
+      var b = tabBtn(id), sel = id === cur && !folded;
       b.hidden = avail.indexOf(id) < 0;
-      b.setAttribute('aria-selected', sel); b.tabIndex = sel ? 0 : -1;
-      $(id).classList.toggle('ro-active', sel);
+      b.setAttribute('aria-pressed', sel); b.setAttribute('aria-expanded', !folded);
+      $(id).classList.toggle('ro-active', id === cur);
     });
-    $('ro-tabs').hidden = avail.length < 2;             // one group: no choice to make
+    $('ro-tabs').hidden = !avail.length;
+    document.body.classList.toggle('ro-folded', folded);
   }
   function choose(id) {
-    cur = id; syncTabs();
-    try { window.localStorage.setItem(KEY, id); } catch (e) {}
+    if (id === cur && !folded) folded = true;          // the open group's tab folds the panel away
+    else { cur = id; folded = false; }
+    syncTabs();
+    try { window.localStorage.setItem(KEY, folded ? 'none' : cur); } catch (e) {}
   }
   $('ro-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-ro-tab]'); if (b) choose(b.getAttribute('data-ro-tab')); });
   $('ro-tabs').addEventListener('keydown', function (e) {
@@ -8664,13 +8813,13 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = vis.length - 1;
     if (j === null) return;
     e.preventDefault(); e.stopPropagation();             // the arrow keys must not also walk the pointer
-    choose(vis[j]); tabBtn(vis[j]).focus();
+    tabBtn(vis[j]).focus();                              // Enter or Space opens it
   });
   settings.onChange(syncTabs);
   syncTabs();
 
   /* ================================================================ mission status */
-  function level(pct) { return pct === null || pct === undefined ? '' : pct <= DANGER ? 'danger' : pct <= WARN ? 'warn' : 'ok'; }
+  function level(pct) { var danger = 100 * MW.budget.reserve(); return pct === null || pct === undefined ? '' : pct <= danger ? 'danger' : pct <= Math.max(WARN, danger + 5) ? 'warn' : 'ok'; }
   function set(id, value, state, tip) {
     var b = $(id), v = b.querySelector('b');
     if (v.textContent !== value) v.textContent = value;
@@ -8683,7 +8832,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
       var late = bu.turnS !== null && bu.turnS <= 0;
       if (bu.o2Pct === null) set('m-o2', 'n/a', 'off', 'Oxygen: a robot needs none');
       else set('m-o2', Math.max(0, Math.round(bu.o2Pct)) + '%', late && bu.limit === 'oxygen' ? 'danger' : level(bu.o2Pct),
-        'Oxygen left: ' + Math.max(0, Math.round(bu.o2Pct)) + ' % (modelled)' + (late && bu.limit === 'oxygen' ? '. Turn back now' : ''));
+        'Oxygen left: ' + Math.max(0, Math.round(bu.o2Pct)) + ' % (' + (bu.custom ? 'your oxygen model' : 'modelled') + ')' + (late && bu.limit === 'oxygen' ? '. Turn back now' : ''));
       set('m-batt', Math.max(0, Math.round(bu.battPct)) + '%', late && bu.limit === 'battery' ? 'danger' : level(bu.battPct),
         'Battery left: ' + Math.max(0, Math.round(bu.battPct)) + ' % (modelled)' + (bu.chargingW > 0 ? ', charging in sunlight' : '') + (late && bu.limit === 'battery' ? '. Turn back now' : ''));
     }
@@ -8699,7 +8848,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   });
   setInterval(update, 1000); update();
 
-  MW.hud = { tab: function (id) { if (TABS.indexOf(id) >= 0) choose(id); return cur; }, update: update };
+  MW.hud = { tab: function (id) { if (TABS.indexOf(id) >= 0) choose(id); return folded ? 'none' : cur; }, update: update };
 })();
 
 </script>
@@ -8726,6 +8875,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   function items() {
     return '<p class="ctx-where">' + llText(at.lat, at.lng) + '</p><div role="none">' +
       '<button type="button" role="menuitem" data-ctx="info">' + icon('search') + '<span>Reveal information</span></button>' +
+      '<button type="button" role="menuitem" data-ctx="image">' + icon('eye') + '<span>View location image</span></button>' +
       '<button type="button" role="menuitem" data-ctx="go">' + icon('walk') + '<span>Travel to location</span></button>' +
       '<button type="button" role="menuitem" data-ctx="mark">' + icon('pin') + '<span>Mark as landmark</span></button></div>';
   }
@@ -8754,6 +8904,20 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     L.popup({ maxWidth: 340, className: 'spot-pop', autoPanPaddingTopLeft: [12, 12], autoPanPaddingBottomRight: [right, 60] }).setLatLng(at).setContent('<div class="pop spot"><h3>' + info.title + '</h3><dl>' + info.rows + '</dl>' +
       (info.notes ? '<p>' + info.notes + '</p>' : '') + '</div>').openOn(map);
   }
+  /* A small preview of the best NASA picture of the spot (imagery.js), with where it comes from. */
+  function picture(spot) {
+    var pov = $('pov'), right = pov && !pov.hidden && pov.offsetWidth ? pov.offsetWidth + 72 : 60;     // clear of the picture panel and the tabs
+    var pop = L.popup({ maxWidth: 270, minWidth: 240, className: 'spot-pop img-pop', autoPanPaddingTopLeft: [12, 12], autoPanPaddingBottomRight: [right, 60] })
+      .setLatLng(spot).setContent('<div class="pop"><h3>Looking for a NASA picture…</h3><p>' + llText(spot.lat, spot.lng) + '</p></div>').openOn(map);
+    MW.imagery.best(spot.lat, spot.lng, {}).then(function (r) {
+      if (!map.hasLayer(pop)) return;
+      if (r.kind === 'none') { pop.setContent('<div class="pop"><h3>No imagery available for this location.</h3><p>' + esc(r.note) + '</p></div>'); return; }
+      pop.setContent('<div class="pop locimg"><h3>' + esc(r.title) + '</h3><img src="' + esc(r.src) + '" alt="' + esc(r.title + ': ' + r.where) + '" ' +
+        'onerror="this.replaceWith(Object.assign(document.createElement(\'p\'),{textContent:\'No imagery available for this location: the picture did not load (it needs an internet connection).\'}))">' +
+        '<p>' + esc(r.where) + '</p><p class="meta">' + esc(r.source) + '<br>' + esc(r.date) + (r.note ? '<br>' + esc(r.note) : '') + '</p>' +
+        (r.link ? '<p><a href="' + esc(r.link) + '" target="_blank" rel="noopener">' + (r.kind === 'rover' ? 'Open the full image at NASA' : 'Open NASA Mars Trek') + '</a></p>' : '') + '</div>');
+    });
+  }
   function travel(sure) {
     var S = app._state;
     if (!sure && S.dist > 5) {                           // a walk is under way: say what travelling does first
@@ -8771,6 +8935,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     var b = e.target.closest('[data-ctx]'); if (!b || !at) return;
     var act = b.getAttribute('data-ctx'), spot = at;
     if (act === 'info') { reveal(); close(); }
+    else if (act === 'image') { picture(spot); close(); }
     else if (act === 'go') travel(false);
     else if (act === 'go-sure') travel(true);
     else if (act === 'save') { close(); app.saveTrail(); }
@@ -8818,6 +8983,262 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     swallow: function () { var s = swallow && Date.now() - swallow < 800; swallow = false; return s; },   // app.js asks on every map click; a drag never clicks, so it expires
     get isOpen() { return !menu.hidden; }
   };
+})();
+
+</script>
+<script>
+/* imagery.js — MW.imagery: the best real NASA picture of a place, and the "View from here" panel.
+ *
+ *   On Curiosity's drive (within ROVER_M of one of its stops): a photo from the rover's left Navigation Camera
+ *     taken at that stop. Online, the frames of that sol come from NASA's raw-image service
+ *     (mars.nasa.gov/api/v1/raw_image_items) and the one taken at the end of the sol's drive, looking closest to the
+ *     walker's heading, is chosen. Offline or if that fails, the frame stored for the stop in data.js is used.
+ *   Anywhere else: an orbital view from above, cut from the same NASA Mars Trek mosaics the map uses (HiRISE,
+ *     CTX or Viking, the sharpest there), centred on the place, with a cross on the exact spot.
+ *   Nothing suitable (no network, no cached tiles): it says so. It never shows a picture of somewhere else.
+ *
+ *   MW.imagery.best(lat, lon, { heading })   Promise -> { kind: 'rover' | 'orbital' | 'none', src, title, source, date,
+ *                                            where, link, note }
+ *   MW.imagery.show(lat, lon, opts)          put the best picture of that place in the panel
+ *   MW.imagery.follow()                      the panel follows the walker again (it does after "View from here")
+ */
+(function () {
+  'use strict';
+  var C = MW.config, G = MW.geo, $ = G.$, DEG = G.DEG, ROVER_M = 60, SOL_S = 88775.244;
+  var MSL_SOL0 = Date.parse('2012-08-06T05:17:57Z');            // Curiosity's landing: sol 0
+  var API = 'https://mars.nasa.gov/api/v1/raw_image_items/?order=sol%20desc&per_page=100&page=0&condition_1=msl:mission&condition_2=';
+  var RAW = 'https://mars.nasa.gov/msl-raw-images/proj/msl/redops/ods/surface/sol/';
+  /* What each photo base layer is, for the caption. Dates as published for the source images, never guessed. */
+  var ORBITAL = {
+    'MRO HiRISE': { layer: 2, zoom: 16, inst: 'MRO HiRISE (High Resolution Imaging Science Experiment)', taken: 'images taken from 2006 on; the date of each image in the mosaic varies' },
+    'MRO CTX': { layer: 1, zoom: 12, inst: 'MRO CTX (Context Camera)', taken: 'images taken from 2006 on; the date of each image in the mosaic varies' },
+    'the Viking colour mosaic': { layer: 0, zoom: 7, inst: 'Viking Orbiter colour mosaic (MDIM 2.1, USGS)', taken: 'Viking Orbiter images taken 1976 to 1980' }
+  };
+
+  function ll(lat, lon) { return Math.abs(lat).toFixed(4) + '° ' + (lat < 0 ? 'S' : 'N') + ', ' + Math.abs(lon).toFixed(4) + '° ' + (lon < 0 ? 'W' : 'E'); }
+  function day(t) { return new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }); }
+  function angDiff(a, b) { return Math.abs(((b - a + 540) % 360) - 180); }
+  function solDate(sol) { return MSL_SOL0 + sol * SOL_S * 1000; }
+
+  /* ---------------------------------------------------------------- the rover's photos */
+  function nearestStop(lat, lon) {
+    var best = null;
+    G.WP.forEach(function (w, i) { var d = G.haversine({ lat: lat, lon: lon }, w); if (!best || d < best.d) best = { i: i, d: d }; });
+    return best;
+  }
+  var solCache = new Map();
+  function solFrames(sol) {                            // full-size left Navcam frames of one sol, from NASA's raw-image service
+    if (solCache.has(sol)) return solCache.get(sol);
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    var p = fetch(API + sol + ':sol:in&condition_3=NAV_LEFT_B:instrument:in', ctl ? { signal: ctl.signal } : {}).then(function (r) { clearTimeout(t); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) {
+        return (d.items || []).filter(function (it) { var ex = it.extended || {}; return (ex.sample_type || 'full') === 'full' && it.https_url; })
+          .map(function (it) { var ex = it.extended || {}; return { url: it.https_url, id: it.id, drive: +it.drive || 0, az: +ex.mast_az, el: +ex.mast_el, taken: it.date_taken, title: it.title }; });
+      });
+    p.catch(function () { solCache.delete(sol); });     // try again next time
+    solCache.set(sol, p);
+    return p;
+  }
+  function pickFrame(frames, yaw, heading) {           // taken where the drive ended, looking out (not at the deck), towards the heading
+    var end = Math.max.apply(null, frames.map(function (f) { return f.drive; }));
+    var pool = frames.filter(function (f) { return f.drive === end && isFinite(f.el) && f.el > -40 && f.el < 25; });
+    if (!pool.length) pool = frames.filter(function (f) { return f.drive === end; });
+    pool.sort(function (a, b) {
+      var sa = (heading === null || heading === undefined || !isFinite(a.az) ? 0 : angDiff((a.az + yaw) % 360, heading)) + Math.abs(a.el + 10) * 0.5;
+      var sb = (heading === null || heading === undefined || !isFinite(b.az) ? 0 : angDiff((b.az + yaw) % 360, heading)) + Math.abs(b.el + 10) * 0.5;
+      return sa - sb;
+    });
+    return pool[0] || null;
+  }
+  function roverImage(lat, lon, opts) {
+    var st = nearestStop(lat, lon);
+    if (!st || st.d > ROVER_M) return Promise.resolve(null);
+    var w = G.WP[st.i], where = 'Curiosity stop ' + (st.i + 1) + ' of ' + G.WP.length + ', ' + ll(w.lat, w.lon) + (st.d > 2 ? ' (' + Math.round(st.d) + ' m from the spot)' : '');
+    var stored = function () {                         // the frame kept for the nearest stop that has one (data.js)
+      for (var k = 0; k < 6; k++) for (var s = -1; s <= 1; s += 2) {
+        var j = st.i + s * k; if (!G.WP[j] || !G.WP[j].pov) continue;
+        if (G.haversine({ lat: lat, lon: lon }, G.WP[j]) > ROVER_M + 25) continue;
+        var v = G.WP[j];
+        return { kind: 'rover', src: RAW + String(v.sol).padStart(5, '0') + '/opgs/edr/ncam/NLB_' + v.pov + '_.JPG', title: "Curiosity's view here",
+          source: 'NASA/JPL-Caltech, Curiosity left Navigation Camera (Navcam), raw image', date: 'Sol ' + v.sol + ', about ' + day(solDate(v.sol)) + ' (worked out from the sol)',
+          where: 'Curiosity stop ' + (j + 1) + ', ' + ll(v.lat, v.lon), link: RAW + String(v.sol).padStart(5, '0') + '/opgs/edr/ncam/NLB_' + v.pov + '_.JPG', note: 'Frame stored with the route; the live image list could not be reached.' };
+      }
+      return null;
+    };
+    return solFrames(w.sol).then(function (frames) {
+      var f = frames.length ? pickFrame(frames, w.yaw || 0, opts && opts.heading) : null;
+      if (!f) return stored();
+      return { kind: 'rover', src: f.url, title: "Curiosity's view here", source: 'NASA/JPL-Caltech, Curiosity left Navigation Camera (Navcam), raw image ' + f.id,
+        date: 'Taken ' + new Date(f.taken).toISOString().slice(0, 16).replace('T', ' ') + ' UTC, sol ' + w.sol, where: where, link: f.url,
+        note: isFinite(f.az) ? 'Looking ' + G.compass(((f.az + (w.yaw || 0)) % 360 + 360) % 360) + ', chosen from ' + frames.length + ' frames of that sol.' : '' };
+    }, stored);
+  }
+
+  /* ---------------------------------------------------------------- the view from orbit */
+  function loadTile(url) {
+    return new Promise(function (res) { var im = new Image(); im.crossOrigin = 'anonymous'; im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = url; });
+  }
+  function orbitalImage(lat, lon) {
+    var im = MW.places.imageryAt(lat, lon), O = ORBITAL[im.name]; if (!O) return Promise.resolve(null);
+    var b = C.BASE[O.layer], z = Math.min(O.zoom, b.nz), d = 180 / Math.pow(2, z), W = 320, H = 240;
+    var fx = (((lon + 180) % 360) + 360) % 360 / d, fy = (90 - lat) / d, px = fx * 256, py = fy * 256;   // the spot in world pixels at zoom z
+    var x0 = px - W / 2, y0 = py - H / 2, tx0 = Math.floor(x0 / 256), tx1 = Math.floor((x0 + W - 1) / 256), ty0 = Math.max(0, Math.floor(y0 / 256)), ty1 = Math.min(Math.pow(2, z) - 1, Math.floor((y0 + H - 1) / 256));
+    var jobs = [];
+    for (var ty = ty0; ty <= ty1; ty++) for (var tx = tx0; tx <= tx1; tx++) {
+      var wx = ((tx % Math.pow(2, z + 1)) + Math.pow(2, z + 1)) % Math.pow(2, z + 1);
+      jobs.push({ tx: tx, ty: ty, url: C.TREK + b.id + C.TREK_PATH + z + '/' + ty + '/' + wx + '.' + b.ext });
+    }
+    return Promise.all(jobs.map(function (j) { return loadTile(j.url).then(function (img) { j.img = img; return j; }); })).then(function (js) {
+      var got = js.filter(function (j) { return j.img; });
+      if (!got.length) return null;
+      var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      var g = cv.getContext('2d'); g.fillStyle = '#1b1b1b'; g.fillRect(0, 0, W, H);
+      got.forEach(function (j) { g.drawImage(j.img, Math.round(j.tx * 256 - x0), Math.round(j.ty * 256 - y0)); });
+      g.strokeStyle = '#fff'; g.lineWidth = 2; g.shadowColor = '#000'; g.shadowBlur = 3;          // the exact spot
+      g.beginPath(); g.moveTo(W / 2 - 14, H / 2); g.lineTo(W / 2 - 5, H / 2); g.moveTo(W / 2 + 5, H / 2); g.lineTo(W / 2 + 14, H / 2);
+      g.moveTo(W / 2, H / 2 - 14); g.lineTo(W / 2, H / 2 - 5); g.moveTo(W / 2, H / 2 + 5); g.lineTo(W / 2, H / 2 + 14); g.stroke();
+      var mpp = d / 256 * G.M_PER_DEG * Math.cos(lat * DEG), across = mpp * W;
+      var src; try { src = cv.toDataURL('image/jpeg', 0.85); } catch (e) { return null; }
+      return { kind: 'orbital', src: src, title: 'Seen from orbit', source: 'NASA/JPL/USGS Mars Trek, ' + O.inst + ' mosaic, layer ' + b.id,
+        date: O.taken, where: 'Centred on ' + ll(lat, lon) + '; the picture is about ' + (across >= 1000 ? G.fmt(across / 1000, across < 10000 ? 1 : 0) + ' km' : G.fmt(across) + ' m') + ' across (' + im.res + ')',
+        link: 'https://trek.nasa.gov/mars/', note: got.length < js.length ? 'Part of the area could not be loaded.' : '' };
+    });
+  }
+
+  function best(lat, lon, opts) {
+    return roverImage(lat, lon, opts).then(function (r) { return r || orbitalImage(lat, lon); }).then(function (r) {
+      return r || { kind: 'none', title: 'No imagery available for this location.', source: '', date: '', where: ll(lat, lon), link: '',
+        note: navigator.onLine === false ? 'The pictures come from NASA servers: connect to the internet, or save the walk area for offline use (Map Overlay).' : 'NASA has no picture of this spot that could be loaded.' };
+    });
+  }
+
+  /* ---------------------------------------------------------------- the panel */
+  var app = window.Marswalk, following = true, lastAt = null, seq = 0;
+  function show(lat, lon, opts) {
+    var my = ++seq, pv = $('pov'), img = $('pov-img');
+    pv.hidden = false; $('pov-open').hidden = true; pv.classList.add('loading');
+    $('pov-title').textContent = 'Finding a NASA picture of this spot…'; $('pov-sub').textContent = ll(lat, lon); $('pov-meta').textContent = ''; $('pov-link').hidden = true;
+    lastAt = { lat: lat, lon: lon };
+    return best(lat, lon, opts).then(function (r) {
+      if (my !== seq) return r;                        // a newer request has taken over
+      pv.classList.remove('loading'); pv.setAttribute('data-kind', r.kind);
+      $('pov-title').textContent = r.kind === 'none' ? r.title : r.title + (opts && opts.label ? ' (' + opts.label + ')' : '');
+      $('pov-sub').textContent = r.where;
+      $('pov-meta').innerHTML = (r.source ? '<span>' + G.escapeHtml(r.source) + '</span>' : '') + (r.date ? '<span>' + G.escapeHtml(r.date) + '</span>' : '') + (r.note ? '<span>' + G.escapeHtml(r.note) + '</span>' : '');
+      if (r.kind === 'none') { img.removeAttribute('src'); img.alt = ''; img.hidden = true; }
+      else {
+        img.hidden = false; img.alt = r.title + ': ' + r.where;
+        img.onerror = function () {                    // a listed photo that will not load: say so rather than show nothing
+          if (my !== seq) return;
+          img.hidden = true; $('pov-title').textContent = 'No imagery available for this location.';
+          $('pov-meta').innerHTML = '<span>The picture did not load. The pictures come from NASA servers and need an internet connection.</span>';
+        };
+        img.src = r.src;
+      }
+      $('pov-link').hidden = !r.link; if (r.link) { $('pov-link').href = r.link; $('pov-link').textContent = r.kind === 'rover' ? 'Open the full image at NASA' : 'Open NASA Mars Trek'; }
+      return r;
+    });
+  }
+  function showHere(force) {
+    var h = app.here();
+    if (!force && lastAt && G.haversine(h, lastAt) < 40) return;   // refresh as the walker moves, not every step
+    show(h.lat, h.lon, { heading: app._state.heading });
+  }
+  setInterval(function () { if (following && !$('pov').hidden) showHere(false); }, 2500);
+  $('pov-close').addEventListener('click', function () { $('pov').hidden = true; $('pov-open').hidden = false; });
+  $('pov-open').addEventListener('click', function () { following = true; showHere(true); });
+  if (window.innerWidth > 860) showHere(true); else $('pov-open').hidden = false;   // small screens keep the map clear
+
+  MW.imagery = { best: best, rover: roverImage, orbital: orbitalImage,
+    show: function (lat, lon, opts) { following = !!(opts && opts.follow); return show(lat, lon, opts); },
+    follow: function () { following = true; showHere(true); } };
+})();
+
+</script>
+<script>
+/* o2-model.js — Settings > "Walk budget: oxygen model": the user's own oxygen numbers, or a whole model.
+ *
+ * Two kinds of model, both MODELLED:
+ *   From effort (metabolic)  oxygen follows the work done: standing metabolism, extra per m/s walked, climbing.
+ *                            The default model is this kind, with the numbers in BUDGET in config.js.
+ *   Fixed rates              oxygen is used at one rate while walking and another while standing, as a suit's
+ *                            datasheet might quote them.
+ * A field left blank takes the default. Nothing is used until it is saved, and a saved model is marked wherever its
+ * numbers show ("your oxygen model"). "Use the defaults" removes it; the defaults themselves are never changed.
+ * Kept with the other settings in the browser (marswalk.settings.v1, o2Model), and as a file to share:
+ *   { "format": "marswalk-o2-model", "version": 1, "model": "metabolic", "name": "…", "o2Kg": 0.7, … }
+ */
+(function () {
+  'use strict';
+  var Bu = MW.budget, settings = MW.settings, $ = MW.geo.$, esc = MW.geo.escapeHtml, kind = 'metabolic';
+
+  function apply() { Bu.setModel(settings.get('o2Model')); status(); }
+  function status() {
+    var m = settings.get('o2Model');
+    $('o2-status').innerHTML = m ? '<span class="dtag o2-yours">YOUR MODEL</span> In use: <b>' + esc(m.name) + '</b> (' + (m.model === 'fixed' ? 'fixed rates' : 'from effort') + ')' +
+        (m.savedAt ? ', saved ' + new Date(m.savedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '') + '. The oxygen readouts say "your oxygen model".'
+      : '<span class="dtag">DEFAULT</span> In use: the default model (from effort, with the numbers in BUDGET in config.js).';
+  }
+  function fields() {
+    var m = settings.get('o2Model') || {}, box = $('o2-fields');
+    box.innerHTML = Bu.FIELDS.filter(function (f) { return !f.model || f.model === kind; }).map(function (f) {
+      var v = m.model === kind || !f.model ? m[f.key] : undefined, d = f.def();
+      return '<label class="o2-field"><span>' + f.label + ' <i>' + f.unit + '</i></span>' +
+        '<input type="number" inputmode="decimal" data-o2="' + f.key + '" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="' + (v === undefined || v === null ? '' : v) + '" placeholder="default ' + (+d.toFixed(3)) + '">' +
+        '<small data-o2-err="' + f.key + '"></small></label>';
+    }).join('');
+    $('o2-name').value = m.name || '';
+    Array.prototype.forEach.call(document.querySelectorAll('#o2-kind button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-o2-kind') === kind); });
+  }
+  function read() {
+    var m = { model: kind, name: $('o2-name').value.trim() || 'My oxygen model' };
+    Array.prototype.forEach.call(document.querySelectorAll('#o2-fields input[data-o2]'), function (i) { m[i.getAttribute('data-o2')] = i.value; });
+    return m;
+  }
+  function say(t) { $('o2-msg').textContent = t || ''; $('o2-msg').hidden = !t; }
+  function showErrors(errs) {
+    Array.prototype.forEach.call(document.querySelectorAll('#o2-fields [data-o2-err]'), function (s) {
+      var e = errs[s.getAttribute('data-o2-err')] || ''; s.textContent = e;
+      s.parentNode.querySelector('input').setAttribute('aria-invalid', !!e);
+    });
+  }
+  function save(m) {
+    var v = Bu.validate(m); showErrors(v.errors);
+    if (!v.ok) { say('Not saved: check the fields marked in red.'); return false; }
+    var out = v.model; out.savedAt = new Date().toISOString();
+    settings.set('o2Model', out);
+    say('Saved. The walk budget now uses ' + out.name + '.'); return true;
+  }
+
+  $('o2-kind').addEventListener('click', function (e) { var b = e.target.closest('[data-o2-kind]'); if (!b) return; kind = b.getAttribute('data-o2-kind'); fields(); showErrors({}); say(''); });
+  $('o2-save').addEventListener('click', function () { save(read()); });
+  $('o2-reset').addEventListener('click', function () { settings.set('o2Model', null); kind = 'metabolic'; fields(); showErrors({}); say('Your model is removed: the default model is in use again.'); });
+  $('o2-export').addEventListener('click', function () {
+    var v = Bu.validate(read()); showErrors(v.errors); if (!v.ok) { say('Fix the fields marked in red first.'); return; }
+    var data = Object.assign({ format: 'marswalk-o2-model', version: 1 }, v.model), a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
+    a.download = (v.model.name || 'oxygen-model').replace(/[^\w\-]+/g, '-').toLowerCase() + '.marswalk-o2.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+  $('o2-import').addEventListener('click', function () { $('o2-file').click(); });
+  $('o2-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f) return;
+    if (f.size > 100000) { say('That file is too large to be an oxygen model.'); return; }
+    var rd = new FileReader();
+    rd.onload = function () {
+      var d; try { d = JSON.parse(String(rd.result)); } catch (e) { d = null; }
+      if (!d || d.format !== 'marswalk-o2-model') { say('That is not a Marswalk oxygen model file (.marswalk-o2.json).'); return; }
+      kind = d.model === 'fixed' ? 'fixed' : 'metabolic';
+      if (save(d)) { fields(); say('Imported and saved: ' + (d.name || 'oxygen model') + '.'); }
+    };
+    rd.readAsText(f);
+  });
+  $('o2-fields').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save(read()); } });
+  settings.onChange(function () { var m = settings.get('o2Model'); Bu.setModel(m); status(); });
+
+  kind = (settings.get('o2Model') || {}).model === 'fixed' ? 'fixed' : 'metabolic';
+  fields(); apply();
+  MW.o2Model = { save: save, read: read, apply: apply };
 })();
 
 </script>

@@ -69,7 +69,9 @@ and they load in this order (see the bottom of `index.html`). Every file sits be
 | `sw.js` | The service worker: keeps the app and the map tiles for use without a connection | change what is kept |
 | `lazy.js` | Loads the dust packs after the map's first view | defer another large file |
 | `hud.js` | The readout tabs beside the map, and the mission status symbols at its bottom right | change how readouts are grouped |
-| `context-menu.js` | The right-click (long-press) menu on the map: reveal, travel, mark | add a choice to the menu |
+| `context-menu.js` | The right-click (long-press) menu on the map: image, reveal, travel, mark | add a choice to the menu |
+| `imagery.js` | `MW.imagery`: the best NASA picture of a place (Curiosity's Navcam or orbital), and its panel | change where pictures come from |
+| `o2-model.js` | Settings > Walk budget: oxygen model, the user's own oxygen numbers | add a field to the oxygen model |
 | `nav-ui.js` | The Markers and routes tab: marker form, icon picker, filter, route search, result cards, lines on the map | change how markers and routes are shown |
 | `terrain_ingest.py` | Builds `terrain-data.js` from the MarsTopo719 shape model and the GMM-3 gravity model | change the terrain resolution |
 | `router_test.js` | Checks the terrain pack and the route-finder against the real data: `node router_test.js` | you changed `router.js`, `terrain.js` or a limit |
@@ -284,9 +286,11 @@ matters on a walk, and whether it is measured, historical, interpolated or model
 `GLOSSARY` in `config.js`; any `<button class="info" data-info="key">` opens the entry with that key.
 
 **Layout** (Settings > Display) has two choices. **Tabs beside the map** (the default) keeps the readouts in a
-narrow column on the right, in three tabs: **Position** (position, height, slope, bearing, distance, time),
-**Conditions** (safety index, map layer, weather, radiation, dust) and **Budget** (oxygen, battery, turn back).
-One tab shows at a time; a tab with nothing ticked is left out, and the choice is kept (`marswalk.roTab`). A saved
+narrow column on the right, chosen by three square tabs on the map's right edge (the mirror of the panel tabs on its
+left): **Position** (position, height, slope, bearing, distance, time), **Conditions** (safety index, map layer,
+weather, radiation, dust) and **Budget** (oxygen, battery, turn back). One shows at a time; pressing the open one again
+folds the column away and gives the map the width. A tab with nothing ticked is left out, and the choice, folded or
+not, is kept (`marswalk.roTab`). A saved
 "row" or "column" layout from an earlier version opens as this one. **Numbers first, mini-map**: the readouts fill
 the main area as large cards, every group at once, the live safety index
 gets the largest card with all its factors, and the map becomes a mini-map in the top right corner with the
@@ -349,6 +353,8 @@ far) and puts the walker at its end. The walker stands still while the editor is
 **The right-click menu** (`context-menu.js`). Right-click a spot on the map, or hold a finger on it for 0.6 s on a
 touch screen, for a small menu beside it:
 
+- **View location image**: a small preview of the best NASA picture of the spot, with its source and date (see
+  "Pictures of places" below), or "No imagery available for this location."
 - **Reveal information**: a popup with the spot's coordinates, height and slope (Curiosity's survey on the drive,
   the regional model elsewhere), distance, bearing and walking time from the walker, the safety index and dust
   there, the map layer's value, the weather on arrival (near Gale), the dose rate, the place it lies in, the
@@ -397,6 +403,12 @@ its position; the description takes a little Markdown (`**bold**`, `*italic*`, `
 | Home | counts as a base: "distance from the nearest base" and the way back are measured to it |
 | Crater | nothing: a landform worth finding again |
 | Danger | routes stay outside its keep-clear distance (50 m unless you set another), and pay for passing close |
+
+A marker can also carry a **photo**: in the marker form, "Add a photo" takes a PNG, JPEG or WebP picture of up to
+10 MB, shrinks it to 800 pixels (a JPEG of at most about 300 KB) and keeps it in the browser
+(`marswalk.marker-photos.v1`), so it is still there after a refresh. It shows in the marker's details; "Replace the
+photo" and "Remove" change it. If the browser has no room left, the marker is saved and the message says the photo was
+not kept.
 | Your own | nothing. The **+** beside the four icons uploads a picture; it is shrunk to a 64 px PNG and kept for reuse (up to 12) |
 
 **Show on the map** is the filter: one tick per icon kind, one for markers with your own icons, one for the
@@ -545,6 +557,27 @@ been read, the place where each detected dust storm was densest.
 - **View links.** The address bar always holds the view, `#map=lat,lon,zoom&dust=MY,Ls`; the globe button copies
   it. Opening such a link shows the same place and the same dust date.
 
+## Pictures of places
+
+The panel at the top right of the map (`imagery.js`) shows the best real NASA picture of where the walker stands, and
+follows the walker as it moves; "View from here" brings it back after it is closed.
+
+- **On Curiosity's drive** (within 60 m of one of its 120 stops): a photo from the rover's left Navigation Camera taken
+  at that stop. Online, the app asks NASA's raw-image service (`mars.nasa.gov/api/v1/raw_image_items`) for the Navcam
+  frames of that sol and picks one taken where the sol's drive ended, looking out rather than down at the deck, and
+  facing the walker's heading. The caption gives the image id, the capture time in UTC and the sol. If the service
+  cannot be reached, the frame stored with the route (`data.js`) is shown, and its date is labelled as worked out from
+  the sol.
+- **Anywhere else**: a view from orbit cut from the same NASA Mars Trek mosaics the map uses (HiRISE at Gale's centre,
+  CTX around it, the Viking colour mosaic elsewhere), centred on the spot with a cross, with its width in metres or km.
+  The caption names the mosaic and its layer, and says what is known of the dates: Viking images were taken 1976 to
+  1980; HiRISE and CTX images from 2006 on, the date of each image in a mosaic varying.
+- **Nothing to show** (no connection and nothing kept offline): "No imagery available for this location." It never
+  shows a picture of somewhere else.
+
+The pictures come from NASA servers and need an internet connection the first time. Served from a web address, the
+offline store keeps the rover photos and image lists you have seen, and the map tiles the orbital view is cut from.
+
 ## Walk budget
 
 Three readouts (`budget.js`, assumptions in `BUDGET` in `config.js`), all **modelled**:
@@ -562,6 +595,15 @@ Three readouts (`budget.js`, assumptions in `BUDGET` in `config.js`), all **mode
 
 Route cards in Markers and routes show the oxygen and battery an astronaut would have left on getting back.
 These are planning assumptions, not suit specifications.
+
+**Your own oxygen model** (Settings > Walk budget: oxygen model, `o2-model.js`). Two kinds: **From effort** (the
+default kind: standing metabolism, extra per m/s walked, person-and-suit mass and muscle efficiency for climbing, and
+the energy per litre of oxygen) or **Fixed rates** (kg/h walking and kg/h standing, as a suit datasheet might quote
+them); both take the oxygen carried (kg) and the reserve (%). Each field shows its unit and range and is checked
+before saving; a blank field takes the default shown in it. Nothing changes until **Save my model**, after which the
+oxygen readouts, the status symbol and route cards say "your oxygen model". **Use the defaults** removes it; the
+defaults in `BUDGET` are never changed. A model can be downloaded and imported as a `.marswalk-o2.json` file, and is
+kept with the other settings (`marswalk.settings.v1`, `o2Model`).
 
 ## Walking together
 

@@ -15,7 +15,7 @@
   var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
   function readoutDefaults() { var o = {}; C.READOUTS.forEach(function (r) { o[r.key] = r.on; }); return o; }
   var DEFAULTS = {
-    theme: 'blue', move: 'hybrid',
+    theme: 'blue', move: 'hybrid', o2Model: null,       // o2Model: the user's oxygen model (o2-model.js), or null for the defaults
     readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'side',
     alarm: true, alarmSound: true, alarmAt: 50,          // the live safety alarm, and the index below which it sounds
     trailColour: 'magenta', trailWidth: 1,
@@ -33,6 +33,7 @@
   if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
   var ro = readoutDefaults(); if (v.readouts && typeof v.readouts === 'object') Object.keys(ro).forEach(function (k) { if (typeof v.readouts[k] === 'boolean') ro[k] = v.readouts[k]; }); v.readouts = ro;
   v.roLarge = v.roLarge === true; v.roExact = v.roExact === true;
+  if (!v.o2Model || typeof v.o2Model !== 'object') v.o2Model = null;
   if (v.roLayout === 'row' || v.roLayout === 'column') v.roLayout = 'side';   // the strip under the map and the plain column are now the tabs beside it
   if (!C.UNITS[v.units]) v.units = DEFAULTS.units;
   if (!C.RO_LAYOUTS[v.roLayout]) v.roLayout = DEFAULTS.roLayout;
@@ -203,8 +204,8 @@
       v.walkers = v.walkers.filter(function (w) { return w.id !== v.walker; }); v.walker = v.walkers[0].id; changed();
     });
     $('set-reset').addEventListener('click', function () {
-      var keep = { walkers: v.walkers, walker: v.walker };                 // resetting looks does not delete people
-      v = JSON.parse(JSON.stringify(DEFAULTS)); v.walkers = keep.walkers; v.walker = keep.walker; changed();
+      var keep = { walkers: v.walkers, walker: v.walker , o2Model: v.o2Model };                 // resetting looks does not delete people
+      v = JSON.parse(JSON.stringify(DEFAULTS)); v.walkers = keep.walkers; v.o2Model = keep.o2Model; v.walker = keep.walker; changed();
     });
   }
 

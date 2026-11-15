@@ -4,7 +4,8 @@
  *
  * It serves this folder on a free local port, drives the browser through the DevTools protocol, and fails on any
  * missing file, script error or broken feature: the page fitting the window, the readout tabs, the mission status,
- * the right-click menu (real mouse buttons and a long press), the tabs and their keys, the (i) pop-ups, going to places and
+ * the right-click menu (real mouse buttons and a long press), pictures of places (live NASA Navcam and orbital imagery),
+ * the user's oxygen model, marker photos, the tabs and their keys, the (i) pop-ups, going to places and
  * moving the walker between sites, checkpoints and view links, the walk budget, slope, companions, the season
  * planner, the route-finder's budget line, deferred dust loading, the single-file marswalk.html, and the offline
  * store (it stops the server and reloads the page from the service worker). Map tiles come from NASA, so it needs
@@ -67,13 +68,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const c = await cdp(wsUrl);
   const { targetId } = await c.send('Target.createTarget', { url: 'about:blank' });
   const { sessionId: S } = await c.send('Target.attachToTarget', { targetId, flatten: true });
-  const errors = [], bad = [];
+  const errors = [], bad = [], urls = {};
   c.on(m => {
     if (m.sessionId !== S) return;
+    if (m.method === 'Network.requestWillBeSent') urls[m.params.requestId] = m.params.request.url;
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails.exception ? m.params.exceptionDetails.exception.description.split('\n')[0] : m.params.exceptionDetails.text);
     if (m.method === 'Runtime.consoleAPICalled' && m.params.type === 'error') errors.push(m.params.args.map(a => a.value || a.description).join(' '));
     if (m.method === 'Network.responseReceived' && m.params.response.url.startsWith(base) && m.params.response.status >= 400) bad.push(m.params.response.status + ' ' + m.params.response.url.slice(base.length));
-    if (m.method === 'Network.loadingFailed' && m.params.type !== 'Ping' && !m.params.canceled && (m.params.errorText || '').indexOf('ABORTED') < 0) bad.push('failed ' + m.params.requestId + ' ' + m.params.errorText);
+    if (m.method === 'Network.loadingFailed' && m.params.type !== 'Ping' && !m.params.canceled && (m.params.errorText || '').indexOf('ABORTED') < 0) bad.push('failed ' + (urls[m.params.requestId] || m.params.requestId).slice(0, 120) + ' ' + m.params.errorText);
   });
   await c.send('Runtime.enable', {}, S); await c.send('Network.enable', {}, S); await c.send('Page.enable', {}, S);
   const run = async (fn, arg) => {
@@ -186,7 +188,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const tb = await run(async () => {
       const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
       const shown = () => [...document.querySelectorAll('#strip > dl')].filter(d => getComputedStyle(d).display !== 'none').map(d => d.id);
-      R.layout = MW.settings.get('roLayout'); R.tabs = [...document.querySelectorAll('#ro-tabs button')].map(b => b.textContent.trim());
+      R.layout = MW.settings.get('roLayout'); R.tabs = [...document.querySelectorAll('#ro-tabs button')].map(b => b.getAttribute('data-tip'));
       const sr = $('strip').getBoundingClientRect(), mr = $('map').getBoundingClientRect(); R.right = sr.left >= mr.right - 2 && sr.width < 400;
       R.start = shown();
       document.querySelector('[data-ro-tab="env"]').click(); R.env = shown();
@@ -204,7 +206,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(tb.budgetGone && tb.after.length === 1, 'a tab with nothing ticked in Settings is left out');
     ok(tb.focus.all === 3 && tb.focus.tabs === 'none', '"Numbers first" still shows every group at once, without tabs');
     await open(base + 'index.html', () => !!(window.MW && MW.hud && Marswalk.budget()));
-    ok(await run(() => document.querySelector('[data-ro-tab="budget-ro"]').getAttribute('aria-selected') === 'true'), 'the chosen readout tab is remembered after a refresh');
+    ok(await run(() => document.querySelector('[data-ro-tab="budget-ro"]').getAttribute('aria-pressed') === 'true'), 'the chosen readout tab is remembered after a refresh');
 
     const ms = await run(async () => {
       const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
@@ -237,7 +239,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const geom = await run(() => { const m = document.getElementById('map').getBoundingClientRect(), k = document.getElementById('collar').getBoundingClientRect(); return { mx: m.left + m.width * 0.4, my: m.top + m.height * 0.5, ex: m.right - 6, ey: m.bottom - 90, bx: m.left + m.width * 0.5, by: m.bottom - 6, cx: k.left + 60, cy: k.top + 120 }; });   // ex, ey: the right edge above the status symbols; bx, by: the bottom edge
     await rclick(geom.mx, geom.my);
     const c1 = await run(() => { const m = document.getElementById('ctx'), r = m.getBoundingClientRect(); return { open: !m.hidden, items: [...m.querySelectorAll('[role=menuitem]')].map(b => b.textContent), inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, last: window.__ctx[window.__ctx.length - 1] }; });
-    ok(c1.open && c1.items.join('|') === 'Reveal information|Travel to location|Mark as landmark', 'right-clicking the map opens the menu with its three choices', c1.items.join(', '));
+    ok(c1.open && c1.items.join('|') === 'Reveal information|View location image|Travel to location|Mark as landmark', 'right-clicking the map opens the menu with its four choices', c1.items.join(', '));
     ok(c1.last && c1.last.map && c1.last.prevented, 'the browser’s own menu is held back on the map');
     await c.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, S);
     await c.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, S);
@@ -295,13 +297,140 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await run(() => { MW.ctxMenu.close(); return true; });
     ok(lp, 'a long press on a touch screen opens the menu');
 
+    /* ============================================================ v1.6.3: map-edge tabs, pictures of places, oxygen model, marker photos */
+    console.log('Pictures, oxygen model and marker photos');
+    const rt = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      const t = $('ro-tabs').getBoundingClientRect(), m = $('map').getBoundingClientRect(), b = $('ro-tabs').querySelector('button').getBoundingClientRect();
+      R.edge = Math.abs(t.right - m.right) < 4 && t.top < m.top + 30; R.square = Math.round(b.width) + 'x' + Math.round(b.height);
+      R.inStage = $('ro-tabs').parentNode.id === 'stage';
+      const open = document.querySelector('#ro-tabs [aria-pressed="true"]'), w0 = m.width;
+      open.click(); await W(400);
+      R.folded = getComputedStyle($('strip')).display === 'none' && $('map').getBoundingClientRect().width > w0 + 100 && !document.querySelector('#ro-tabs [aria-pressed="true"]');
+      R.foldedKey = localStorage.getItem('marswalk.roTab');
+      document.querySelector('#ro-tabs [data-ro-tab="env"]').click(); await W(400);
+      R.reopened = getComputedStyle($('strip')).display !== 'none' && getComputedStyle($('env')).display !== 'none';
+      document.querySelector('#ro-tabs [data-ro-tab="env"]').click(); await W(300);
+      return R;
+    });
+    ok(rt.inStage && rt.edge && /^4\dx4\d$/.test(rt.square), 'Position, Conditions and Budget are square tabs on the right edge of the map', rt.square);
+    ok(rt.folded && rt.foldedKey === 'none' && rt.reopened, 'pressing the open tab folds the panel and gives the map the width; another tab opens it');
+    await open(base + 'index.html', () => !!(window.MW && MW.hud && MW.imagery && Marswalk.budget()));
+    const rk = await run(() => ({ folded: document.body.classList.contains('ro-folded'), strip: getComputedStyle(document.getElementById('strip')).display }));
+    ok(rk.folded && rk.strip === 'none', 'a folded panel stays folded after a refresh');
+    await run(() => { document.querySelector('#ro-tabs [data-ro-tab="nav"]').click(); return true; });
+
+    const im = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {}, G = MW.geo;
+      const wait = async () => { for (let i = 0; i < 60 && $('pov').classList.contains('loading'); i++) await W(250); };
+      MW.imagery.follow(); await wait();
+      R.here = { kind: $('pov').getAttribute('data-kind'), title: $('pov-title').textContent, meta: $('pov-meta').innerText, src: $('pov-img').src, link: $('pov-link').href };
+      const r1 = await MW.imagery.best(G.WP[60].lat, G.WP[60].lon, { heading: 90 }), r2 = await MW.imagery.best(G.WP[60].lat, G.WP[60].lon, { heading: 270 });
+      R.stop = { kind: r1.kind, date: r1.date, where: r1.where, differs: r1.src !== r2.src };
+      MW.placesUI.walk('lm:Jezero crater', true); await W(300); MW.imagery.follow(); await wait();
+      R.far = { kind: $('pov').getAttribute('data-kind'), title: $('pov-title').textContent, meta: $('pov-meta').innerText, where: $('pov-sub').textContent, img: $('pov-img').src.slice(0, 22) };
+      const trek = MW.config.TREK; MW.config.TREK = 'https://127.0.0.1:9/nothing/';             // no tiles to be had: there must be no picture, not a wrong one
+      const r3 = await MW.imagery.best(10.5, -150.25, {}); MW.config.TREK = trek;
+      R.none = { kind: r3.kind, title: r3.title };
+      MW.placesUI.walk('sol:4560:0', true); await W(300);
+      return R;
+    });
+    /* NASA's raw-image service refuses browsers that call themselves HeadlessChrome (403), so here the panel may fall back to
+       the frame stored with the route. Either is right, as long as it says which: a live frame gives its capture time, a stored
+       one says its date was worked out from the sol. The user agent is not disguised to get past that refusal. */
+    const live = /Taken \d{4}-\d\d-\d\d \d\d:\d\d UTC, sol \d+/.test(im.here.meta), stored = /worked out from the sol/.test(im.here.meta) && /could not be reached/.test(im.here.meta);
+    ok(im.here.kind === 'rover' && /Navigation Camera/.test(im.here.meta) && (live || stored) && /msl-raw-images/.test(im.here.src), 'on Curiosity\u2019s drive the panel shows a NASA Navcam frame from that stop, with its source and date', (live ? 'live: ' : 'stored, NASA refused the headless browser: ') + im.here.meta.split('\n')[1]);
+    if (/^Taken/.test(im.stop.date)) ok(/stop 61/.test(im.stop.where) && im.stop.differs, 'the frame is the one facing the walker\u2019s heading (east and west give different frames)', im.stop.date);
+    else console.log('  skip  the frame facing the walker\u2019s heading: needs NASA\u2019s live image list, which refuses headless browsers');
+    ok(im.far.kind === 'orbital' && /Seen from orbit/.test(im.far.title) && /Viking/.test(im.far.meta) && /1976 to 1980/.test(im.far.meta) && /18\.38/.test(im.far.where) && im.far.img === 'data:image/jpeg;base64', 'away from the drive it shows NASA orbital imagery of that spot, with source, dates and location', im.far.where);
+    ok(im.none.kind === 'none' && im.none.title === 'No imagery available for this location.', 'with no imagery to be had it says so instead of showing another place');
+
+    const ci = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), G = MW.geo, m = document.getElementById('ctx');
+      const ll = G.toLL(Marswalk._state.x + 40, Marswalk._state.y - 30); MW.ctxMenu.open(ll[0], ll[1]);
+      const items = [...m.querySelectorAll('[role=menuitem]')].map(b => b.textContent);
+      m.querySelector('[data-ctx="image"]').click();
+      for (let i = 0; i < 60 && !document.querySelector('.img-pop .locimg, .img-pop h3:not(:empty)'); i++) await W(200);
+      for (let i = 0; i < 40 && /Looking for/.test((document.querySelector('.img-pop') || {}).innerText || ''); i++) await W(200);
+      const p = document.querySelector('.img-pop'); const out = { items, text: p ? p.innerText : '', img: !!(p && p.querySelector('img')), w: p ? Math.round(p.getBoundingClientRect().width) : 0 };
+      Marswalk._map.closePopup(); return out;
+    });
+    ok(ci.items.indexOf('View location image') >= 0 && ci.img && /NASA/.test(ci.text) && ci.w < 330, 'the right-click menu\u2019s View location image shows a small preview with its source', ci.text.split('\n')[0] + '; ' + ci.w + ' px wide');
+
+    const ox = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      R.defaultsBefore = MW.config.BUDGET.astronaut.o2Kg;
+      document.querySelector('#o2-kind [data-o2-kind="fixed"]').click();
+      const set = (k, v) => { $('o2-fields').querySelector('[data-o2="' + k + '"]').value = v; };
+      set('o2Kg', '1.2'); set('walkKgH', '5'); $('o2-name').value = 'Test suit';
+      $('o2-save').click(); R.badMsg = $('o2-msg').textContent; R.badErr = $('o2-fields').querySelector('[data-o2-err="walkKgH"]').textContent; R.notSaved = MW.settings.get('o2Model') === null;
+      set('walkKgH', '0.09'); set('restKgH', '0.04'); $('o2-save').click(); await W(1300);
+      R.model = MW.budget.model(); R.status = $('o2-status').innerText; R.label = $('e-o2-l').textContent; R.chip = $('m-o2').getAttribute('data-tip');
+      const b = MW.budget.read(MW.budget.fresh(), { kind: 'astronaut', back: 0, air: -40, moving: true });
+      R.hours = b.o2Hours;                              // 1.2 kg at 0.09 kg/h
+      R.defaultsAfter = MW.config.BUDGET.astronaut.o2Kg;
+      return R;
+    });
+    ok(ox.notSaved && /Not saved/.test(ox.badMsg) && /Between 0\.005 and 1 kg\/h/.test(ox.badErr), 'a wrong value is refused, with the unit, and nothing is saved', ox.badErr);
+    ok(ox.model && ox.model.model === 'fixed' && ox.model.o2Kg === 1.2 && /YOUR MODEL/.test(ox.status) && /your oxygen model/.test(ox.label) && /your oxygen model/.test(ox.chip), 'a saved oxygen model is used and marked as the user\u2019s', ox.label);
+    ok(Math.abs(ox.hours - 1.2 / 0.09) < 0.05, 'the walk budget follows it: 1.2 kg at 0.09 kg/h lasts 13.3 h', ox.hours.toFixed(2) + ' h');
+    ok(ox.defaultsBefore === 0.7 && ox.defaultsAfter === 0.7, 'the default assumptions are left as they were');
+    await open(base + 'index.html', () => !!(window.MW && MW.o2Model && Marswalk.budget()));
+    const ox2 = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      R.kept = MW.budget.model(); R.field = $('o2-fields').querySelector('[data-o2="walkKgH"]').value;
+      $('o2-reset').click(); await W(1300); R.reset = MW.budget.model(); R.label = $('e-o2-l').textContent; R.status = $('o2-status').innerText;
+      return R;
+    });
+    ok(ox2.kept && ox2.kept.walkKgH === 0.09 && ox2.field === '0.09', 'it is kept after a refresh and shown again for editing');
+    ok(ox2.reset === null && !/your oxygen model/.test(ox2.label) && /DEFAULT/.test(ox2.status), '"Use the defaults" brings the default model back');
+
+    const ph = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      const file = (type, name, w, h, colour) => new Promise(res => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = colour; g.fillRect(0, 0, w, h); c.toBlob(b => res(new File([b], name, { type })), type); });
+      const pick = f => { const dt = new DataTransfer(); dt.items.add(f); $('mk-photo-file').files = dt.files; $('mk-photo-file').dispatchEvent(new Event('change')); };
+      MW.navUI.addMarker({ lat: -4.81, lon: 137.39 }); await W(200);
+      pick(new File(['hello'], 'notes.txt', { type: 'text/plain' })); await W(100); R.badType = $('mk-photo-msg').textContent;
+      pick(new File([new Uint8Array(11 * 1024 * 1024)], 'huge.png', { type: 'image/png' })); await W(100); R.badSize = $('mk-photo-msg').textContent;
+      pick(await file('image/png', 'ridge.png', 2400, 1600, '#c96')); for (let i = 0; i < 30 && $('mk-photo-img').hidden; i++) await W(100);
+      R.preview = !$('mk-photo-img').hidden;
+      $('mk-name').value = 'Photo marker'; $('mk-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); await W(200);
+      const mk = MW.markers.list().find(x => x.name === 'Photo marker'); R.id = mk && mk.id;
+      const d = mk && MW.markers.photos.get(mk.id); R.stored = !!d && /^data:image\/jpeg/.test(d); R.kb = d ? Math.round(d.length * 0.75 / 1024) : 0;
+      const im = new Image(); im.src = d; await im.decode(); R.px = Math.max(im.naturalWidth, im.naturalHeight);
+      MW.navUI.openMarker(mk.id); await W(200); R.popup = !!document.querySelector('.mkp .mk-photo'); Marswalk._map.closePopup();
+      return R;
+    });
+    ok(/PNG, JPEG or WebP/.test(ph.badType) && /10 MB/.test(ph.badSize), 'a marker photo must be PNG, JPEG or WebP and at most 10 MB', ph.badType.slice(0, 40) + '; ' + ph.badSize.slice(0, 40));
+    ok(ph.preview && ph.stored && ph.px === 800 && ph.kb < 300 && ph.popup, 'an uploaded photo is shrunk, saved with the marker and shown in its details', ph.px + ' px, ' + ph.kb + ' KB');
+    await open(base + 'index.html', () => !!(window.MW && MW.navUI && MW.markers));
+    const ph2 = await run(async (id) => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id2 => document.getElementById(id2), R = {};
+      R.kept = !!MW.markers.photos.get(id);
+      const file = (type, name, colour) => new Promise(res => { const c = document.createElement('canvas'); c.width = 300; c.height = 200; const g = c.getContext('2d'); g.fillStyle = colour; g.fillRect(0, 0, 300, 200); c.toBlob(b => res(new File([b], name, { type })), type); });
+      const before = MW.markers.photos.get(id);
+      MW.navUI.openMarker(id); await W(100); document.querySelector('[data-mk="edit"]').click(); await W(200);
+      R.editShows = !$('mk-photo-img').hidden && /Replace/.test($('mk-photo-add').textContent);
+      const dt = new DataTransfer(); dt.items.add(await file('image/jpeg', 'new.jpg', '#36c')); $('mk-photo-file').files = dt.files; $('mk-photo-file').dispatchEvent(new Event('change'));
+      for (let i = 0; i < 30 && $('mk-photo-img').src === before; i++) await W(100);
+      $('mk-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); await W(200);
+      R.replaced = MW.markers.photos.get(id) && MW.markers.photos.get(id) !== before;
+      MW.navUI.openMarker(id); await W(100); document.querySelector('[data-mk="edit"]').click(); await W(200);
+      $('mk-photo-del').click(); $('mk-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); await W(200);
+      R.removed = MW.markers.photos.get(id) === null && !!MW.markers.get(id);
+      MW.markers.remove(id); Marswalk.openTab('menu');
+      return R;
+    }, ph.id);
+    ok(ph2.kept && ph2.editShows, 'the photo is still there after a refresh, and editing shows it');
+    ok(ph2.replaced && ph2.removed, 'it can be replaced, and removed while the marker stays');
+
     /* ============================================================ the offline store */
     console.log('Offline');
     await open(base + 'index.html', () => !!(window.MW && MW.offline && navigator.serviceWorker && navigator.serviceWorker.controller));
     const off = await run(async () => {
       const W = ms => new Promise(r => setTimeout(r, ms));
       Marswalk._map.setView([-4.8, 137.384], 15); await W(5000);
-      const tiles = (await (await caches.open('marswalk-tiles-v1')).keys()).length, shell = (await (await caches.open('marswalk-shell-v1')).keys()).length;
+      const tiles = (await (await caches.open('marswalk-tiles-v1')).keys()).length, shell = (await (await caches.open('marswalk-shell-v2')).keys()).length;
       const plan = MW.offline.plan();
       return { controlled: !!navigator.serviceWorker.controller, tiles, shell, plan: plan.urls.length, hirise: plan.urls.filter(u => /curiosity_hirise/.test(u)).length };
     });
@@ -329,7 +458,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   console.log('Errors');
   const realErrors = errors.filter(e => !/ServiceWorker|service worker/i.test(e));
-  ok(!bad.length, 'no file the page asked for was missing', bad.slice(0, 5).join('; ') || undefined);
+  const ownBad = bad.filter(b => !/mars\.nasa\.gov\/api\//.test(b));          // NASA's image list refusing a headless browser is not a missing file
+  ok(!ownBad.length, 'no file the page asked for was missing', ownBad.slice(0, 5).join('; ') || undefined);
   ok(!realErrors.length, 'no script errors', realErrors.slice(0, 5).join('; ') || undefined);
   console.log(`\n${passed} passed, ${failed} failed`);
   c.close(); br.kill(); srv.close();
