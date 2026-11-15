@@ -325,7 +325,6 @@
       <button id="edit-done" type="button" class="lb" data-icon="check"><span>Done</span></button>
       <button id="edit-cancel" type="button" class="lb" data-icon="close"><span>Cancel</span></button>
     </div>
-    <div id="hover-read" aria-hidden="true" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
     <figure id="pov" hidden>
@@ -347,11 +346,26 @@
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
+    <!-- Mission status: always on the map, whatever tab or layout (hud.js). A press explains each one. -->
+    <div id="mission" role="group" aria-label="Mission status">
+      <button type="button" id="m-o2" class="mchip" data-info="walkBudget" data-tip="Oxygen left" aria-label="Oxygen left"><span class="mi mi-o2" aria-hidden="true">O<sub>2</sub></span><b>–</b></button>
+      <button type="button" id="m-batt" class="mchip" data-info="walkBudget" data-tip="Battery left" aria-label="Battery left"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="10" width="2.2" height="4" rx="1" fill="currentColor"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></svg><b>–</b></button>
+      <button type="button" id="m-risk" class="mchip" data-info="liveSafety" data-tip="Safety index here" aria-label="Safety index here"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 L20 5.5 V11.5 C20 16.5 16.5 20 12 21.5 C7.5 20 4 16.5 4 11.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12 L11 14.5 L15.5 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>–</b></button>
+    </div>
   </main>
 
+  <!-- The right-click (long-press) menu on the map: context-menu.js -->
+  <div id="ctx" role="menu" aria-label="This spot on the map" hidden></div>
+
   <!-- ============ bottom strip: the head-up readouts ============ -->
-  <div id="strip" aria-label="Position and conditions">
-    <dl id="nav">
+  <div id="strip" aria-label="Readouts">
+    <!-- Three groups of readouts; in the side layout the tabs show one at a time (hud.js) -->
+    <div id="ro-tabs" role="tablist" aria-label="Readouts">
+      <button type="button" role="tab" data-ro-tab="nav" aria-controls="nav" aria-selected="true"><span data-icon="locate"></span>Position</button>
+      <button type="button" role="tab" data-ro-tab="env" aria-controls="env" aria-selected="false"><span data-icon="globe"></span>Conditions</button>
+      <button type="button" role="tab" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-selected="false"><span data-icon="clock"></span>Budget</button>
+    </div>
+    <dl id="nav" role="tabpanel" aria-label="Position and movement">
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
       <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
@@ -361,7 +375,7 @@
       <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
       <div data-ro="time"><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
     </dl>
-    <dl id="env">
+    <dl id="env" role="tabpanel" aria-label="Conditions">
       <div id="safe-read" data-ro="safety">
         <dd id="e-safe"><b id="e-safe-n">–</b><span id="e-safe-w"></span></dd>
         <dt><span id="e-safe-l">safety index here</span> <button type="button" class="info" data-info="liveSafety" aria-label="What does this mean?">i</button></dt>
@@ -378,10 +392,12 @@
       <div data-ro="uv"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="rad"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
+    </dl>
+    <dl id="budget-ro" role="tabpanel" aria-label="Walk budget">
       <div data-ro="o2"><dd id="e-o2">–</dd><dt><span id="e-o2-l">oxygen left</span> <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="batt"><dd id="e-batt">–</dd><dt><span id="e-batt-l">battery left</span></dt></div>
       <div data-ro="turn"><dd id="e-turn">–</dd><dt><span id="e-turn-l">turn back in</span></dt></div>
-      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
   </div>
 </div>
@@ -409,7 +425,7 @@
           <div><span class="set-lab">Units</span><div id="set-units" class="seg" role="group" aria-label="Units"></div></div>
           <div><span class="set-lab">Layout</span><div id="set-layout" class="seg" role="group" aria-label="Layout of the readouts"></div></div>
         </div>
-        <p class="note">US units: feet, °F, psi and millirem. The column sits beside the map on wide screens. "Numbers first" swaps the two: the readouts fill the screen in large type and the map becomes a mini-map in the top right corner. On narrow screens the readouts always sit under the map.</p>
+        <p class="note">US units: feet, °F, psi and millirem. "Tabs beside the map" keeps the readouts in a narrow column on the right, one group (Position, Conditions, Budget) at a time. "Numbers first" swaps the map and the readouts: the readouts fill the screen in large type and the map becomes a mini-map in the corner.</p>
         <div class="set-pair">
           <div><label class="set-lab" for="set-alarm-at">Sound the safety alarm when the live index is</label><select id="set-alarm-at"></select></div>
         </div>
@@ -457,9 +473,7 @@
         <h3 id="set-move-h">Moving the pointer</h3>
         <div id="set-move" class="seg"></div>
         <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
-        <div class="ro-list">
-          <label class="check"><input id="set-hover" type="checkbox"><span>Show hover information<span class="dsub">In "Walk it yourself", a panel beside the mouse shows what a tap would lead to: distance, time, conditions. Turn it off to keep the map clear; walking and the readouts are unchanged.</span></span></label>
-        </div>
+        <p class="note">Right-click a spot on the map (long-press on a touch screen) to reveal what is known about it, travel there or mark it as a landmark.</p>
       </section>
 
     </div>
@@ -501,5 +515,7 @@
 <script src="season.js"></script>
 <script src="companions.js"></script>
 <script src="offline.js"></script>
+<script src="hud.js"></script>
+<script src="context-menu.js"></script>
 </body>
 </html>

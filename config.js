@@ -56,7 +56,7 @@ MW.config = {
     { group: 'Conditions',            key: 'dust',  name: 'Dust activity',        what: 'dust storm class here and now',       on: true }
   ],
   UNITS: { si: 'SI (metres, °C)', us: 'US (feet, °F)' },
-  RO_LAYOUTS: { row: 'Row along the bottom', column: 'Column beside the map', focus: 'Numbers first, mini-map' },
+  RO_LAYOUTS: { side: 'Tabs beside the map', focus: 'Numbers first, mini-map' },
   ALARM_LEVELS: [40, 50, 60, 70],   // choices for "alarm when the live safety index is below"; the default is in settings.js
   MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
   DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],

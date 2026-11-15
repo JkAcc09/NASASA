@@ -744,7 +744,7 @@ body { font: 400 15px/1.4 var(--body); color: var(--ink); background: var(--pape
 }
 
 /* ---------- collar (legend column) ---------- */
-#collar { grid-area: collar; overflow-y: auto; border-right: 1.5px solid var(--ink); padding: 18px 18px 12px; background: var(--paper); }
+#collar { grid-area: collar; position: relative; overflow-y: auto;    /* relative: hidden labels (.sr) stay inside the column instead of lengthening the page */ border-right: 1.5px solid var(--ink); padding: 18px 18px 12px; background: var(--paper); }
 .sheet-title h1 { font: 700 34px/1 var(--label); letter-spacing: -0.01em; margin: 0 0 6px; }
 .sheet-title p { margin: 0; color: var(--ink-2); font: 500 15px/1.3 var(--label); }
 #collar section { border-top: 1.5px solid var(--ink); margin-top: 12px; padding-top: 8px; }
@@ -1213,14 +1213,7 @@ button.lb .ico { flex: none; }
 #edit-bar p { flex: 1 1 240px; margin: 0; font: 600 15px/1.3 var(--label); }
 #edit-bar button { min-height: 38px; }
 
-/* ---------- what a tap would lead to: the readouts for the spot under the mouse (app.js, drawHover) ---------- */
-#hover-read { position: absolute; z-index: 880; pointer-events: none; width: max-content; max-width: 330px; background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 3px;
-  padding: 8px 10px 9px; box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
-#hover-read h4 { margin: 0 0 6px; padding-bottom: 5px; border-bottom: 1px solid var(--rule); font: 700 15px/1.2 var(--label); }
-#hover-read dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 2px 12px; align-items: baseline; }
-#hover-read dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
-#hover-read dd { margin: 0; font: 600 15px/1.25 var(--label); font-variant-numeric: tabular-nums; text-align: right; }
-#hover-read p { margin: 0; font-size: 13px; color: var(--ink-2); }
+/* ---------- the safety index as a small badge (context-menu.js, Reveal information) ---------- */
 .hv-safe { display: inline-block; min-width: 26px; padding: 0 5px; border-radius: 3px; color: #fff; background: #5B6670; text-align: center; }
 .hv-safe.hi { background: #1B7F4B; } .hv-safe.mid { background: #A85F00; } .hv-safe.lo { background: #B01E3C; }
 
@@ -1373,6 +1366,63 @@ body.ro-col #e-safe-f { display: block; }
 .rt-budget.short { color: var(--warn); font-weight: 600; }
 #season-chart { width: 100%; height: 115px; margin-top: 6px; display: block; border: 1px solid var(--rule); background: var(--field); }
 #season-text p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; }
+
+/* ---------- readouts in tabs beside the map (hud.js) ---------- */
+#ro-tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--ink); background: var(--paper-2); }
+#ro-tabs[hidden] { display: none; }
+#ro-tabs button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 4px; border: 0; border-right: 1px solid var(--rule); border-radius: 0; background: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 5px; font: 600 13px/1 var(--label); color: var(--ink-2); white-space: nowrap; }
+#ro-tabs button:last-of-type { border-right: 0; }
+#ro-tabs button .ico { width: 16px; height: 16px; flex: none; }
+#ro-tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: inset 0 -3px 0 var(--ink); }
+#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
+body:not(.ro-focus) #strip { display: flex; flex-direction: column; }
+body:not(.ro-focus) #strip > dl:not(.ro-active) { display: none; }
+body:not(.ro-focus) #strip > dl + dl { border-left: 0; }
+body.ro-focus #ro-tabs { display: none; }
+body.ro-focus #strip #budget-ro::before { content: "Walk budget"; }
+body.ro-focus #strip dl + dl + dl { border-top: 1.5px solid var(--ink); }
+body.ro-col #strip > dl.ro-active { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+@media (max-width: 860px) {
+  #ro-tabs button { min-height: 42px; font-size: 14px; }
+  #app { grid-template-rows: auto 70vh auto; }
+}
+
+/* ---------- mission status: bottom right of the map, always shown (hud.js) ---------- */
+#mission { position: absolute; right: 12px; bottom: 26px; z-index: 860; display: flex; gap: 6px; }
+#pad:not([hidden]) ~ #mission { right: 226px; }
+.mchip { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 9px 0 7px; border: 1.5px solid var(--ink); border-radius: 17px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .35); font: 700 15px/1 var(--label); font-variant-numeric: tabular-nums; cursor: help; }
+.mchip .mi { width: 20px; height: 20px; flex: none; }
+.mchip .mi-o2 { width: auto; height: auto; font: 700 13px/1 var(--label); }
+.mchip .mi-o2 sub { font-size: 9px; }
+.mchip b { min-width: 2.2em; text-align: right; }
+.mchip.ok .mi { color: #1B7F4B; }
+.mchip.warn { background: #F2C744; color: #2A1D00; border-color: #7A5A00; }
+.mchip.danger { background: #B01E3C; color: #fff; border-color: #5E0C1A; animation: mchip-pulse 1.2s ease-in-out infinite; }
+.mchip.off { color: var(--ink-2); }
+@keyframes mchip-pulse { 50% { box-shadow: 0 0 0 4px rgba(176, 30, 60, .45); } }
+@media (prefers-reduced-motion: reduce) { .mchip.danger { animation: none; } }
+@media (max-width: 860px) {
+  #mission, #pad:not([hidden]) ~ #mission { right: auto; left: 12px; bottom: 34px; }
+  .mchip { min-height: 32px; padding: 0 7px 0 6px; font-size: 14px; }
+}
+body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc(min(var(--mini), 52vh) - 44px); left: auto; }
+
+/* ---------- the right-click menu on the map (context-menu.js) ---------- */
+#map { -webkit-touch-callout: none; }                   /* a long press opens Marswalk's menu, not the browser's */
+#ctx { position: fixed; z-index: 1500; min-width: 210px; max-width: min(300px, calc(100vw - 12px)); padding: 4px; background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+#ctx .ctx-where { margin: 4px 8px 6px; font: 600 12px/1.2 var(--label); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#ctx button[role="menuitem"] { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 38px; padding: 0 10px; border: 0; border-radius: 3px; background: none; text-align: left; font: 600 15px/1.2 var(--label); }
+#ctx button[role="menuitem"]:hover, #ctx button[role="menuitem"]:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
+#ctx button .ico { width: 18px; height: 18px; flex: none; }
+#ctx .ctx-ask { margin: 6px 8px; font-size: 14px; line-height: 1.35; }
+#ctx .ctx-row { display: grid; gap: 2px; }
+.spot dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; align-items: baseline; }
+.spot dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
+.spot dd { margin: 0; font: 600 14px/1.25 var(--label); font-variant-numeric: tabular-nums; }
+.spot-sub { display: block; font-weight: 500; font-size: 12px; color: var(--ink-2); }
 
 </style>
 </head>
@@ -1691,7 +1741,6 @@ body.ro-col #e-safe-f { display: block; }
       <button id="edit-done" type="button" class="lb" data-icon="check"><span>Done</span></button>
       <button id="edit-cancel" type="button" class="lb" data-icon="close"><span>Cancel</span></button>
     </div>
-    <div id="hover-read" aria-hidden="true" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
     <figure id="pov" hidden>
@@ -1713,11 +1762,26 @@ body.ro-col #e-safe-f { display: block; }
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
+    <!-- Mission status: always on the map, whatever tab or layout (hud.js). A press explains each one. -->
+    <div id="mission" role="group" aria-label="Mission status">
+      <button type="button" id="m-o2" class="mchip" data-info="walkBudget" data-tip="Oxygen left" aria-label="Oxygen left"><span class="mi mi-o2" aria-hidden="true">O<sub>2</sub></span><b>–</b></button>
+      <button type="button" id="m-batt" class="mchip" data-info="walkBudget" data-tip="Battery left" aria-label="Battery left"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="10" width="2.2" height="4" rx="1" fill="currentColor"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></svg><b>–</b></button>
+      <button type="button" id="m-risk" class="mchip" data-info="liveSafety" data-tip="Safety index here" aria-label="Safety index here"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 L20 5.5 V11.5 C20 16.5 16.5 20 12 21.5 C7.5 20 4 16.5 4 11.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12 L11 14.5 L15.5 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>–</b></button>
+    </div>
   </main>
 
+  <!-- The right-click (long-press) menu on the map: context-menu.js -->
+  <div id="ctx" role="menu" aria-label="This spot on the map" hidden></div>
+
   <!-- ============ bottom strip: the head-up readouts ============ -->
-  <div id="strip" aria-label="Position and conditions">
-    <dl id="nav">
+  <div id="strip" aria-label="Readouts">
+    <!-- Three groups of readouts; in the side layout the tabs show one at a time (hud.js) -->
+    <div id="ro-tabs" role="tablist" aria-label="Readouts">
+      <button type="button" role="tab" data-ro-tab="nav" aria-controls="nav" aria-selected="true"><span data-icon="locate"></span>Position</button>
+      <button type="button" role="tab" data-ro-tab="env" aria-controls="env" aria-selected="false"><span data-icon="globe"></span>Conditions</button>
+      <button type="button" role="tab" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-selected="false"><span data-icon="clock"></span>Budget</button>
+    </div>
+    <dl id="nav" role="tabpanel" aria-label="Position and movement">
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
       <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
@@ -1727,7 +1791,7 @@ body.ro-col #e-safe-f { display: block; }
       <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
       <div data-ro="time"><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
     </dl>
-    <dl id="env">
+    <dl id="env" role="tabpanel" aria-label="Conditions">
       <div id="safe-read" data-ro="safety">
         <dd id="e-safe"><b id="e-safe-n">–</b><span id="e-safe-w"></span></dd>
         <dt><span id="e-safe-l">safety index here</span> <button type="button" class="info" data-info="liveSafety" aria-label="What does this mean?">i</button></dt>
@@ -1744,10 +1808,12 @@ body.ro-col #e-safe-f { display: block; }
       <div data-ro="uv"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="rad"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
+    </dl>
+    <dl id="budget-ro" role="tabpanel" aria-label="Walk budget">
       <div data-ro="o2"><dd id="e-o2">–</dd><dt><span id="e-o2-l">oxygen left</span> <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="batt"><dd id="e-batt">–</dd><dt><span id="e-batt-l">battery left</span></dt></div>
       <div data-ro="turn"><dd id="e-turn">–</dd><dt><span id="e-turn-l">turn back in</span></dt></div>
-      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
   </div>
 </div>
@@ -1775,7 +1841,7 @@ body.ro-col #e-safe-f { display: block; }
           <div><span class="set-lab">Units</span><div id="set-units" class="seg" role="group" aria-label="Units"></div></div>
           <div><span class="set-lab">Layout</span><div id="set-layout" class="seg" role="group" aria-label="Layout of the readouts"></div></div>
         </div>
-        <p class="note">US units: feet, °F, psi and millirem. The column sits beside the map on wide screens. "Numbers first" swaps the two: the readouts fill the screen in large type and the map becomes a mini-map in the top right corner. On narrow screens the readouts always sit under the map.</p>
+        <p class="note">US units: feet, °F, psi and millirem. "Tabs beside the map" keeps the readouts in a narrow column on the right, one group (Position, Conditions, Budget) at a time. "Numbers first" swaps the map and the readouts: the readouts fill the screen in large type and the map becomes a mini-map in the corner.</p>
         <div class="set-pair">
           <div><label class="set-lab" for="set-alarm-at">Sound the safety alarm when the live index is</label><select id="set-alarm-at"></select></div>
         </div>
@@ -1823,9 +1889,7 @@ body.ro-col #e-safe-f { display: block; }
         <h3 id="set-move-h">Moving the pointer</h3>
         <div id="set-move" class="seg"></div>
         <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
-        <div class="ro-list">
-          <label class="check"><input id="set-hover" type="checkbox"><span>Show hover information<span class="dsub">In "Walk it yourself", a panel beside the mouse shows what a tap would lead to: distance, time, conditions. Turn it off to keep the map clear; walking and the readouts are unchanged.</span></span></label>
-        </div>
+        <p class="note">Right-click a spot on the map (long-press on a touch screen) to reveal what is known about it, travel there or mark it as a landmark.</p>
       </section>
 
     </div>
@@ -1904,7 +1968,7 @@ MW.config = {
     { group: 'Conditions',            key: 'dust',  name: 'Dust activity',        what: 'dust storm class here and now',       on: true }
   ],
   UNITS: { si: 'SI (metres, °C)', us: 'US (feet, °F)' },
-  RO_LAYOUTS: { row: 'Row along the bottom', column: 'Column beside the map', focus: 'Numbers first, mini-map' },
+  RO_LAYOUTS: { side: 'Tabs beside the map', focus: 'Numbers first, mini-map' },
   ALARM_LEVELS: [40, 50, 60, 70],   // choices for "alarm when the live safety index is below"; the default is in settings.js
   MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
   DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
@@ -3212,8 +3276,8 @@ window.MARSWALK_DATA = {
   var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
   function readoutDefaults() { var o = {}; C.READOUTS.forEach(function (r) { o[r.key] = r.on; }); return o; }
   var DEFAULTS = {
-    theme: 'blue', move: 'hybrid', hoverInfo: true,       // hoverInfo: the panel under the mouse in "Walk it yourself" (app.js, drawHover)
-    readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'row',
+    theme: 'blue', move: 'hybrid',
+    readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'side',
     alarm: true, alarmSound: true, alarmAt: 50,          // the live safety alarm, and the index below which it sounds
     trailColour: 'magenta', trailWidth: 1,
     pointerColour: 'blue', pointerSize: 1,
@@ -3229,7 +3293,8 @@ window.MARSWALK_DATA = {
   /* Never trust stored values blindly: fall back to the default if a choice no longer exists. */
   if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
   var ro = readoutDefaults(); if (v.readouts && typeof v.readouts === 'object') Object.keys(ro).forEach(function (k) { if (typeof v.readouts[k] === 'boolean') ro[k] = v.readouts[k]; }); v.readouts = ro;
-  v.roLarge = v.roLarge === true; v.roExact = v.roExact === true; v.hoverInfo = v.hoverInfo !== false;
+  v.roLarge = v.roLarge === true; v.roExact = v.roExact === true;
+  if (v.roLayout === 'row' || v.roLayout === 'column') v.roLayout = 'side';   // the strip under the map and the plain column are now the tabs beside it
   if (!C.UNITS[v.units]) v.units = DEFAULTS.units;
   if (!C.RO_LAYOUTS[v.roLayout]) v.roLayout = DEFAULTS.roLayout;
   v.alarm = v.alarm !== false; v.alarmSound = v.alarmSound !== false;
@@ -3256,7 +3321,7 @@ window.MARSWALK_DATA = {
     document.body.setAttribute('data-theme', v.theme);
     document.body.classList.toggle('ro-large', v.roLarge);
     document.body.classList.toggle('ro-exact', v.roExact);
-    document.body.classList.toggle('ro-col', v.roLayout === 'column');
+    document.body.classList.toggle('ro-col', v.roLayout === 'side');      // the readouts in tabs beside the map (hud.js)
     applyReadouts();
     document.body.classList.toggle('ro-focus', v.roLayout === 'focus' && !document.body.classList.contains('ro-empty'));   // numbers first: needs numbers to show
     document.body.setAttribute('data-move', v.move);
@@ -3295,7 +3360,7 @@ window.MARSWALK_DATA = {
   }
   function syncReadouts() {
     Array.prototype.forEach.call(document.querySelectorAll('#set-readouts input[data-ro-set]'), function (i) { i.checked = !!v.readouts[i.getAttribute('data-ro-set')]; });
-    $('set-ro-large').checked = v.roLarge; $('set-ro-exact').checked = v.roExact; $('set-hover').checked = v.hoverInfo;
+    $('set-ro-large').checked = v.roLarge; $('set-ro-exact').checked = v.roExact;
     $('set-alarm').checked = v.alarm; $('set-alarm-sound').checked = v.alarmSound; $('set-alarm-sound').disabled = !v.alarm;
     var sel = $('set-alarm-at');
     if (!sel.options.length) C.ALARM_LEVELS.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = 'below ' + n; sel.appendChild(o); });
@@ -3381,7 +3446,6 @@ window.MARSWALK_DATA = {
     $('set-ro-none').addEventListener('click', function () { Object.keys(v.readouts).forEach(function (k) { v.readouts[k] = false; }); changed(); });
     $('set-ro-large').addEventListener('change', function () { v.roLarge = this.checked; changed(); });
     $('set-ro-exact').addEventListener('change', function () { v.roExact = this.checked; changed(); });
-    $('set-hover').addEventListener('change', function () { v.hoverInfo = this.checked; changed(); });
     $('set-alarm').addEventListener('change', function () { v.alarm = this.checked; changed(); });
     $('set-alarm-sound').addEventListener('change', function () { v.alarmSound = this.checked; changed(); });
     $('set-alarm-at').addEventListener('change', function () { v.alarmAt = +this.value; changed(); });
@@ -4181,56 +4245,44 @@ window.MARSWALK_DATA = {
 
   var UV = ['', 'low', 'moderate', 'high', 'very high'];
 
-  /* While you walk it yourself with taps allowed, the mouse shows what a tap would lead to: every readout that
-     is ticked in Settings > Display, worked out for the spot under the mouse and the moment you would arrive. */
-  var hoverBox = $('hover-read'), hoverAt = null, hoverRaf = 0, mouseLike = true;
-  function hoverWanted() {
-    return settings.get('hoverInfo') !== false &&        // Settings > Moving the pointer > Show hover information
-      mouseLike && S.mode === 'manual' && settings.get('move') !== 'keys' && !S.external && !(MW.trailEdit && MW.trailEdit.active) && !(MW.navUI && MW.navUI.picking());
-  }
-  function drawHover() {
-    hoverRaf = 0;
-    if (!hoverAt || !hoverWanted()) { hoverBox.hidden = true; return; }
-    var ro = settings.get('readouts'), ll = hoverAt.latlng, e = toENU(ll.lat, ll.lng), d = Math.hypot(e.x - S.x, e.y - S.y), walk = d / C.WALK, tArr = S.t + walk;
-    var near = nearestRoutePoint(e.x, e.y), c = conditions(near.i, tArr, wxHere(e.x, e.y)), k = us() ? FT : 1, u = us() ? ' ft' : ' m', rows = '';
-    var row = function (key, val, lab) { if (ro[key]) rows += '<dt>' + lab + '</dt><dd>' + val + '</dd>'; };
-    row('pos', 'E ' + G.signed(e.x * k) + u + ', N ' + G.signed(e.y * k) + u, 'from base');
-    row('ll', ll.lat.toFixed(6) + '°, ' + ll.lng.toFixed(6) + '°', 'latitude, longitude');
-    var zm = MW.terrain && MW.terrain.ready ? MW.terrain.heightAt(ll.lat, ll.lng) : null;
-    if (near.d <= 25) row('z', minus(near.z * k, 1) + u, "height, Curiosity's survey");
-    else if (zm !== null) row('z', '≈ ' + minus(zm * k) + u, 'height, regional model');
-    else row('z', '≈ ' + minus(near.z * k, 1) + u, 'height of nearest route point');
+  /* Everything known about one spot on the map, for "Reveal information" in the right-click menu (context-menu.js):
+     where it is, its height and slope, how far and how long from the walker, conditions on arrival, the safety
+     index and dust there, the map layer's value, the place it lies in, the sharpest imagery and the nearest stop.
+     Returns { title, rows: '<dt>…</dt><dd>…</dd>…', notes }. */
+  function spotInfo(ll) {
+    var e = toENU(ll.lat, ll.lng), d = Math.hypot(e.x - S.x, e.y - S.y), walk = d / C.WALK, tArr = S.t + walk;
+    var near = nearestRoutePoint(e.x, e.y), wxOk = wxHere(e.x, e.y), c = conditions(near.i, tArr, wxOk), k = us() ? FT : 1, u = us() ? ' ft' : ' m', rows = '', notes = [];
+    var row = function (val, lab) { rows += '<dt>' + lab + '</dt><dd>' + val + '</dd>'; };
+    var lat = ll.lat, lon = ((ll.lng + 540) % 360) - 180;
+    row(Math.abs(lat).toFixed(5) + '° ' + (lat < 0 ? 'S' : 'N') + ', ' + Math.abs(lon).toFixed(5) + '° ' + (lon < 0 ? 'W' : 'E'), 'latitude, longitude');
+    if (d < C.PLACES.LOCAL_KM * 1000) row('E ' + G.signed(e.x * k) + u + ', N ' + G.signed(e.y * k) + u, 'from base');
+    var T = MW.terrain, zm = T && T.ready ? T.heightAt(lat, lon) : null, sm = T && T.ready ? T.slopeAt(lat, lon) : null;
+    if (near.d <= 25) row(minus(near.z * k, 1) + u, "height, Curiosity's survey");
+    else if (zm !== null) row('≈ ' + minus(zm * k) + u, 'height, regional model');
+    if (near.d <= 25) row(fmt(Math.abs(WP[near.i].grade), 1) + '°', "slope along Curiosity's drive");
+    else if (sm !== null) row('≈ ' + fmt(sm) + '°', 'slope, regional (about 15 km)');
     var bg = G.bearing(e.x - S.x, e.y - S.y);
-    row('hdg', String(Math.round(bg) % 360).padStart(3, '0') + '° ' + compass(bg), 'bearing from you');
-    row('dist', len(S.dist + d), 'distance travelled on arrival');
-    row('home', len(Math.hypot(e.x, e.y)), 'displacement from base');
-    row('time', clock(tArr) + ', ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local', 'on the surface on arrival');
-    if (ro.safety && MW.navUI && MW.navUI.safetyAt) { var sf = MW.navUI.safetyAt(ll.lat, ll.lng, walk); if (sf) row('safety', '<b class="hv-safe ' + sf.band + '">' + sf.index + '</b> ' + G.escapeHtml(sf.worst), 'safety index there'); }
+    row((d < 1000 ? len(d) : us() ? fmt(d * FT / 5280, 1) + ' mi' : fmt(d / 1000, d < 10000 ? 1 : 0) + ' km') + ' ' + compass(bg) + ', ' + String(Math.round(bg) % 360).padStart(3, '0') + '°', 'from the walker');
+    if (d < 100000) row(clock(walk) + ', arriving ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local', 'walking time');
+    if (MW.navUI && MW.navUI.safetyAt) { var sf = MW.navUI.safetyAt(lat, lon, walk); if (sf) row('<b class="hv-safe ' + sf.band + '">' + sf.index + '</b> ' + G.escapeHtml(sf.worst), 'safety index there'); }
+    if (MW.navUI && MW.navUI.dustAt) { var du = MW.navUI.dustAt(lat, lon); row(du ? C.DUST.CLASSES[du.cls] + (du.tau !== null && du.tau !== undefined ? ', optical depth ' + du.tau.toFixed(2) : '') : 'not loaded yet', 'dust activity' + (du && du.when ? ', ' + du.when : '')); }
     if (activeDef.what && dataLayer && activeDef.key !== 'topo') {
-      var sm = dataLayer.sample(ll.lat, ll.lng), pv = sm && !sm.nodata ? (activeDef.read === 'rgb' ? sm.rgb.map(function (v) { return Math.round(v * 100); }).join(' / ') : Math.round((activeDef.stretch ? sm.view : sm.value) * 100) + ' of 100') : sm ? 'no data' : '…';
-      row('probe', pv, activeDef.what);
+      var sp = dataLayer.sample(lat, lon), pv = sp && !sp.nodata ? (activeDef.read === 'rgb' ? sp.rgb.map(function (v) { return Math.round(v * 100); }).join(' / ') : Math.round((activeDef.stretch ? sp.view : sp.value) * 100) + ' of 100') : sp ? 'no data' : 'not loaded here';
+      row(pv, activeDef.what);
     }
-    if (c.measured) {
-      row('air', us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C', 'air on arrival');
-      row('gnd', us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C', 'ground on arrival');
-      row('p', us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa', 'pressure');
-      row('uv', UV[c.uv] || '–', 'UV');
-    } else row('air', '–', 'weather: not measured this far from Gale');
-    row('rad', us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h', 'dose rate');
-    var dose = S.dose + c.rate * walk / 3600;
-    row('dose', us() ? fmt(dose / 10, 2) + ' mrem' : fmt(dose, 1) + ' µSv', 'dose on arrival');
-    if (ro.dust && MW.navUI && MW.navUI.dustAt) { var du = MW.navUI.dustAt(ll.lat, ll.lng); row('dust', du ? C.DUST.CLASSES[du.cls] : '…', 'dust activity'); }
-    hoverBox.innerHTML = '<h4>Tap to walk here: ' + len(d) + ', ' + clock(walk) + '</h4>' + (rows ? '<dl>' + rows + '</dl>' : '<p>No readouts are ticked in Settings &gt; Display.</p>');
-    hoverBox.hidden = false;
-    var mp = $('map'), bw = hoverBox.offsetWidth, bh = hoverBox.offsetHeight, x = mp.offsetLeft + hoverAt.containerPoint.x + 18, y = mp.offsetTop + hoverAt.containerPoint.y + 18;
-    if (x + bw > mp.offsetLeft + mp.offsetWidth - 6) x = mp.offsetLeft + hoverAt.containerPoint.x - bw - 18;
-    if (y + bh > mp.offsetTop + mp.offsetHeight - 6) y = mp.offsetTop + hoverAt.containerPoint.y - bh - 18;
-    hoverBox.style.left = Math.max(4, x) + 'px'; hoverBox.style.top = Math.max(4, y) + 'px';
+    if (wxOk) {
+      row(us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C', 'air on arrival');
+      row(us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C', 'ground on arrival');
+      row(us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa', 'pressure');
+      row(UV[c.uv] || '–', 'UV');
+    } else notes.push('No weather readings here: they are from Curiosity at Gale crater.');
+    row(us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h', 'dose rate (modelled)');
+    var inPlace = MW.landmarks.list.filter(function (l) { return MW.landmarks.contains(l, lat, lon); }).sort(function (a, b) { return (a.metres || 0) - (b.metres || 0); })[0];
+    if (inPlace) row(G.escapeHtml(inPlace.name) + ' <span class="spot-sub">' + G.escapeHtml(inPlace.role) + '</span>', 'in');
+    if (MW.places) { var im = MW.places.imageryAt(lat, lon); row(im.name + ', ' + im.res, 'sharpest imagery'); }
+    if (near.d < 50000) row('sol ' + WP[near.i].sol + ', ' + len(near.d), 'nearest Curiosity stop');
+    return { title: inPlace && inPlace.metres && inPlace.metres < 50000 ? G.escapeHtml(inPlace.name) : 'This spot', rows: rows, notes: notes.join(' ') };
   }
-  map.getContainer().addEventListener('pointermove', function (e) { mouseLike = e.pointerType === 'mouse'; }, true);
-  map.on('mousemove', function (e) { hoverAt = e; if (!hoverRaf) hoverRaf = requestAnimationFrame(drawHover); });
-  map.on('mouseout', function () { hoverAt = null; hoverBox.hidden = true; });
-  map.on('movestart zoomstart', function () { hoverBox.hidden = true; });
   /* Units (Settings > Display): the data stay in SI; only what is written changes. */
   var FT = 3.28084;                                     // feet in a metre
   function us() { return settings.get('units') === 'us'; }
@@ -4509,6 +4561,7 @@ window.MARSWALK_DATA = {
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { b.addEventListener(ev, function () { keys[k] = false; }); });
   });
   map.on('click', function (e) {
+    if (MW.ctxMenu && MW.ctxMenu.swallow()) return;        // this press closed the right-click menu (context-menu.js); it does not walk
     if (MW.trailEdit && MW.trailEdit.mapClick(e)) return;   // editing the trail: taps add points to it (js/trail-edit.js)
     if (MW.navUI && MW.navUI.mapClick(e.latlng)) return;    // placing a marker or picking a destination comes first (js/nav-ui.js)
     if (inspectTrail(e.latlng)) return;
@@ -4546,7 +4599,6 @@ window.MARSWALK_DATA = {
     var cs = getComputedStyle(document.body);
     look = { fill: cs.getPropertyValue('--paper-2').trim(), ink: cs.getPropertyValue('--ink').trim(), ink2: cs.getPropertyValue('--ink-2').trim() };
     styleTrail();
-    if (!hoverWanted()) hoverBox.hidden = true;          // turned off in Settings: hide it at once, not on the next mouse move
     var mv = settings.get('move');
     $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
     if (mv === 'keys') target = null;
@@ -4645,6 +4697,8 @@ window.MARSWALK_DATA = {
     _landmarks: lmLayer,                                 // the NASA place names: nav-ui.js hides them from its filter
     setTab: setTab,                                      // 'menu', 'nav', 'overlay', 'dust' or 'time': show that part of the legend column
     setFollow: setFollow,                                // true: the map keeps the walker in view
+    spotInfo: spotInfo,                                  // L.LatLng -> { title, rows, notes }: everything known about a spot (context-menu.js)
+    explain: function (b) { if (infoBtn === b) closeInfo(); else { closeInfo(); openInfo(b); } },   // open the GLOSSARY entry of b's data-info (hud.js)
     moveWalker: moveWalker,                              // (lat, lon, name): put the walker there with a fresh trail; may start a new site
     setSite: setSite,                                    // { name, lat, lon } or MW.geo.GALE: where base is
     budget: function () { return lastBudget; },          // the latest walk budget reading (budget.js)
@@ -7819,7 +7873,7 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     if (mode === 'dest') { setMode(null); app.openTab('nav'); routeTo({ lat: latlng.lat, lon: ((latlng.lng + 540) % 360) - 180, name: 'Point at ' + llText(latlng.lat, latlng.lng) }); return true; }
     return false;
   }
-  map.on('contextmenu', function (e) { if (!mode) openForm({ lat: e.latlng.lat, lon: e.latlng.lng }); });      // right-click or long-press: a marker here
+  /* Right-click or long-press opens the map's menu (context-menu.js); its "Mark as landmark" calls addMarker. */
   document.addEventListener('click', function (e) { if (e.target.id === 'pick-cancel') setMode(null); });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && mode) setMode(null); });
 
@@ -8041,11 +8095,12 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
     var im = P.imageryAt(it.lat, it.lon);
     map.setView([it.lat, it.lon], Math.min(im.zoom, it.kind === 'checkpoint' && it.zoom ? it.zoom : 16));
     if (MW.dustUI && MW.dustUI.state) { MW.dustUI.state.pin = null; }
-    say(res === 'same' ? 'The walker is at <b>' + esc(it.name) + '</b>, with the same base. A new trail has started. ' + imageryNote(it.lat, it.lon)
+    var msg = (res === 'same' ? 'The walker is at <b>' + esc(it.name) + '</b>, with the same base. A new trail has started. ' + imageryNote(it.lat, it.lon)
       : res === 'gale' ? 'Back at Gale crater: the base is Curiosity’s first stop again, and the weather readings and rover view are back. ' + imageryNote(it.lat, it.lon)
       : 'New site: the base is now at <b>' + esc(G.SITE.name) + '</b> (it was ' + esc(site) + '). Distances, the route-finder and the walk budget count from here. ' +
         'The weather readings and rover photos are from Curiosity at Gale, so they are blank here; height and slope come from the regional terrain model. ' + imageryNote(it.lat, it.lon));
-    render();
+    say(msg); render();
+    return msg;
   }
   document.addEventListener('click', function (e) {     // capture: Leaflet popups swallow clicks
     var b = e.target.closest && e.target.closest('[data-pl-pop]'); if (!b) return;
@@ -8161,7 +8216,12 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   applying = true; applyHash(); applying = false;
   writeHash();
   MW.placesUI = { render: render, view: function (id) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) view(it); return !!it; },
-                  walk: function (id, sure) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) walk(it, sure); return !!it; } };
+                  walk: function (id, sure) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) walk(it, sure); return !!it; },
+                  /* any point: { lat, lon, name? }. sure = the user already agreed to leave the trail (context-menu.js asks). Returns the message. */
+                  walkTo: function (p, sure) {
+                    var name = p.name || (Math.abs(p.lat).toFixed(4) + '° ' + (p.lat < 0 ? 'S' : 'N') + ', ' + Math.abs(p.lon).toFixed(4) + '° ' + (p.lon < 0 ? 'W' : 'E'));
+                    return walk({ id: 'pt:' + p.lat + ',' + p.lon, kind: 'point', group: 'Point', name: name, lat: p.lat, lon: p.lon }, sure);
+                  } };
 })();
 
 </script>
@@ -8556,6 +8616,208 @@ window.MARSWALK_TERRAIN = {"format":"marswalk-terrain","version":1,"built":"2026
   if (can) navigator.serviceWorker.register('sw.js').then(function () { navigator.serviceWorker.ready.then(status); }, function (e) { swError = e.message || 'unknown error'; status(); });
   status();
   MW.offline = { available: can, plan: function () { return makePlan(); }, tilesFor: tilesFor, status: status };
+})();
+
+</script>
+<script>
+/* hud.js — the readout tabs beside the map, and the mission status in the bottom-right corner of the map.
+ *
+ *   Readout tabs   The readouts (in #strip) are in three groups: Position, Conditions and Budget. In the side
+ *                  layout one group shows at a time; its tab chooses it. A tab with nothing ticked in Settings >
+ *                  Display is left out. The choice is kept in the browser (marswalk.roTab). In "Numbers first"
+ *                  every group shows at once and the tabs are not needed.
+ *   Mission status Oxygen, battery and the live safety index as three small symbols that are always on the map,
+ *                  whatever tab or layout is chosen. They turn amber and red at the thresholds below; a press
+ *                  explains them. The values are the ones the readouts show (budget.js, router.js live).
+ *
+ * Loads after app.js and nav-ui.js and reaches them through window.Marswalk and MW.navUI.
+ */
+(function () {
+  'use strict';
+  var C = MW.config, $ = MW.geo.$, app = window.Marswalk, settings = MW.settings, KEY = 'marswalk.roTab';
+  var WARN = 30, DANGER = 100 * C.BUDGET.RESERVE;      // % left: amber at 30 %, red at the reserve (15 %)
+
+  /* ================================================================ readout tabs */
+  var TABS = ['nav', 'env', 'budget-ro'], cur = 'nav';
+  try { cur = window.localStorage.getItem(KEY) || 'nav'; } catch (e) {}
+  function tabBtn(id) { return document.querySelector('#ro-tabs [data-ro-tab="' + id + '"]'); }
+  function syncTabs() {
+    var avail = TABS.filter(function (id) { return !$(id).classList.contains('ro-off'); });
+    if (avail.indexOf(cur) < 0) cur = avail[0] || 'nav';
+    TABS.forEach(function (id) {
+      var b = tabBtn(id), sel = id === cur;
+      b.hidden = avail.indexOf(id) < 0;
+      b.setAttribute('aria-selected', sel); b.tabIndex = sel ? 0 : -1;
+      $(id).classList.toggle('ro-active', sel);
+    });
+    $('ro-tabs').hidden = avail.length < 2;             // one group: no choice to make
+  }
+  function choose(id) {
+    cur = id; syncTabs();
+    try { window.localStorage.setItem(KEY, id); } catch (e) {}
+  }
+  $('ro-tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-ro-tab]'); if (b) choose(b.getAttribute('data-ro-tab')); });
+  $('ro-tabs').addEventListener('keydown', function (e) {
+    var vis = TABS.filter(function (id) { return !tabBtn(id).hidden; }), i = vis.indexOf(cur), j = null;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') j = (i + 1) % vis.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') j = (i + vis.length - 1) % vis.length;
+    else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = vis.length - 1;
+    if (j === null) return;
+    e.preventDefault(); e.stopPropagation();             // the arrow keys must not also walk the pointer
+    choose(vis[j]); tabBtn(vis[j]).focus();
+  });
+  settings.onChange(syncTabs);
+  syncTabs();
+
+  /* ================================================================ mission status */
+  function level(pct) { return pct === null || pct === undefined ? '' : pct <= DANGER ? 'danger' : pct <= WARN ? 'warn' : 'ok'; }
+  function set(id, value, state, tip) {
+    var b = $(id), v = b.querySelector('b');
+    if (v.textContent !== value) v.textContent = value;
+    b.className = 'mchip' + (state ? ' ' + state : '');
+    b.setAttribute('data-tip', tip); b.setAttribute('aria-label', tip);
+  }
+  function update() {
+    var bu = app.budget(), live = MW.navUI && MW.navUI.live ? MW.navUI.live() : null;
+    if (bu) {
+      var late = bu.turnS !== null && bu.turnS <= 0;
+      if (bu.o2Pct === null) set('m-o2', 'n/a', 'off', 'Oxygen: a robot needs none');
+      else set('m-o2', Math.max(0, Math.round(bu.o2Pct)) + '%', late && bu.limit === 'oxygen' ? 'danger' : level(bu.o2Pct),
+        'Oxygen left: ' + Math.max(0, Math.round(bu.o2Pct)) + ' % (modelled)' + (late && bu.limit === 'oxygen' ? '. Turn back now' : ''));
+      set('m-batt', Math.max(0, Math.round(bu.battPct)) + '%', late && bu.limit === 'battery' ? 'danger' : level(bu.battPct),
+        'Battery left: ' + Math.max(0, Math.round(bu.battPct)) + ' % (modelled)' + (bu.chargingW > 0 ? ', charging in sunlight' : '') + (late && bu.limit === 'battery' ? '. Turn back now' : ''));
+    }
+    if (live && typeof live.index === 'number') {         // the same bands as the route cards (nav-ui.js): 75 and over low risk, 50 to 74 some risk
+      var st = live.index >= 75 ? 'ok' : live.index >= 50 ? 'warn' : 'danger', worst = live.worst && live.worst.state !== 'good' ? ' Worst: ' + live.worst.text + '.' : '';
+      set('m-risk', String(live.index), st, 'Safety index here: ' + live.index + ' of 100 (' + (st === 'ok' ? 'low risk' : st === 'warn' ? 'some risk' : 'high risk') + ').' + worst);
+    } else set('m-risk', '–', 'off', 'Safety index: not worked out (turn on "Safety index, live" in Settings > Display)');
+  }
+  $('mission').addEventListener('click', function (e) {
+    var b = e.target.closest('.mchip'); if (!b) return;
+    e.stopPropagation();                                 // the page closes the explanation on any other click; this one opens it
+    app.explain(b);
+  });
+  setInterval(update, 1000); update();
+
+  MW.hud = { tab: function (id) { if (TABS.indexOf(id) >= 0) choose(id); return cur; }, update: update };
+})();
+
+</script>
+<script>
+/* context-menu.js — the menu that opens when the map is right-clicked (or long-pressed on a touch screen).
+ *
+ *   Reveal information   a popup at that spot: coordinates, height, slope, distance and walking time from you,
+ *                        conditions on arrival, the safety index and dust there, the map layer's value, the place it
+ *                        lies in, the sharpest imagery and the nearest Curiosity stop (app.js, spotInfo)
+ *   Travel to location   moves the walker there, as "Walk from here" does (places-ui.js): within 60 km the base stays,
+ *                        farther away a new site starts. If a trail is under way it asks first.
+ *   Mark as landmark     opens the marker form at that spot, to name it and choose its icon (nav-ui.js)
+ *
+ * The browser's own right-click menu is held back on the map only (Leaflet does that for a map with a contextmenu
+ * listener). The menu closes on Escape, on a click elsewhere, or when the map moves. Loads after nav-ui.js and
+ * places-ui.js.
+ */
+(function () {
+  'use strict';
+  var G = MW.geo, $ = G.$, app = window.Marswalk, map = app._map, esc = G.escapeHtml, icon = MW.ui.icon;
+  var menu = $('ctx'), at = null, swallow = false;
+
+  function llText(lat, lon) { return Math.abs(lat).toFixed(4) + '° ' + (lat < 0 ? 'S' : 'N') + ', ' + Math.abs(lon).toFixed(4) + '° ' + (lon < 0 ? 'W' : 'E'); }
+  function items() {
+    return '<p class="ctx-where">' + llText(at.lat, at.lng) + '</p><div role="none">' +
+      '<button type="button" role="menuitem" data-ctx="info">' + icon('search') + '<span>Reveal information</span></button>' +
+      '<button type="button" role="menuitem" data-ctx="go">' + icon('walk') + '<span>Travel to location</span></button>' +
+      '<button type="button" role="menuitem" data-ctx="mark">' + icon('pin') + '<span>Mark as landmark</span></button></div>';
+  }
+  /* Keep the menu on screen: beside the spot, flipped left or up where it would run off the edge. */
+  function place(pt) {
+    var w = menu.offsetWidth, h = menu.offsetHeight, x = pt.x + 6, y = pt.y + 6;
+    if (x + w > window.innerWidth - 6) x = pt.x - w - 6;
+    if (y + h > window.innerHeight - 6) y = pt.y - h - 6;
+    menu.style.left = Math.max(6, x) + 'px'; menu.style.top = Math.max(6, y) + 'px';
+  }
+  var anchor = null;
+  function open(e) {
+    if (MW.trailEdit && MW.trailEdit.active) return;     // the trail editor has its own taps
+    if (MW.navUI && MW.navUI.picking()) return;           // placing a marker or picking a destination
+    at = e.latlng; map.closePopup();
+    var r = map.getContainer().getBoundingClientRect();
+    anchor = { x: r.left + e.containerPoint.x, y: r.top + e.containerPoint.y };
+    menu.innerHTML = items(); menu.hidden = false; place(anchor);
+    var first = menu.querySelector('[role="menuitem"]'); if (first) first.focus({ preventScroll: true });
+  }
+  function close() { if (menu.hidden) return; menu.hidden = true; menu.innerHTML = ''; at = null; }
+
+  function reveal() {
+    var info = app.spotInfo(at), pov = $('pov'), right = pov && !pov.hidden && pov.offsetWidth ? pov.offsetWidth + 24 : 12;
+    // the padding keeps the popup clear of the rover photo (top right) and the status symbols (bottom right)
+    L.popup({ maxWidth: 340, className: 'spot-pop', autoPanPaddingTopLeft: [12, 12], autoPanPaddingBottomRight: [right, 60] }).setLatLng(at).setContent('<div class="pop spot"><h3>' + info.title + '</h3><dl>' + info.rows + '</dl>' +
+      (info.notes ? '<p>' + info.notes + '</p>' : '') + '</div>').openOn(map);
+  }
+  function travel(sure) {
+    var S = app._state;
+    if (!sure && S.dist > 5) {                           // a walk is under way: say what travelling does first
+      menu.innerHTML = '<p class="ctx-ask">Travelling to ' + llText(at.lat, at.lng) + ' starts a new trail. The trail walked so far (' + Math.round(S.dist) + ' m) is not kept unless you save it.</p>' +
+        '<div role="none" class="ctx-row"><button type="button" role="menuitem" data-ctx="save">Save the trail first</button><button type="button" role="menuitem" data-ctx="go-sure">Travel anyway</button>' +
+        '<button type="button" role="menuitem" data-ctx="cancel">Cancel</button></div>';
+      place(anchor); menu.querySelector('[data-ctx="go-sure"]').focus({ preventScroll: true });
+      return;
+    }
+    var spot = at, msg = MW.placesUI.walkTo({ lat: spot.lat, lon: spot.lng }, true);
+    close();
+    if (msg) L.popup({ maxWidth: 320, className: 'spot-pop' }).setLatLng(spot).setContent('<div class="pop"><p>' + msg + '</p></div>').openOn(map);
+  }
+  menu.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ctx]'); if (!b || !at) return;
+    var act = b.getAttribute('data-ctx'), spot = at;
+    if (act === 'info') { reveal(); close(); }
+    else if (act === 'go') travel(false);
+    else if (act === 'go-sure') travel(true);
+    else if (act === 'save') { close(); app.saveTrail(); }
+    else if (act === 'cancel') close();
+    else if (act === 'mark') { close(); MW.navUI.addMarker({ lat: spot.lat, lon: spot.lng }); }
+  });
+  menu.addEventListener('keydown', function (e) {
+    var bs = Array.prototype.slice.call(menu.querySelectorAll('[role="menuitem"]')), i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopPropagation(); bs[(i + (e.key === 'ArrowDown' ? 1 : bs.length - 1)) % bs.length].focus(); }
+    else if (e.key === 'Tab') close();
+    if (/^(Arrow|Home|End)/.test(e.key)) e.stopPropagation();
+  });
+
+  map.on('contextmenu', open);                            // Leaflet also stops the browser's own menu, on the map only
+  /* Touch screens: holding a finger still on the map for HOLD ms opens the same menu. Not every touch browser sends
+     a contextmenu event for a long press, so this does it here; moving, a second finger or lifting early cancels it. */
+  var HOLD = 600, hold = null;
+  function cancelHold() { if (hold) { clearTimeout(hold.timer); hold = null; } }
+  map.getContainer().addEventListener('pointerdown', function (e) {
+    if (e.pointerType !== 'touch') return;
+    if (hold) { cancelHold(); return; }                    // a second finger: pinch, not a press
+    var r = map.getContainer().getBoundingClientRect(), x = e.clientX, y = e.clientY;
+    hold = { x: x, y: y, opened: false, timer: setTimeout(function () {
+      if (!hold) return;
+      var pt = L.point(x - r.left, y - r.top);
+      open({ latlng: map.containerPointToLatLng(pt), containerPoint: pt }); hold.opened = true;
+    }, HOLD) };
+  }, true);
+  map.getContainer().addEventListener('pointermove', function (e) { if (hold && !hold.opened && Math.hypot(e.clientX - hold.x, e.clientY - hold.y) > 10) cancelHold(); }, true);
+  ['pointerup', 'pointercancel'].forEach(function (ev) {
+    map.getContainer().addEventListener(ev, function () { if (hold && hold.opened) swallow = Date.now(); cancelHold(); }, true);   // lifting the finger is not a tap to walk
+  });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !menu.hidden) { e.stopPropagation(); close(); } }, true);
+  document.addEventListener('pointerdown', function (e) {
+    if (menu.hidden || menu.contains(e.target)) return;
+    if (map.getContainer().contains(e.target)) swallow = Date.now();   // the press that closes the menu does not also walk the pointer
+    close();
+  }, true);
+  map.on('movestart zoomstart', close);
+  window.addEventListener('resize', close);
+
+  MW.ctxMenu = {
+    open: function (lat, lon) { var p = map.latLngToContainerPoint([lat, lon]); open({ latlng: L.latLng(lat, lon), containerPoint: p }); },
+    close: close,
+    swallow: function () { var s = swallow && Date.now() - swallow < 800; swallow = false; return s; },   // app.js asks on every map click; a drag never clicks, so it expires
+    get isOpen() { return !menu.hidden; }
+  };
 })();
 
 </script>

@@ -3,7 +3,8 @@
  *       CHROME=/path/to/chrome node page_test.js   to choose the browser
  *
  * It serves this folder on a free local port, drives the browser through the DevTools protocol, and fails on any
- * missing file, script error or broken feature: the tabs and their keys, the (i) pop-ups, going to places and
+ * missing file, script error or broken feature: the page fitting the window, the readout tabs, the mission status,
+ * the right-click menu (real mouse buttons and a long press), the tabs and their keys, the (i) pop-ups, going to places and
  * moving the walker between sites, checkpoints and view links, the walk budget, slope, companions, the season
  * planner, the route-finder's budget line, deferred dust loading, the single-file marswalk.html, and the offline
  * store (it stops the server and reloads the page from the service worker). Map tiles come from NASA, so it needs
@@ -173,43 +174,126 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(/Clearest 60°/.test(b.season) && /MY\d+/.test(b.season), 'the season planner names the clearest season and its dates', b.season.slice(0, 90));
     ok(b.slopeVar, 'route stops can be coloured by slope along the drive');
 
-    /* ============================================================ the hover panel and its setting */
-    console.log('Hover information');
-    const mouseAt = async (dx) => {                         // a real mouse move over the map, through the browser's input
-      const r = await run(() => { const b = document.getElementById('map').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
-      await c.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x + dx, y: r.y + 40, pointerType: 'mouse' }, S);
-      await sleep(350);
-      return run(() => { const h = document.getElementById('hover-read'); return { shown: !h.hidden && h.offsetWidth > 0, title: (h.querySelector('h4') || {}).textContent || '' }; });
-    };
-    await run(() => { Marswalk.setFollow(false); document.getElementById('mode-manual').click(); MW.settings.set('move', 'hybrid'); return true; });
-    const hDefault = await run(() => ({ setting: MW.settings.get('hoverInfo'), box: document.getElementById('set-hover').checked }));
-    ok(hDefault.setting === true && hDefault.box === true, '"Show hover information" is on by default');
-    const hOn = await mouseAt(-60);
-    ok(hOn.shown && /Tap to walk here/.test(hOn.title), 'on: the panel follows the mouse, as before', hOn.title);
-    await run(() => { const i = document.getElementById('set-hover'); i.checked = false; i.dispatchEvent(new Event('change')); return true; });
-    const hNow = await run(() => document.getElementById('hover-read').hidden);
-    const hOff = await mouseAt(60);
-    ok(hNow && !hOff.shown, 'off: the panel hides at once and stays hidden as the mouse moves');
-    const walkOff = await run(async () => {
-      const s = Marswalk._state, x0 = s.x, y0 = s.y, ll = MW.geo.toLL(s.x + 40, s.y + 30);
-      Marswalk._map.closePopup(); Marswalk._map.setView(MW.geo.toLL(s.x, s.y), 17, { animate: false });   // close in, so the tap is not read as a tap on the trail
-      Marswalk._map.fire('click', { latlng: L.latLng(ll[0], ll[1]) });
-      await new Promise(r => setTimeout(r, 2500));
-      return { moved: Math.hypot(s.x - x0, s.y - y0), readout: document.getElementById('r-dist').textContent, z: document.getElementById('r-z').textContent,
-               popup: !!document.querySelector('.leaflet-popup') };
+    /* ============================================================ v1.6.2: no page scroll, readout tabs, mission status, right-click menu */
+    console.log('Layout and the right-click menu');
+    const sc = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), out = {};
+      for (const t of ['menu', 'nav', 'overlay', 'dust', 'time']) { Marswalk.openTab(t); await W(250); out[t] = document.documentElement.scrollHeight - innerHeight; }
+      Marswalk.openTab('menu'); return out;
     });
-    ok(walkOff.moved > 5 && /\d/.test(walkOff.readout) && /\d/.test(walkOff.z), 'off: a tap still walks the pointer and the readouts still update', Math.round(walkOff.moved) + ' m; ' + walkOff.readout);
-    await open(base + 'index.html', () => !!(window.MW && MW.settings && Marswalk));
-    const hReload = await run(() => ({ setting: MW.settings.get('hoverInfo'), box: document.getElementById('set-hover').checked }));
-    ok(hReload.setting === false && hReload.box === false, 'off is remembered after a refresh');
-    await run(() => { Marswalk.setFollow(false); document.getElementById('mode-manual').click(); return true; });
-    const hOff2 = await mouseAt(-30);
-    ok(!hOff2.shown, 'and the panel stays hidden after the refresh');
-    await run(() => { const i = document.getElementById('set-hover'); i.checked = true; i.dispatchEvent(new Event('change')); return true; });
-    const hBack = await mouseAt(30);
-    ok(hBack.shown, 'on again: the panel comes back');
-    await open(base + 'index.html', () => !!(window.MW && MW.settings && Marswalk));
-    ok(await run(() => MW.settings.get('hoverInfo') === true), 'on is remembered after a refresh too');
+    ok(Object.values(sc).every(v => v <= 0), 'the page never scrolls past the window, whichever tab is open', JSON.stringify(sc));
+
+    const tb = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      const shown = () => [...document.querySelectorAll('#strip > dl')].filter(d => getComputedStyle(d).display !== 'none').map(d => d.id);
+      R.layout = MW.settings.get('roLayout'); R.tabs = [...document.querySelectorAll('#ro-tabs button')].map(b => b.textContent.trim());
+      const sr = $('strip').getBoundingClientRect(), mr = $('map').getBoundingClientRect(); R.right = sr.left >= mr.right - 2 && sr.width < 400;
+      R.start = shown();
+      document.querySelector('[data-ro-tab="env"]').click(); R.env = shown();
+      document.querySelector('[data-ro-tab="budget-ro"]').click(); await W(1200); R.budget = shown(); R.o2 = $('e-o2').textContent;
+      MW.settings.set('readouts', Object.assign({}, MW.settings.get('readouts'), { o2: false, batt: false, turn: false })); await W(100);
+      R.budgetGone = document.querySelector('[data-ro-tab="budget-ro"]').hidden; R.after = shown();
+      MW.settings.set('readouts', Object.assign({}, MW.settings.get('readouts'), { o2: true, batt: true, turn: true }));
+      document.querySelector('[data-ro-tab="budget-ro"]').click();
+      MW.settings.set('roLayout', 'focus'); await W(300); R.focus = { all: shown().length, tabs: getComputedStyle($('ro-tabs')).display };
+      MW.settings.set('roLayout', 'side'); await W(200);
+      return R;
+    });
+    ok(tb.layout === 'side' && tb.right && tb.tabs.join() === 'Position,Conditions,Budget', 'the readouts sit in a narrow column at the right, in three tabs', tb.tabs.join(', '));
+    ok(tb.start.length === 1 && tb.env.join() === 'env' && tb.budget.join() === 'budget-ro' && /%/.test(tb.o2), 'each tab shows its own readouts, one group at a time', tb.start + ' / ' + tb.env + ' / ' + tb.budget + ', ' + tb.o2);
+    ok(tb.budgetGone && tb.after.length === 1, 'a tab with nothing ticked in Settings is left out');
+    ok(tb.focus.all === 3 && tb.focus.tabs === 'none', '"Numbers first" still shows every group at once, without tabs');
+    await open(base + 'index.html', () => !!(window.MW && MW.hud && Marswalk.budget()));
+    ok(await run(() => document.querySelector('[data-ro-tab="budget-ro"]').getAttribute('aria-selected') === 'true'), 'the chosen readout tab is remembered after a refresh');
+
+    const ms = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), $ = id => document.getElementById(id), R = {};
+      const vis = () => [...document.querySelectorAll('.mchip')].every(b => { const r = b.getBoundingClientRect(); return r.width > 0 && r.bottom <= innerHeight && r.right <= innerWidth; });
+      R.vis = {};
+      for (const t of ['menu', 'nav', 'overlay', 'dust', 'time']) { Marswalk.openTab(t); await W(150); R.vis[t] = vis(); }
+      document.querySelector('#tabs [data-tab-btn="time"]').click(); await W(300); R.vis.folded = vis(); document.querySelector('#tabs [data-tab-btn="menu"]').click();
+      const mp = $('map').getBoundingClientRect(), c = $('m-risk').getBoundingClientRect(); R.corner = c.right > mp.right - 40 && c.bottom > mp.bottom - 70;
+      R.values = [...document.querySelectorAll('.mchip b')].map(b => b.textContent);
+      Marswalk._state.budget.o2Used = 0.50; await W(1300); R.warn = $('m-o2').className;
+      Marswalk._state.budget.o2Used = 0.66; await W(1300); R.danger = $('m-o2').className;
+      Marswalk.clearTrail(); await W(1300); R.reset = $('m-o2').className;
+      $('m-risk').click(); R.explain = !$('info-pop').hidden && $('info-pop').querySelector('h4').textContent; document.body.click();
+      R.tip = $('m-o2').getAttribute('data-tip');
+      return R;
+    });
+    ok(Object.values(ms.vis).every(Boolean), 'oxygen, battery and risk stay on screen in every tab, and with the panel folded', JSON.stringify(ms.vis));
+    ok(ms.corner && /%$/.test(ms.values[0]) && /%$/.test(ms.values[1]) && /^\d+$/.test(ms.values[2]), 'they sit at the bottom right of the map with their values', ms.values.join(' '));
+    ok(/warn/.test(ms.warn) && /danger/.test(ms.danger) && /ok/.test(ms.reset), 'they turn amber at 30 % and red at the 15 % reserve', ms.warn + ' / ' + ms.danger + ' / ' + ms.reset);
+    ok(/Live safety/i.test(ms.explain || '') && /Oxygen left/.test(ms.tip), 'a press explains them; the label names the value', ms.explain + '; ' + ms.tip);
+
+    /* the right-click menu, with real mouse buttons */
+    await run(() => { window.__ctx = []; window.addEventListener('contextmenu', e => window.__ctx.push({ prevented: e.defaultPrevented, map: !!e.target.closest('#map') })); Marswalk.setFollow(false); Marswalk._map.setView(MW.geo.toLL(Marswalk._state.x, Marswalk._state.y), 16, { animate: false }); return true; });
+    const rclick = async (x, y) => {
+      await c.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y }, S);
+      await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x, y, button: 'right', buttons: 2, clickCount: 1 }, S);
+      await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x, y, button: 'right', buttons: 0, clickCount: 1 }, S);
+      await sleep(300);
+    };
+    const geom = await run(() => { const m = document.getElementById('map').getBoundingClientRect(), k = document.getElementById('collar').getBoundingClientRect(); return { mx: m.left + m.width * 0.4, my: m.top + m.height * 0.5, ex: m.right - 6, ey: m.bottom - 90, bx: m.left + m.width * 0.5, by: m.bottom - 6, cx: k.left + 60, cy: k.top + 120 }; });   // ex, ey: the right edge above the status symbols; bx, by: the bottom edge
+    await rclick(geom.mx, geom.my);
+    const c1 = await run(() => { const m = document.getElementById('ctx'), r = m.getBoundingClientRect(); return { open: !m.hidden, items: [...m.querySelectorAll('[role=menuitem]')].map(b => b.textContent), inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight, last: window.__ctx[window.__ctx.length - 1] }; });
+    ok(c1.open && c1.items.join('|') === 'Reveal information|Travel to location|Mark as landmark', 'right-clicking the map opens the menu with its three choices', c1.items.join(', '));
+    ok(c1.last && c1.last.map && c1.last.prevented, 'the browser’s own menu is held back on the map');
+    await c.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, S);
+    await c.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 }, S);
+    await sleep(150);
+    ok(await run(() => document.getElementById('ctx').hidden), 'Escape closes it');
+    await rclick(geom.cx, geom.cy);
+    const c2 = await run(() => ({ open: !document.getElementById('ctx').hidden, last: window.__ctx[window.__ctx.length - 1] }));
+    ok(!c2.open && c2.last && !c2.last.map && !c2.last.prevented, 'outside the map, right-click is left to the browser');
+    const inView = () => run(() => { const r = document.getElementById('ctx').getBoundingClientRect(); return { open: !document.getElementById('ctx').hidden, inView: r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight }; });
+    await rclick(geom.ex, geom.ey); const c3 = await inView();
+    await rclick(geom.bx, geom.by); const c3b = await inView();
+    ok(c3.open && c3.inView && c3b.open && c3b.inView && c1.inView, 'the menu stays on screen, even at the right and bottom edges of the map');
+    const c4 = await run(async () => {
+      const W = ms => new Promise(r => setTimeout(r, ms)), m = document.getElementById('ctx'), R = {};
+      m.querySelector('[data-ctx="info"]').click(); await W(300);
+      const p = document.querySelector('.spot-pop'); R.info = p ? p.innerText : ''; R.closed = m.hidden;
+      Marswalk._map.closePopup();
+      document.getElementById('mode-replay').click(); document.getElementById('btn-play').click(); await W(1500); document.getElementById('btn-play').click();
+      R.dist = Math.round(Marswalk._state.dist);
+      const ll = MW.geo.toLL(Marswalk._state.x + 300, Marswalk._state.y + 200); MW.ctxMenu.open(ll[0], ll[1]);
+      m.querySelector('[data-ctx="go"]').click(); await W(100);
+      R.ask = (m.querySelector('.ctx-ask') || {}).textContent || ''; R.stillThere = Math.round(Marswalk._state.dist) === R.dist;
+      m.querySelector('[data-ctx="go-sure"]').click(); await W(400);
+      const h = Marswalk.here(); R.moved = MW.geo.haversine(h, { lat: ll[0], lon: ll[1] }); R.newTrail = Marswalk._state.dist === 0; R.msg = (document.querySelector('.spot-pop') || {}).innerText || '';
+      Marswalk._map.closePopup();
+      const l2 = MW.geo.toLL(Marswalk._state.x - 150, Marswalk._state.y + 90); MW.ctxMenu.open(l2[0], l2[1]);
+      m.querySelector('[data-ctx="mark"]').click(); await W(300);
+      R.form = !document.getElementById('mk-form').hidden;
+      document.getElementById('mk-name').value = 'Ridge marker'; document.getElementById('mk-form').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })); await W(200);
+      R.saved = MW.markers.list().some(x => x.name === 'Ridge marker' && Math.abs(x.lat - l2[0]) < 1e-6);
+      MW.markers.list().filter(x => x.name === 'Ridge marker').forEach(x => MW.markers.remove(x.id));
+      Marswalk.openTab('menu');
+      R.noHover = !document.getElementById('hover-read') && !document.getElementById('set-hover');
+      return R;
+    });
+    ok(/latitude, longitude/.test(c4.info) && /height/.test(c4.info) && /slope/.test(c4.info) && /dust activity/.test(c4.info) && c4.closed, 'Reveal information shows coordinates, height, slope, dust and more', c4.info.split('\n').slice(0, 3).join(' | '));
+    ok(c4.dist > 5 && /starts a new trail/.test(c4.ask) && c4.stillThere, 'Travel to location asks before leaving an unsaved trail', c4.dist + ' m walked');
+    ok(c4.moved < 1 && c4.newTrail && /walker is at|New site|Back at Gale/.test(c4.msg), 'and then moves the walker there with a fresh trail', c4.msg.slice(0, 70));
+    ok(c4.form && c4.saved, 'Mark as landmark opens the marker form at that spot and saves it');
+    ok(c4.noHover, 'the mouse-following panel and its setting are gone');
+    const sw = await run(() => { const s = Marswalk._state; document.getElementById('mode-manual').click(); Marswalk._map.setView(MW.geo.toLL(s.x, s.y), 17, { animate: false }); return { x: s.x, y: s.y }; });
+    await rclick(geom.mx, geom.my);
+    await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: geom.mx + 80, y: geom.my + 40, button: 'left', buttons: 1, clickCount: 1 }, S);
+    await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: geom.mx + 80, y: geom.my + 40, button: 'left', buttons: 0, clickCount: 1 }, S);
+    await sleep(1500);
+    const sw2 = await run(() => ({ closed: document.getElementById('ctx').hidden, x: Marswalk._state.x, y: Marswalk._state.y }));
+    ok(sw2.closed && Math.hypot(sw2.x - sw.x, sw2.y - sw.y) < 0.5, 'clicking elsewhere closes the menu without walking the pointer there');
+    await c.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 }, S);
+    await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: geom.mx - 60, y: geom.my - 40 }] }, S);
+    await sleep(1100);
+    await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }, S);
+    await sleep(400);
+    const lp = await run(() => !document.getElementById('ctx').hidden);
+    await c.send('Emulation.setTouchEmulationEnabled', { enabled: false }, S);
+    await run(() => { MW.ctxMenu.close(); return true; });
+    ok(lp, 'a long press on a touch screen opens the menu');
 
     /* ============================================================ the offline store */
     console.log('Offline');

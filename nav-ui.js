@@ -419,7 +419,7 @@
     if (mode === 'dest') { setMode(null); app.openTab('nav'); routeTo({ lat: latlng.lat, lon: ((latlng.lng + 540) % 360) - 180, name: 'Point at ' + llText(latlng.lat, latlng.lng) }); return true; }
     return false;
   }
-  map.on('contextmenu', function (e) { if (!mode) openForm({ lat: e.latlng.lat, lon: e.latlng.lng }); });      // right-click or long-press: a marker here
+  /* Right-click or long-press opens the map's menu (context-menu.js); its "Mark as landmark" calls addMarker. */
   document.addEventListener('click', function (e) { if (e.target.id === 'pick-cancel') setMode(null); });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && mode) setMode(null); });
 

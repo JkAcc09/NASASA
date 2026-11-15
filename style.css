@@ -70,7 +70,7 @@ body { font: 400 15px/1.4 var(--body); color: var(--ink); background: var(--pape
 }
 
 /* ---------- collar (legend column) ---------- */
-#collar { grid-area: collar; overflow-y: auto; border-right: 1.5px solid var(--ink); padding: 18px 18px 12px; background: var(--paper); }
+#collar { grid-area: collar; position: relative; overflow-y: auto;    /* relative: hidden labels (.sr) stay inside the column instead of lengthening the page */ border-right: 1.5px solid var(--ink); padding: 18px 18px 12px; background: var(--paper); }
 .sheet-title h1 { font: 700 34px/1 var(--label); letter-spacing: -0.01em; margin: 0 0 6px; }
 .sheet-title p { margin: 0; color: var(--ink-2); font: 500 15px/1.3 var(--label); }
 #collar section { border-top: 1.5px solid var(--ink); margin-top: 12px; padding-top: 8px; }
@@ -539,14 +539,7 @@ button.lb .ico { flex: none; }
 #edit-bar p { flex: 1 1 240px; margin: 0; font: 600 15px/1.3 var(--label); }
 #edit-bar button { min-height: 38px; }
 
-/* ---------- what a tap would lead to: the readouts for the spot under the mouse (app.js, drawHover) ---------- */
-#hover-read { position: absolute; z-index: 880; pointer-events: none; width: max-content; max-width: 330px; background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); border-radius: 3px;
-  padding: 8px 10px 9px; box-shadow: 0 3px 10px rgba(0, 0, 0, .45); }
-#hover-read h4 { margin: 0 0 6px; padding-bottom: 5px; border-bottom: 1px solid var(--rule); font: 700 15px/1.2 var(--label); }
-#hover-read dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 2px 12px; align-items: baseline; }
-#hover-read dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
-#hover-read dd { margin: 0; font: 600 15px/1.25 var(--label); font-variant-numeric: tabular-nums; text-align: right; }
-#hover-read p { margin: 0; font-size: 13px; color: var(--ink-2); }
+/* ---------- the safety index as a small badge (context-menu.js, Reveal information) ---------- */
 .hv-safe { display: inline-block; min-width: 26px; padding: 0 5px; border-radius: 3px; color: #fff; background: #5B6670; text-align: center; }
 .hv-safe.hi { background: #1B7F4B; } .hv-safe.mid { background: #A85F00; } .hv-safe.lo { background: #B01E3C; }
 
@@ -699,3 +692,60 @@ body.ro-col #e-safe-f { display: block; }
 .rt-budget.short { color: var(--warn); font-weight: 600; }
 #season-chart { width: 100%; height: 115px; margin-top: 6px; display: block; border: 1px solid var(--rule); background: var(--field); }
 #season-text p { margin: 6px 0 0; font-size: 14px; line-height: 1.4; }
+
+/* ---------- readouts in tabs beside the map (hud.js) ---------- */
+#ro-tabs { display: flex; gap: 0; border-bottom: 1.5px solid var(--ink); background: var(--paper-2); }
+#ro-tabs[hidden] { display: none; }
+#ro-tabs button { flex: 1 1 0; min-width: 0; min-height: 38px; padding: 0 4px; border: 0; border-right: 1px solid var(--rule); border-radius: 0; background: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 5px; font: 600 13px/1 var(--label); color: var(--ink-2); white-space: nowrap; }
+#ro-tabs button:last-of-type { border-right: 0; }
+#ro-tabs button .ico { width: 16px; height: 16px; flex: none; }
+#ro-tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: inset 0 -3px 0 var(--ink); }
+#ro-tabs button:hover { background: var(--paper); color: var(--ink); }
+body:not(.ro-focus) #strip { display: flex; flex-direction: column; }
+body:not(.ro-focus) #strip > dl:not(.ro-active) { display: none; }
+body:not(.ro-focus) #strip > dl + dl { border-left: 0; }
+body.ro-focus #ro-tabs { display: none; }
+body.ro-focus #strip #budget-ro::before { content: "Walk budget"; }
+body.ro-focus #strip dl + dl + dl { border-top: 1.5px solid var(--ink); }
+body.ro-col #strip > dl.ro-active { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+@media (max-width: 860px) {
+  #ro-tabs button { min-height: 42px; font-size: 14px; }
+  #app { grid-template-rows: auto 70vh auto; }
+}
+
+/* ---------- mission status: bottom right of the map, always shown (hud.js) ---------- */
+#mission { position: absolute; right: 12px; bottom: 26px; z-index: 860; display: flex; gap: 6px; }
+#pad:not([hidden]) ~ #mission { right: 226px; }
+.mchip { display: inline-flex; align-items: center; gap: 5px; min-height: 34px; padding: 0 9px 0 7px; border: 1.5px solid var(--ink); border-radius: 17px;
+  background: var(--paper); color: var(--ink); box-shadow: 0 1px 4px rgba(0, 0, 0, .35); font: 700 15px/1 var(--label); font-variant-numeric: tabular-nums; cursor: help; }
+.mchip .mi { width: 20px; height: 20px; flex: none; }
+.mchip .mi-o2 { width: auto; height: auto; font: 700 13px/1 var(--label); }
+.mchip .mi-o2 sub { font-size: 9px; }
+.mchip b { min-width: 2.2em; text-align: right; }
+.mchip.ok .mi { color: #1B7F4B; }
+.mchip.warn { background: #F2C744; color: #2A1D00; border-color: #7A5A00; }
+.mchip.danger { background: #B01E3C; color: #fff; border-color: #5E0C1A; animation: mchip-pulse 1.2s ease-in-out infinite; }
+.mchip.off { color: var(--ink-2); }
+@keyframes mchip-pulse { 50% { box-shadow: 0 0 0 4px rgba(176, 30, 60, .45); } }
+@media (prefers-reduced-motion: reduce) { .mchip.danger { animation: none; } }
+@media (max-width: 860px) {
+  #mission, #pad:not([hidden]) ~ #mission { right: auto; left: 12px; bottom: 34px; }
+  .mchip { min-height: 32px; padding: 0 7px 0 6px; font-size: 14px; }
+}
+body.ro-focus #mission { position: absolute; right: 8px; bottom: auto; top: calc(min(var(--mini), 52vh) - 44px); left: auto; }
+
+/* ---------- the right-click menu on the map (context-menu.js) ---------- */
+#map { -webkit-touch-callout: none; }                   /* a long press opens Marswalk's menu, not the browser's */
+#ctx { position: fixed; z-index: 1500; min-width: 210px; max-width: min(300px, calc(100vw - 12px)); padding: 4px; background: var(--paper); color: var(--ink);
+  border: 1.5px solid var(--ink); border-radius: 4px; box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+#ctx .ctx-where { margin: 4px 8px 6px; font: 600 12px/1.2 var(--label); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+#ctx button[role="menuitem"] { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 38px; padding: 0 10px; border: 0; border-radius: 3px; background: none; text-align: left; font: 600 15px/1.2 var(--label); }
+#ctx button[role="menuitem"]:hover, #ctx button[role="menuitem"]:focus-visible { background: var(--ink); color: var(--paper); outline: none; }
+#ctx button .ico { width: 18px; height: 18px; flex: none; }
+#ctx .ctx-ask { margin: 6px 8px; font-size: 14px; line-height: 1.35; }
+#ctx .ctx-row { display: grid; gap: 2px; }
+.spot dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; align-items: baseline; }
+.spot dt { font: 500 13px/1.25 var(--label); color: var(--ink-2); }
+.spot dd { margin: 0; font: 600 14px/1.25 var(--label); font-variant-numeric: tabular-nums; }
+.spot-sub { display: block; font-weight: 500; font-size: 12px; color: var(--ink-2); }

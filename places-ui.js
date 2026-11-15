@@ -113,11 +113,12 @@
     var im = P.imageryAt(it.lat, it.lon);
     map.setView([it.lat, it.lon], Math.min(im.zoom, it.kind === 'checkpoint' && it.zoom ? it.zoom : 16));
     if (MW.dustUI && MW.dustUI.state) { MW.dustUI.state.pin = null; }
-    say(res === 'same' ? 'The walker is at <b>' + esc(it.name) + '</b>, with the same base. A new trail has started. ' + imageryNote(it.lat, it.lon)
+    var msg = (res === 'same' ? 'The walker is at <b>' + esc(it.name) + '</b>, with the same base. A new trail has started. ' + imageryNote(it.lat, it.lon)
       : res === 'gale' ? 'Back at Gale crater: the base is Curiosity’s first stop again, and the weather readings and rover view are back. ' + imageryNote(it.lat, it.lon)
       : 'New site: the base is now at <b>' + esc(G.SITE.name) + '</b> (it was ' + esc(site) + '). Distances, the route-finder and the walk budget count from here. ' +
         'The weather readings and rover photos are from Curiosity at Gale, so they are blank here; height and slope come from the regional terrain model. ' + imageryNote(it.lat, it.lon));
-    render();
+    say(msg); render();
+    return msg;
   }
   document.addEventListener('click', function (e) {     // capture: Leaflet popups swallow clicks
     var b = e.target.closest && e.target.closest('[data-pl-pop]'); if (!b) return;
@@ -233,5 +234,10 @@
   applying = true; applyHash(); applying = false;
   writeHash();
   MW.placesUI = { render: render, view: function (id) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) view(it); return !!it; },
-                  walk: function (id, sure) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) walk(it, sure); return !!it; } };
+                  walk: function (id, sure) { var it = items(true).filter(function (x) { return x.id === id; })[0]; if (it) walk(it, sure); return !!it; },
+                  /* any point: { lat, lon, name? }. sure = the user already agreed to leave the trail (context-menu.js asks). Returns the message. */
+                  walkTo: function (p, sure) {
+                    var name = p.name || (Math.abs(p.lat).toFixed(4) + '° ' + (p.lat < 0 ? 'S' : 'N') + ', ' + Math.abs(p.lon).toFixed(4) + '° ' + (p.lon < 0 ? 'W' : 'E'));
+                    return walk({ id: 'pt:' + p.lat + ',' + p.lon, kind: 'point', group: 'Point', name: name, lat: p.lat, lon: p.lon }, sure);
+                  } };
 })();

@@ -68,6 +68,8 @@ and they load in this order (see the bottom of `index.html`). Every file sits be
 | `offline.js` | "Offline map" in the Map Overlay tab; registers `sw.js` | change which tiles are saved |
 | `sw.js` | The service worker: keeps the app and the map tiles for use without a connection | change what is kept |
 | `lazy.js` | Loads the dust packs after the map's first view | defer another large file |
+| `hud.js` | The readout tabs beside the map, and the mission status symbols at its bottom right | change how readouts are grouped |
+| `context-menu.js` | The right-click (long-press) menu on the map: reveal, travel, mark | add a choice to the menu |
 | `nav-ui.js` | The Markers and routes tab: marker form, icon picker, filter, route search, result cards, lines on the map | change how markers and routes are shown |
 | `terrain_ingest.py` | Builds `terrain-data.js` from the MarsTopo719 shape model and the GMM-3 gravity model | change the terrain resolution |
 | `router_test.js` | Checks the terrain pack and the route-finder against the real data: `node router_test.js` | you changed `router.js`, `terrain.js` or a limit |
@@ -281,8 +283,12 @@ Small **(i)** buttons beside technical terms open a short explanation: what the 
 matters on a walk, and whether it is measured, historical, interpolated or modelled. The texts are
 `GLOSSARY` in `config.js`; any `<button class="info" data-info="key">` opens the entry with that key.
 
-**Layout** (Settings > Display) has three choices: the readouts in a row under the map, in a column beside
-it, or **Numbers first, mini-map**: the readouts fill the main area as large cards, the live safety index
+**Layout** (Settings > Display) has two choices. **Tabs beside the map** (the default) keeps the readouts in a
+narrow column on the right, in three tabs: **Position** (position, height, slope, bearing, distance, time),
+**Conditions** (safety index, map layer, weather, radiation, dust) and **Budget** (oxygen, battery, turn back).
+One tab shows at a time; a tab with nothing ticked is left out, and the choice is kept (`marswalk.roTab`). A saved
+"row" or "column" layout from an earlier version opens as this one. **Numbers first, mini-map**: the readouts fill
+the main area as large cards, every group at once, the live safety index
 gets the largest card with all its factors, and the map becomes a mini-map in the top right corner with the
 rover view and walk pad beneath it. The mini-map is the same map: it follows the walker and takes taps.
 
@@ -340,12 +346,24 @@ it there; tap the line to add a point; Undo, Done and Cancel are in the bar on t
 again along the edited line (a point every 1.5 m, pass counts worked out afresh, times at the pace walked so
 far) and puts the walker at its end. The walker stands still while the editor is open.
 
-**What a tap would lead to.** In "Walk it yourself", with taps allowed in Settings, the mouse carries a small
-panel: every readout ticked in Settings > Display, worked out for the spot under the mouse and the moment you
-would arrive there (position, height, bearing from you, distance and time on arrival, temperatures, dose,
-dust class, map-layer value, safety index). It needs a mouse; touch screens do not have a hover.
-**Settings > Moving the pointer > Show hover information** turns the panel off (it is on at first) to keep the map
-clear; taps still walk the pointer and the readouts are unchanged. The choice is kept with the other settings.
+**The right-click menu** (`context-menu.js`). Right-click a spot on the map, or hold a finger on it for 0.6 s on a
+touch screen, for a small menu beside it:
+
+- **Reveal information**: a popup with the spot's coordinates, height and slope (Curiosity's survey on the drive,
+  the regional model elsewhere), distance, bearing and walking time from the walker, the safety index and dust
+  there, the map layer's value, the weather on arrival (near Gale), the dose rate, the place it lies in, the
+  sharpest imagery and the nearest Curiosity stop.
+- **Travel to location**: moves the walker there, as "Walk from here" does (the base stays within 60 km, a new site
+  starts beyond). If a trail is under way it first asks: save it, travel anyway, or cancel.
+- **Mark as landmark**: opens the marker form at that spot, to give it a name, a description and an icon.
+
+Escape, a click elsewhere or moving the map closes it; the click that closes it does not walk the pointer. The
+browser's own right-click menu is held back on the map only; everywhere else right-click works as usual.
+
+**Mission status.** Three small symbols at the bottom right of the map, always shown whatever tab or layout:
+**O₂** and **battery** (percent left, from the walk budget) and the **live safety index** (a shield). They turn
+amber at 30 % left and red at the 15 % reserve, or when that one sets the turn-back point and it has passed; the
+safety index is green from 75, amber from 50 and red below. A label names each value, and a press explains it.
 
 ### Saved trails
 
@@ -369,7 +387,7 @@ The second tab on the column's edge. `Marswalk.openTab('nav')` opens it from cod
 ### Markers
 
 Press **+** and tap the map, press the locate button to mark where the walker stands, or right-click
-(long-press) the map. A marker can go anywhere on the planet. It holds a name, a description, an icon and
+(long-press) the map and choose **Mark as landmark**. A marker can go anywhere on the planet. It holds a name, a description, an icon and
 its position; the description takes a little Markdown (`**bold**`, `*italic*`, `` `code` ``, `- ` lists,
 `[links](https://…)`), and anything else is shown as typed. Drag the pin to move it before saving.
 

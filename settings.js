@@ -15,8 +15,8 @@
   var C = MW.config, $ = MW.geo.$, KEY = 'marswalk.settings.v1';
   function readoutDefaults() { var o = {}; C.READOUTS.forEach(function (r) { o[r.key] = r.on; }); return o; }
   var DEFAULTS = {
-    theme: 'blue', move: 'hybrid', hoverInfo: true,       // hoverInfo: the panel under the mouse in "Walk it yourself" (app.js, drawHover)
-    readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'row',
+    theme: 'blue', move: 'hybrid',
+    readouts: readoutDefaults(), roLarge: false, roExact: false, units: 'si', roLayout: 'side',
     alarm: true, alarmSound: true, alarmAt: 50,          // the live safety alarm, and the index below which it sounds
     trailColour: 'magenta', trailWidth: 1,
     pointerColour: 'blue', pointerSize: 1,
@@ -32,7 +32,8 @@
   /* Never trust stored values blindly: fall back to the default if a choice no longer exists. */
   if (!C.THEMES[v.theme]) v.theme = DEFAULTS.theme;
   var ro = readoutDefaults(); if (v.readouts && typeof v.readouts === 'object') Object.keys(ro).forEach(function (k) { if (typeof v.readouts[k] === 'boolean') ro[k] = v.readouts[k]; }); v.readouts = ro;
-  v.roLarge = v.roLarge === true; v.roExact = v.roExact === true; v.hoverInfo = v.hoverInfo !== false;
+  v.roLarge = v.roLarge === true; v.roExact = v.roExact === true;
+  if (v.roLayout === 'row' || v.roLayout === 'column') v.roLayout = 'side';   // the strip under the map and the plain column are now the tabs beside it
   if (!C.UNITS[v.units]) v.units = DEFAULTS.units;
   if (!C.RO_LAYOUTS[v.roLayout]) v.roLayout = DEFAULTS.roLayout;
   v.alarm = v.alarm !== false; v.alarmSound = v.alarmSound !== false;
@@ -59,7 +60,7 @@
     document.body.setAttribute('data-theme', v.theme);
     document.body.classList.toggle('ro-large', v.roLarge);
     document.body.classList.toggle('ro-exact', v.roExact);
-    document.body.classList.toggle('ro-col', v.roLayout === 'column');
+    document.body.classList.toggle('ro-col', v.roLayout === 'side');      // the readouts in tabs beside the map (hud.js)
     applyReadouts();
     document.body.classList.toggle('ro-focus', v.roLayout === 'focus' && !document.body.classList.contains('ro-empty'));   // numbers first: needs numbers to show
     document.body.setAttribute('data-move', v.move);
@@ -98,7 +99,7 @@
   }
   function syncReadouts() {
     Array.prototype.forEach.call(document.querySelectorAll('#set-readouts input[data-ro-set]'), function (i) { i.checked = !!v.readouts[i.getAttribute('data-ro-set')]; });
-    $('set-ro-large').checked = v.roLarge; $('set-ro-exact').checked = v.roExact; $('set-hover').checked = v.hoverInfo;
+    $('set-ro-large').checked = v.roLarge; $('set-ro-exact').checked = v.roExact;
     $('set-alarm').checked = v.alarm; $('set-alarm-sound').checked = v.alarmSound; $('set-alarm-sound').disabled = !v.alarm;
     var sel = $('set-alarm-at');
     if (!sel.options.length) C.ALARM_LEVELS.forEach(function (n) { var o = document.createElement('option'); o.value = n; o.textContent = 'below ' + n; sel.appendChild(o); });
@@ -184,7 +185,6 @@
     $('set-ro-none').addEventListener('click', function () { Object.keys(v.readouts).forEach(function (k) { v.readouts[k] = false; }); changed(); });
     $('set-ro-large').addEventListener('change', function () { v.roLarge = this.checked; changed(); });
     $('set-ro-exact').addEventListener('change', function () { v.roExact = this.checked; changed(); });
-    $('set-hover').addEventListener('change', function () { v.hoverInfo = this.checked; changed(); });
     $('set-alarm').addEventListener('change', function () { v.alarm = this.checked; changed(); });
     $('set-alarm-sound').addEventListener('change', function () { v.alarmSound = this.checked; changed(); });
     $('set-alarm-at').addEventListener('change', function () { v.alarmAt = +this.value; changed(); });
