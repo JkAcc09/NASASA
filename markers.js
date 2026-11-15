@@ -21,6 +21,7 @@
  */
 (function () {
   'use strict';
+  var PHOTO_KEY = 'marswalk.marker-photos.v1';         // { markerId: 'data:image/jpeg;base64,…' }: kept apart so the marker list stays small
   var C = MW.config, KEY = 'marswalk.markers.v1', ICON_KEY = 'marswalk.marker-icons.v1', FILTER_KEY = 'marswalk.marker-filter.v1';
   var persistent = true, mem = {}, listeners = [];
 
@@ -80,7 +81,15 @@
     var rec = clean(m); if (!rec) return null;
     var l = list().filter(function (x) { return x.id !== rec.id; }); l.push(rec); write(KEY, l); changed('markers'); return rec;
   }
-  function remove(id) { write(KEY, list().filter(function (x) { return x.id !== id; })); var f = filterGet(); delete f.hidden[id]; write(FILTER_KEY, f); changed('markers'); }
+  function photoAll() { var p = read(PHOTO_KEY, {}); return p && typeof p === 'object' ? p : {}; }
+  function photoSet(id, dataUrl) {                     // false if the browser had no room for it
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(dataUrl || '')) return false;
+    var p = photoAll(); p[id] = dataUrl;
+    if (write(PHOTO_KEY, p)) { changed('photos'); return true; }
+    delete p[id]; mem[PHOTO_KEY] = p; return false;
+  }
+  function photoRemove(id) { var p = photoAll(); if (p[id]) { delete p[id]; write(PHOTO_KEY, p); changed('photos'); } }
+  function remove(id) { photoRemove(id); write(KEY, list().filter(function (x) { return x.id !== id; })); var f = filterGet(); delete f.hidden[id]; write(FILTER_KEY, f); changed('markers'); }
 
   /* ---------------- uploaded icons ---------------- */
   function addIcon(dataUrl, name) {
@@ -138,6 +147,7 @@
     get persistent() { return persistent; },
     list: list, get: function (id) { return list().filter(function (m) { return m.id === id; })[0] || null; }, save: save, remove: remove,
     icons: { custom: customIcons, add: addIcon, remove: removeIcon, isCustom: isCustom, name: nameOf, colour: colourOf, valid: valid },
+    photos: { get: function (id) { return photoAll()[id] || null; }, set: photoSet, remove: photoRemove },   // a photo per marker (nav-ui.js)
     filter: { get: filterGet, set: filterSet, shows: shows, allOn: filterAllOn },
     badge: badge, art: art, render: render, escape: esc,
     onChange: function (fn) { listeners.push(fn); }

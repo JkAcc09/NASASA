@@ -209,7 +209,7 @@
     line(a, ink, []);
     /* axes */
     cg.strokeStyle = ink; cg.lineWidth = 1.5; cg.beginPath(); cg.moveTo(pl, pt); cg.lineTo(pl, H - pb); cg.lineTo(W - pr, H - pb); cg.stroke();
-    cg.fillStyle = ink2; cg.font = '500 19px "Barlow Semi Condensed", Arial, sans-serif';
+    cg.fillStyle = ink2; cg.font = '500 19px "JetBrains Mono", ui-monospace, Consolas, monospace';
     cg.textAlign = 'right'; cg.fillText(top.toFixed(2), pl - 6, pt + 12); cg.fillText('0', pl - 6, H - pb);
     cg.textAlign = 'center'; [0, 90, 180, 270, 360].forEach(function (l) { cg.fillText('Ls ' + l + '°', Math.min(W - 30, Math.max(pl + 24, X(l))), H - 8); cg.fillRect(X(l) - 0.5, H - pb, 1, 5); });
     /* the frame on the map */
@@ -387,7 +387,17 @@
     $('dust-body').hidden = $('dust-time-body').hidden = false;
     setYear(P.years[P.years.length - 1].my);
     /* read the rest of the record in the background, one Martian Year at a time, so "this season in the record" fills in */
-    (function more() { setTimeout(function () { if (D.analyseNext()) more(); else if (!st.playing) renderAll(); }, 400); })();
+    /* One Martian year at a time, when the page is idle, and never during the start screen's way in (MW.quietUntil,
+       intro.js): each step takes a tenth of a second or two, which would otherwise hold up the panels sliding in. */
+    (function more() {
+      var wait = function () {
+        var q = (MW.quietUntil || 0) - performance.now();
+        if (q > 0) { setTimeout(wait, q + 50); return; }
+        if (window.requestIdleCallback) requestIdleCallback(step, { timeout: 1500 }); else setTimeout(step, 0);
+      };
+      var step = function () { if (D.analyseNext()) setTimeout(wait, 150); else if (!st.playing) renderAll(); };
+      setTimeout(wait, 400);
+    })();
 
     $('dust-on').addEventListener('change', function () { setOn(this.checked); });
     view.addEventListener('change', function () { st.view = this.value; drawLegend(); drawLayer(); });
@@ -432,7 +442,12 @@
     }, 1000);
   }
 
-  MW.dustUI = { inspect: inspect, state: st,
+  /* Describe one place in the dust monitor (places-ui.js uses this after going somewhere). */
+  function pinAt(lat, lon) {
+    if (!ready) return false;
+    st.pin = D.cellAt(lat, lon).c; renderAll(); return true;
+  }
+  MW.dustUI = { inspect: inspect, state: st, pinAt: pinAt,
     show: function (on) { setOn(on !== false); },
     goTo: function (my, ls) { setYear(my, ls); } };
 

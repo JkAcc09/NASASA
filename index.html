@@ -6,11 +6,41 @@
 <link rel="icon" href="data:,">
 <title>Marswalk: Mount Sharp boxwork field map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<!-- ============ start screen: shown while the page loads; a tap or any key enters the app (intro.js) ============ -->
+<div id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" aria-describedby="intro-status">
+  <div class="intro-grid" aria-hidden="true"></div>
+  <div class="intro-stars" aria-hidden="true"></div>
+  <div class="intro-art" aria-hidden="true">
+    <div class="intro-planet"><i></i></div>
+    <canvas id="intro-globe"></canvas>
+    <img id="art-mars" src="mars-color.jpg" alt="" hidden>
+    <img id="art-phobos" src="phobos.jpg" alt="" hidden>
+    <img id="art-sat" src="mro.webp" alt="" hidden>
+  </div>
+  <div class="intro-body">
+    <svg class="intro-logo" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><circle cx="14" cy="14" r="11.5" fill="none" stroke="#5CC8FF" stroke-width="1.4"/><path d="M6 16.5c3.4-1.2 4.6-5.6 8-5.6s4.6 4.4 8 3.4" fill="none" stroke="#FF5FB0" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <p class="intro-kicker">NASA Space Apps 2026 · Interplanetary Survival Guide</p>
+    <h1 id="intro-title">MARSWALK</h1>
+    <p class="intro-sub">A field map for one walk on Mars<br>Mount Sharp boxwork, Gale crater · 4.80° S 137.38° E</p>
+    <div class="intro-load" aria-hidden="true"><i id="intro-bar"></i></div>
+    <p id="intro-status" role="status">Loading the map and NASA data…</p>
+    <p id="intro-go" class="intro-go" aria-hidden="true">Tap anywhere to begin</p>
+  </div>
+  <dl class="intro-legend">
+    <div><dt>Mars</dt><dd>NASA Viking colour mosaic, shaded with MGS MOLA relief</dd></div>
+    <div><dt>Phobos</dt><dd>the larger of its two moons</dd></div>
+    <div><dt>MRO</dt><dd>Mars Reconnaissance Orbiter, in orbit since 2006. Its HiRISE and CTX cameras took the photo map you are about to walk on.</dd></div>
+  </dl>
+  <p class="intro-credit">Images and data: NASA/JPL-Caltech, NASA 3D Resources, USGS, University of Arizona, MSSS, ASU, ESA/DLR/FU Berlin. NASA does not endorse this project.</p>
+</div>
+<!-- The start screen's scene starts here, before the app's scripts, and draws in a worker of its own (globe.js) -->
+<script src="globe.js"></script>
+
 <div id="app">
 
   <!-- ============ left column: the map's legend ============ -->
@@ -69,6 +99,14 @@
         <label id="mk-radius-row" class="num" hidden><span>Keep-clear distance, metres</span><input id="mk-radius" type="number" min="5" max="5000" step="5" value="50"></label>
         <label for="mk-note">Description</label>
         <textarea id="mk-note" rows="4" maxlength="2000" placeholder="What is here, what to watch for. **bold**, *italic* and - lists work."></textarea>
+        <span class="mk-lab">Photo</span>
+        <div id="mk-photo-box">
+          <img id="mk-photo-img" alt="This marker's photo" hidden>
+          <div class="row"><button id="mk-photo-add" type="button" class="lb" data-icon="upload"><span>Add a photo</span></button><button id="mk-photo-del" type="button" class="lb" data-icon="trash" hidden><span>Remove</span></button></div>
+          <p class="note">PNG, JPEG or WebP, up to 10 MB. Kept in this browser, shrunk to 800 px.</p>
+          <p id="mk-photo-msg" class="note" role="status" hidden></p>
+        </div>
+        <input id="mk-photo-file" type="file" accept="image/png,image/jpeg,image/webp" hidden>
         <p id="mk-where" class="note"></p>
         <div class="row">
           <button type="submit">Save marker</button>
@@ -98,6 +136,19 @@
     </section>
 
     <!-- Dust storm activity: filled in by dust-ui.js from dust.js and dust-data.js -->
+    <!-- Offline map: the service worker (sw.js) and saving the walk area. Filled in by offline.js -->
+    <section id="offline-sec" data-tab="overlay" hidden>
+      <h2>Offline map <button type="button" class="info" data-info="offline" aria-label="What does this mean?">i</button></h2>
+      <p id="off-status" class="note"></p>
+      <div class="row"><button id="off-save" type="button">Save the walk area</button><button id="off-clear" type="button">Delete kept tiles</button></div>
+      <div id="off-confirm" class="pl-box" hidden>
+        <p id="off-plan"></p>
+        <div class="row"><button id="off-go" type="button">Save it</button><button id="off-cancel" type="button">Cancel</button></div>
+      </div>
+      <div class="row"><button id="off-stop" type="button" hidden>Stop saving</button></div>
+      <p id="off-msg" class="note" role="status" hidden></p>
+    </section>
+
     <section id="dust" class="dustsec" data-tab="dust" hidden>
       <h2>Dust storm activity</h2>
       <label class="check"><input id="dust-on" type="checkbox"><span>DUST STORM ACTIVITY</span><span id="dust-res" class="res"></span></label>
@@ -128,6 +179,15 @@
     </section>
 
     <!-- Timeline: the same dust data through time. Filled in by dust-ui.js -->
+    <!-- Best season for a walk here: the whole dust record for one place. Drawn by season.js -->
+    <section id="season-sec" class="dustsec" data-tab="dust" hidden>
+      <h2>Best season for a walk here <button type="button" class="info" data-info="season" aria-label="What does this mean?">i</button></h2>
+      <p id="season-where" class="note">Loading the dust record…</p>
+      <canvas id="season-chart" width="536" height="230" aria-label="Dust optical depth through the Martian year at this place, in all observed years"></canvas>
+      <p class="note">Grey band: median to 90th percentile of the dust in every observed year (HISTORICAL). Red bars: the share of years with HIGH or SEVERE dust in that season. Green: the clearest 60° of Ls. Blue line: the Timeline's date. A record of past years, not a forecast.</p>
+      <div id="season-text"></div>
+    </section>
+
     <section id="dust-time" class="dustsec" data-tab="time" hidden>
       <h2>Timeline</h2>
       <p id="dust-time-status" class="note" role="status">Loading the dust observations…</p>
@@ -156,6 +216,36 @@
         <p id="dust-chart-note" class="note"></p>
         <div id="dust-events"></div>
       </div>
+    </section>
+
+    <!-- Go to a place: the location selector, checkpoints and view links. Filled in by places-ui.js -->
+    <section id="places-sec" data-tab="menu">
+      <h2>Go to a place <button type="button" class="info" data-info="places" aria-label="What does this mean?">i</button></h2>
+      <div id="pl-bar" role="search">
+        <span data-icon="search"></span>
+        <input id="pl-q" type="search" autocomplete="off" spellcheck="false" placeholder="Place, marker, checkpoint or sol" aria-label="Search places, markers, checkpoints and Curiosity stops">
+      </div>
+      <div id="pl-list" aria-label="Places"></div>
+      <div id="pl-confirm" class="pl-box" role="alertdialog" aria-labelledby="pl-confirm-text" hidden>
+        <p id="pl-confirm-text"></p>
+        <div class="row"><button id="pl-save-first" type="button">Save the trail first</button><button id="pl-go" type="button">Move anyway</button><button id="pl-cancel" type="button">Cancel</button></div>
+      </div>
+      <p id="pl-msg" class="note" role="status" hidden></p>
+      <div class="row icons">
+        <button id="pl-home" type="button" class="ib" aria-label="Back to the walker" data-tip="Back to the walker" data-icon="locate"></button>
+        <button id="pl-cp-view" type="button" class="ib" aria-label="Save the map view as a checkpoint" data-tip="Save the map view as a checkpoint" data-icon="star"></button>
+        <button id="pl-cp-walker" type="button" class="ib" aria-label="Save the walker's position as a checkpoint" data-tip="Save the walker's position as a checkpoint" data-icon="pin"></button>
+        <button id="pl-link" type="button" class="ib" aria-label="Copy a link to this view" data-tip="Copy a link to this view" data-icon="globe"></button>
+        <button id="pl-cp-file" type="button" class="ib" aria-label="Download your checkpoints" data-tip="Download your checkpoints" data-icon="download"></button>
+        <button id="pl-cp-import" type="button" class="ib" aria-label="Import a checkpoints file" data-tip="Import a checkpoints file" data-icon="upload"></button>
+      </div>
+      <input id="pl-cp-input" type="file" accept=".json,application/json" hidden>
+      <form id="pl-save" hidden>
+        <label id="pl-save-lab" for="pl-save-name">Name this checkpoint</label>
+        <input id="pl-save-name" type="text" maxlength="60" autocomplete="off">
+        <div class="row"><button type="submit">Save checkpoint</button><button id="pl-save-cancel" type="button">Cancel</button></div>
+      </form>
+      <p class="note">Beside each place: the arrow shows it on the map (the walker stays put); the route symbol finds the ways to walk there, in Markers and routes; the bolt teleports the walker there with a new trail. Nearby the base stays; far away the base moves too, because a flat map of metres is only accurate near its centre.</p>
     </section>
 
     <!-- The trail and the saved trails show in two parts of the column: Menu, and Markers and routes -->
@@ -191,11 +281,19 @@
     <section id="saved-sec" data-tab="menu nav">
       <h2>Saved routes and trails</h2>
       <ul id="saved"></ul>
+      <p class="note">The five samples are practice walks near base: show one on the map, replay it, or download it as a trail file and bring it back in with Import (the button below). See sample-trails/HOW-TO-USE.txt.</p>
       <p id="store-msg" class="note" role="status" hidden></p>
       <div class="row icons">
         <button id="btn-import" type="button" class="ib" aria-label="Import a trail file" data-tip="Import a trail file" data-icon="upload"></button>
       </div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
+    </section>
+
+    <!-- Walk together: the other walkers on the map at the same time. Filled in by companions.js -->
+    <section id="mates-sec" data-tab="menu">
+      <h2>Walk together <button type="button" class="info" data-info="companions" aria-label="What does this mean?">i</button></h2>
+      <ul id="mates"></ul>
+      <p class="note">Another walker can stand by, replay a route beside you while Start is pressed, or follow its own position fixes.</p>
     </section>
 
     <section data-tab="menu">
@@ -205,7 +303,7 @@
       </label>
       <div id="route-legend" class="ramp" hidden><span id="ramp-min"></span><i></i><span id="ramp-max"></span></div>
       <canvas id="profile" width="536" height="150" aria-label="Elevation along the route"></canvas>
-      <p class="note">Height along the route <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button>, from Curiosity's own position fixes. The blue mark is you.</p>
+      <p class="note">Height along the route <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button>, from Curiosity's own position fixes. The bright mark is you. Colour the stops by "Slope along the drive" <button type="button" class="info" data-info="slope" aria-label="What does this mean?">i</button> to see the steep parts.</p>
     </section>
 
     <footer data-tab="menu">
@@ -216,6 +314,8 @@
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
+    <div class="brand"><svg viewBox="0 0 28 28" aria-hidden="true" focusable="false"><circle cx="14" cy="14" r="11.5" fill="none" stroke="var(--me)" stroke-width="1.8"/><path d="M6 16.5c3.4-1.2 4.6-5.6 8-5.6s4.6 4.4 8 3.4" fill="none" stroke="var(--t2)" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><b>MARSWALK</b><span>Mount Sharp boxwork · Gale crater · 4.80° S 137.38° E</span></div></div>
     <div class="seg" role="group" aria-label="Who moves the pointer">
       <button id="mode-replay" type="button" class="ib" aria-pressed="true" aria-label="Replay Curiosity's drive" data-tip="Replay Curiosity's drive" data-icon="route"></button>
       <button id="mode-manual" type="button" class="ib" aria-pressed="false" aria-label="Walk it yourself" data-tip="Walk it yourself" data-icon="walk"></button>
@@ -229,7 +329,12 @@
         <option value="120">120×</option>
       </select>
     </label>
+    <div class="seg" role="group" aria-label="Teleport history">
+      <button id="tp-undo" type="button" class="ib" aria-label="Undo teleport" data-tip="Undo teleport" data-icon="undo" disabled></button>
+      <button id="tp-redo" type="button" class="ib" aria-label="Redo teleport" data-tip="Redo teleport" data-icon="redo" disabled></button>
+    </div>
     <span class="spacer"></span>
+    <button id="btn-tour" type="button" class="lb" data-icon="help" data-tip="A guided tour of the app"><span>Tutorial</span></button>
     <label class="select inline ico-label" data-tip="Walker"><span data-icon="person"></span><span class="sr">Walker</span><select id="walker"></select></label>
     <!-- Map scale. Walk also keeps the walker in view (it is pressed while the map follows them); dragging the map stops that. -->
     <div class="seg" role="group" aria-label="Map scale">
@@ -257,7 +362,9 @@
     </nav>
     <div id="banner" role="alert" hidden></div>
     <div id="dust-warn" role="status" hidden></div>
+    <div id="budget-warn" role="alert" hidden></div>
     <div id="pick-hint" role="status" hidden></div>
+    <div id="tp-note" role="status" hidden></div>
     <div id="safe-alarm" role="alert" hidden></div>
     <div id="edit-bar" role="toolbar" aria-label="Trail editing" hidden>
       <p>Editing the trail. Drag a point to move it, tap a point for more, tap the line to add a point.</p>
@@ -265,19 +372,20 @@
       <button id="edit-done" type="button" class="lb" data-icon="check"><span>Done</span></button>
       <button id="edit-cancel" type="button" class="lb" data-icon="close"><span>Cancel</span></button>
     </div>
-    <div id="hover-read" aria-hidden="true" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
+    <!-- The best NASA picture of where the walker is: Curiosity's Navcam on its drive, orbital imagery elsewhere (imagery.js) -->
     <figure id="pov" hidden>
       <img id="pov-img" alt="">
       <figcaption>
         <strong id="pov-title"></strong>
         <span id="pov-sub"></span>
-        <a id="pov-link" target="_blank" rel="noopener">Open full image on mars.nasa.gov</a>
+        <span id="pov-meta" class="pov-meta"></span>
+        <a id="pov-link" target="_blank" rel="noopener">Open the full image at NASA</a>
       </figcaption>
-      <button id="pov-close" type="button" aria-label="Close rover view">×</button>
+      <button id="pov-close" type="button" aria-label="Close the picture">×</button>
     </figure>
-    <button id="pov-open" type="button" hidden>Rover view here</button>
+    <button id="pov-open" type="button" hidden>View from here</button>
 
     <div id="pad" hidden aria-label="Walk controls">
       <button data-k="left" type="button" aria-label="Turn left">⟲</button>
@@ -287,20 +395,37 @@
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
+    <!-- Mission status: always on the map, whatever tab or layout (hud.js). A press explains each one. -->
+    <!-- Readout tabs: on the right edge of the map, like the panel tabs on its left. Press the open one to fold the panel. -->
+    <nav id="ro-tabs" aria-label="Readouts">
+      <button type="button" data-ro-tab="nav" aria-controls="nav" aria-pressed="true" aria-label="Position and movement readouts" data-tip="Position" data-icon="compass"></button>
+      <button type="button" data-ro-tab="env" aria-controls="env" aria-pressed="false" aria-label="Conditions readouts: weather, radiation, dust" data-tip="Conditions" data-icon="thermo"></button>
+      <button type="button" data-ro-tab="budget-ro" aria-controls="budget-ro" aria-pressed="false" aria-label="Walk budget readouts: oxygen, battery, turn back" data-tip="Budget" data-icon="tank"></button>
+    </nav>
+    <div id="mission" role="group" aria-label="Mission status">
+      <button type="button" id="m-o2" class="mchip" data-info="walkBudget" data-tip="Oxygen left" aria-label="Oxygen left"><span class="mi mi-o2" aria-hidden="true">O<sub>2</sub></span><b>–</b></button>
+      <button type="button" id="m-batt" class="mchip" data-info="walkBudget" data-tip="Battery left" aria-label="Battery left"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="7" width="17" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="20" y="10" width="2.2" height="4" rx="1" fill="currentColor"/><rect x="5" y="9.5" width="9" height="5" rx="1" fill="currentColor"/></svg><b>–</b></button>
+      <button type="button" id="m-risk" class="mchip" data-info="liveSafety" data-tip="Safety index here" aria-label="Safety index here"><svg class="mi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 L20 5.5 V11.5 C20 16.5 16.5 20 12 21.5 C7.5 20 4 16.5 4 11.5 V5.5 Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8.5 12 L11 14.5 L15.5 9.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>–</b></button>
+    </div>
   </main>
 
+  <!-- The right-click (long-press) menu on the map: context-menu.js -->
+  <div id="ctx" role="menu" aria-label="This spot on the map" hidden></div>
+
   <!-- ============ bottom strip: the head-up readouts ============ -->
-  <div id="strip" aria-label="Position and conditions">
-    <dl id="nav">
+  <div id="strip" aria-label="Readouts">
+    <!-- Three groups of readouts; the square tabs on the map's right edge show one at a time (hud.js) -->
+    <dl id="nav" role="tabpanel" aria-label="Position and movement">
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
       <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="slope"><dd id="r-slope">–</dd><dt><span id="r-slope-l">slope here</span> <button type="button" class="info" data-info="slope" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="hdg"><dd id="r-hdg">–</dd><dt>bearing</dt></div>
       <div data-ro="dist"><dd id="r-dist">–</dd><dt>distance travelled</dt></div>
       <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
       <div data-ro="time"><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
     </dl>
-    <dl id="env">
+    <dl id="env" role="tabpanel" aria-label="Conditions">
       <div id="safe-read" data-ro="safety">
         <dd id="e-safe"><b id="e-safe-n">–</b><span id="e-safe-w"></span></dd>
         <dt><span id="e-safe-l">safety index here</span> <button type="button" class="info" data-info="liveSafety" aria-label="What does this mean?">i</button></dt>
@@ -319,6 +444,11 @@
       <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
       <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
+    <dl id="budget-ro" role="tabpanel" aria-label="Walk budget">
+      <div data-ro="o2"><dd id="e-o2">–</dd><dt><span id="e-o2-l">oxygen left</span> <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="batt"><dd id="e-batt">–</dd><dt><span id="e-batt-l">battery left</span></dt></div>
+      <div data-ro="turn"><dd id="e-turn">–</dd><dt><span id="e-turn-l">turn back in</span></dt></div>
+    </dl>
   </div>
 </div>
 
@@ -330,6 +460,16 @@
     <button id="settings-close" type="button" aria-label="Close settings">Done</button>
   </header>
   <div class="set-body">
+    <nav class="set-nav" aria-label="Settings sections">
+      <button type="button" data-goto="set-display-h" aria-current="true">Readouts and alarm</button>
+      <button type="button" data-goto="set-o2-h">Walk budget: oxygen</button>
+      <button type="button" data-goto="set-theme-h">App colours</button>
+      <button type="button" data-goto="set-walker-h">Walker</button>
+      <button type="button" data-goto="set-trail-h">Trail</button>
+      <button type="button" data-goto="set-pointer-h">Pointer</button>
+      <button type="button" data-goto="set-move-h">Moving the pointer</button>
+      <p>Kept in this browser.</p>
+    </nav>
     <div class="set-grid">
 
       <section class="set-card set-wide" aria-labelledby="set-display-h">
@@ -345,7 +485,7 @@
           <div><span class="set-lab">Units</span><div id="set-units" class="seg" role="group" aria-label="Units"></div></div>
           <div><span class="set-lab">Layout</span><div id="set-layout" class="seg" role="group" aria-label="Layout of the readouts"></div></div>
         </div>
-        <p class="note">US units: feet, °F, psi and millirem. The column sits beside the map on wide screens. "Numbers first" swaps the two: the readouts fill the screen in large type and the map becomes a mini-map in the top right corner. On narrow screens the readouts always sit under the map.</p>
+        <p class="note">US units: feet, °F, psi and millirem. "Tabs beside the map" keeps the readouts in a narrow column on the right, one group (Position, Conditions, Budget) at a time. "Numbers first" swaps the map and the readouts: the readouts fill the screen in large type and the map becomes a mini-map in the corner.</p>
         <div class="set-pair">
           <div><label class="set-lab" for="set-alarm-at">Sound the safety alarm when the live index is</label><select id="set-alarm-at"></select></div>
         </div>
@@ -357,10 +497,24 @@
         </div>
       </section>
 
+      <section class="set-card set-wide" id="o2-card" aria-labelledby="set-o2-h">
+        <h3 id="set-o2-h">Walk budget: oxygen model <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></h3>
+        <p id="o2-status" class="note"></p>
+        <div class="set-pair">
+          <div><span class="set-lab">Kind of model</span><div id="o2-kind" class="seg" role="group" aria-label="Kind of oxygen model"><button type="button" data-o2-kind="metabolic" aria-pressed="true">From effort</button><button type="button" data-o2-kind="fixed" aria-pressed="false">Fixed rates</button></div></div>
+          <div><label class="set-lab" for="o2-name">Name</label><input id="o2-name" type="text" maxlength="40" autocomplete="off" placeholder="My oxygen model"></div>
+        </div>
+        <div id="o2-fields" class="o2-grid"></div>
+        <div class="row ro-tools"><button id="o2-save" type="button">Save my model</button><button id="o2-reset" type="button">Use the defaults</button><button id="o2-export" type="button">Download</button><button id="o2-import" type="button">Import a file</button></div>
+        <input id="o2-file" type="file" accept=".json,application/json" hidden>
+        <p id="o2-msg" class="note" role="status" hidden></p>
+        <p class="note">"From effort" works oxygen out from the work done: standing, walking and climbing. "Fixed rates" uses the two rates you give, as a suit datasheet might quote them. A blank field takes the default shown in it. Nothing changes until you save, and the oxygen readouts then say "your oxygen model". The defaults (BUDGET in config.js) are never changed; "Use the defaults" brings them back.</p>
+      </section>
+
       <section class="set-card set-wide" aria-labelledby="set-theme-h">
         <h3 id="set-theme-h">App colours</h3>
         <div id="set-theme" role="group" aria-label="App colours"></div>
-        <p class="note">The night themes are easier on the eyes in the dark; Night red keeps them adjusted to it. High contrast is for bright light.</p>
+        <p class="note">Six console themes differ in their accent colour. Night red keeps eyes adjusted to the dark; Daylight is for a lit room and Direct sun for bright light.</p>
       </section>
 
       <section class="set-card" aria-labelledby="set-walker-h">
@@ -393,12 +547,39 @@
         <h3 id="set-move-h">Moving the pointer</h3>
         <div id="set-move" class="seg"></div>
         <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
+        <p class="note">Right-click a spot on the map (long-press on a touch screen) to reveal what is known about it, find routes to it, teleport there or mark it as a landmark.</p>
       </section>
 
+      <div class="row set-foot"><button id="set-reset" type="button">Back to the original look</button></div>
     </div>
-    <div class="row set-foot"><button id="set-reset" type="button">Back to the original look</button></div>
   </div>
 </section>
+
+<!-- ============ the tutorial: the question for a first visit, and the guided tour (intro.js) ============ -->
+<div id="tour-ask" role="dialog" aria-modal="true" aria-labelledby="tour-ask-h" hidden>
+  <div class="tour-ask-card">
+    <span class="tour-ask-ic" data-icon="help"></span>
+    <h2 id="tour-ask-h">New to Marswalk?</h2>
+    <p>A short tour shows the map, the controls and where everything is. It takes about two minutes, and you can leave it at any step.</p>
+    <div class="row"><button id="tour-yes" type="button">Take the tour</button><button id="tour-no" type="button">Not now</button></div>
+    <p class="note">The Tutorial button at the top of the screen starts it any time.</p>
+  </div>
+</div>
+<div id="tour" hidden>
+  <div id="tour-shade"></div>
+  <div id="tour-hole" aria-hidden="true"></div>
+  <div id="tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title" aria-describedby="tour-text" tabindex="-1">
+    <p id="tour-step" class="tour-step"></p>
+    <h2 id="tour-title"></h2>
+    <p id="tour-text"></p>
+    <div class="tour-nav">
+      <button id="tour-end" type="button" class="tour-skip">End tour</button>
+      <span class="spacer"></span>
+      <button id="tour-back" type="button">Back</button>
+      <button id="tour-next" type="button">Next</button>
+    </div>
+  </div>
+</div>
 
 <!-- One small pop-up shared by every (i) button; the texts are GLOSSARY in config.js -->
 <div id="info-pop" role="dialog" aria-label="Explanation" hidden></div>
@@ -415,16 +596,30 @@
 <script src="landmarks.js"></script>
 <script src="ui.js"></script>
 <script src="settings.js"></script>
+<script src="budget.js"></script>
+<script src="places.js"></script>
+<script src="samples.js"></script>
 <script src="app.js"></script>
 <script src="trail-edit.js"></script>
-<script src="dust-data.js"></script>
+<!-- The dust packs (7 MB) load after the map's first view, not with the page (lazy.js). build.py makes them ordinary scripts in marswalk.html. -->
+<script src="lazy.js"></script>
+<script type="text/plain" data-lazy="dust" data-lazy-src="dust-data.js"></script>
 <!-- Precomputed dust baselines, made by build_dust_baselines.js. Optional: without it the page works them out itself (slower). -->
-<script src="dust-baselines.js"></script>
+<script type="text/plain" data-lazy="dust" data-lazy-src="dust-baselines.js"></script>
 <script src="dust.js"></script>
 <script src="dust-ui.js"></script>
 <script src="terrain-data.js"></script>
 <script src="terrain.js"></script>
 <script src="router.js"></script>
 <script src="nav-ui.js"></script>
+<script src="places-ui.js"></script>
+<script src="season.js"></script>
+<script src="companions.js"></script>
+<script src="offline.js"></script>
+<script src="hud.js"></script>
+<script src="context-menu.js"></script>
+<script src="imagery.js"></script>
+<script src="o2-model.js"></script>
+<script src="intro.js"></script>
 </body>
 </html>

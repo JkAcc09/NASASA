@@ -78,7 +78,8 @@
   }
   function openMarker(m) {
     var d = fromHere(m.lat, m.lon), z = T.ready ? T.heightAt(m.lat, m.lon) : null;
-    var html = '<div class="pop mkp"><h3>' + MK.art(m.icon) + '<span>' + esc(m.name) + '</span></h3>' + (m.note ? '<div class="mk-text">' + MK.render(m.note) + '</div>' : '') + '<dl>' +
+    var ph = MK.photos.get(m.id);
+    var html = '<div class="pop mkp"><h3>' + MK.art(m.icon) + '<span>' + esc(m.name) + '</span></h3>' + (ph ? '<img class="mk-photo" src="' + ph + '" alt="Photo of ' + esc(m.name) + '">' : '') + (m.note ? '<div class="mk-text">' + MK.render(m.note) + '</div>' : '') + '<dl>' +
       '<dt>Position</dt><dd>' + llText(m.lat, m.lon) + '</dd>' +
       (z !== null ? '<dt>Height</dt><dd>about ' + height(z) + ' <span class="dsub">regional, from the MOLA shape model</span></dd>' : '') +
       '<dt>From the walker</dt><dd>' + dist(d) + ' in a straight line</dd>' +
@@ -100,6 +101,7 @@
     setMode(null); map.closePopup();
     editing = { id: m.id || null, lat: m.lat, lon: m.lon, icon: MK.icons.valid(m.icon || 'pin'), by: m.by || null, createdAt: m.createdAt || null };
     $('mk-name').value = m.name || ''; $('mk-note').value = m.note || ''; $('mk-radius').value = m.radius || K.DANGER_RADIUS;
+    editing.photo = undefined; showPhoto(m.id ? MK.photos.get(m.id) : null);     // undefined: unchanged; a data URL: new; null: removed
     $('mk-form').hidden = false; say('mk-msg', '');
     drawIcons(); drawDraft(); drawMarkers(); showWhere();
     app.openTab('nav'); $('mk-form').scrollIntoView({ block: 'nearest' }); $('mk-name').focus();
@@ -242,7 +244,7 @@
     };
     return setting;
   }
-  function wxNear(lat, lon) { return RT.haversine({ lat: lat, lon: lon }, { lat: G.ORIGIN.lat, lon: G.ORIGIN.lon }) <= K.WX_RADIUS ? app._waypoints[app._state.near.i].wx : null; }
+  function wxNear(lat, lon) { return RT.haversine({ lat: lat, lon: lon }, { lat: G.GALE.lat, lon: G.GALE.lon }) <= K.WX_RADIUS ? app._waypoints[app._state.near.i].wx : null; }   // REMS is at Gale, wherever the base is
   function question(to) {
     var w = settings.walker(), sel = $('rt-hour').value, dust = dustState(), c = surroundings(), from = here();
     var live = app._trail.pts, known = live.length > 3 ? c.known.concat([{ id: 'live', name: 'This walk', points: live.map(function (p) { return p.ll; }), preferred: false }]) : c.known;
@@ -285,7 +287,7 @@
           '<button type="button" class="rt-head" data-rt="show" aria-pressed="' + sel + '" aria-label="Route ' + o.rank + ', ' + esc(o.label) + ': show on the map"><span class="rt-rank">' + o.rank + '</span>' +
           '<span class="rt-title">' + esc(o.label) + (o.also.length ? '<small>also: ' + esc(o.also.join(', ').toLowerCase()) + '</small>' : '') + '</span>' + (o.recommended ? '<span class="rt-rec">Recommended</span>' : '') + '</button>' +
           '<div class="rt-nums"><div class="rt-idx ' + b[0] + '"><b>' + o.index + '</b><span>safety index</span><i>' + b[1] + '</i></div>' +
-          '<div><b>' + dist(m.distance) + '</b><span>travel distance</span></div><div>' + time + '</div></div>' +
+          '<div><b>' + dist(m.distance) + '</b><span>travel distance</span></div><div>' + time + '</div></div>' + budgetLine(q, m) +
           (o.good.length ? '<ul class="rt-tags good" aria-label="Why it is safe">' + o.good.map(function (t) { return '<li>' + nb(t) + '</li>'; }).join('') + '</ul>' : '') +
           (o.bad.length ? '<ul class="rt-tags bad" aria-label="Why it is unsafe">' + o.bad.map(function (t) { return '<li>' + nb(t) + '</li>'; }).join('') + '</ul>' : '') +
           '<div class="row"><button type="button" data-rt="follow">Follow this route</button></div></li>';
@@ -293,6 +295,14 @@
     }
     var extra = (r.refused || r.tried || []).filter(function (o) { return !o.viable; }).map(function (o) { return '<p class="note"><b>Not offered: ' + esc(o.label.toLowerCase()) + '.</b> ' + esc(o.refused.charAt(0).toUpperCase() + o.refused.slice(1)) + '.</p>'; });
     notes.innerHTML = extra.join('') + (r.notes || []).map(function (n) { return '<p class="note">' + esc(n) + '</p>'; }).join('');
+  }
+  /* The walk budget for a planned route (budget.js): oxygen and battery left on getting back. Astronauts only. */
+  function budgetLine(q, m) {
+    if (q.walker === 'robot' || !MW.budget) return '';
+    var air = q.wx ? RT.airAt(q.wx, q.hour) : null, b = MW.budget.forRoute('astronaut', m, air);
+    return '<p class="rt-budget' + (b.short ? ' short' : '') + '">' + (m.returnTime ? 'Back at base with about ' : 'On arrival, about ') +
+      Math.max(0, Math.round(b.o2Pct)) + ' % oxygen and ' + Math.max(0, Math.round(b.battPct)) + ' % battery left' +
+      (b.short ? ': under the ' + Math.round(MW.budget.reserve() * 100) + ' % reserve' : '') + ' <span class="dtag">' + (b.custom ? 'MODELLED: YOUR OXYGEN MODEL' : 'MODELLED') + '</span></p>';
   }
   function drawPlan(fit) {
     planLayer.clearLayers(); badgeLayer.clearLayers();
@@ -313,7 +323,7 @@
     }
     if (fit) {
       app._state.follow = false; $('z-walk').setAttribute('aria-pressed', 'false');
-      if (r.ok || r.code !== 'far') map.fitBounds(bounds, { maxZoom: 17, padding: [60, 60] }); else map.setView([to.lat, to.lon], Math.max(map.getZoom(), 5));
+      if (r.ok || r.code !== 'far') map.fitBounds(bounds, L.extend({ maxZoom: 17 }, MW.ui.fitPad(60))); else map.setView([to.lat, to.lon], Math.max(map.getZoom(), 5));
     }
   }
   function select(i) { if (!plan || !plan.result.ok) return; plan.sel = i; renderPlan(); drawPlan(false); }
@@ -411,7 +421,7 @@
     if (mode === 'dest') { setMode(null); app.openTab('nav'); routeTo({ lat: latlng.lat, lon: ((latlng.lng + 540) % 360) - 180, name: 'Point at ' + llText(latlng.lat, latlng.lng) }); return true; }
     return false;
   }
-  map.on('contextmenu', function (e) { if (!mode) openForm({ lat: e.latlng.lat, lon: e.latlng.lng }); });      // right-click or long-press: a marker here
+  /* Right-click or long-press opens the map's menu (context-menu.js); its "Mark as landmark" calls addMarker. */
   document.addEventListener('click', function (e) { if (e.target.id === 'pick-cancel') setMode(null); });
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape' && mode) setMode(null); });
 
@@ -422,8 +432,11 @@
     e.preventDefault(); if (!editing) return;
     var rec = MK.save({ id: editing.id, lat: editing.lat, lon: editing.lon, icon: editing.icon, name: $('mk-name').value.trim() || $('mk-name').placeholder || 'Marker',
       note: $('mk-note').value, radius: +$('mk-radius').value, by: editing.by || settings.walker().name, createdAt: editing.createdAt });
+    var photo = editing.photo, photoNote = '';
+    if (rec && photo === null) MK.photos.remove(rec.id);
+    else if (rec && photo) photoNote = MK.photos.set(rec.id, photo) ? ' Photo saved.' : ' The photo was not kept: this browser has no room left for it. Try a smaller picture, or remove another photo.';
     closeForm();
-    say('mk-msg', rec ? 'Saved “' + rec.name + '”.' + (MK.persistent ? '' : ' This browser is not keeping markers between visits.') : "The marker couldn't be saved.");
+    say('mk-msg', rec ? 'Saved “' + rec.name + '”.' + photoNote + (MK.persistent ? '' : ' This browser is not keeping markers between visits.') : "The marker couldn't be saved.");
   });
   $('mk-icons').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b || !editing) return;
@@ -431,6 +444,41 @@
     pickIcon(b.getAttribute('data-icon-key'));
   });
   $('mk-file').addEventListener('change', function () { var f = this.files[0]; this.value = ''; upload(f); });
+  /* ---- a photo for the marker: PNG, JPEG or WebP up to PHOTO_MAX bytes, shrunk to PHOTO_PX and kept as a JPEG ---- */
+  var PHOTO_TYPES = ['image/png', 'image/jpeg', 'image/webp'], PHOTO_MAX = 10 * 1024 * 1024, PHOTO_PX = 800;
+  function showPhoto(src) {
+    var img = $('mk-photo-img');
+    img.hidden = !src; if (src) img.src = src; else img.removeAttribute('src');
+    $('mk-photo-add').querySelector('span').textContent = src ? 'Replace the photo' : 'Add a photo';
+    $('mk-photo-del').hidden = !src; say('mk-photo-msg', '');
+  }
+  function shrink(file) {
+    return new Promise(function (res, rej) {
+      var url = URL.createObjectURL(file), im = new Image();
+      im.onload = function () {
+        var k = Math.min(1, PHOTO_PX / Math.max(im.naturalWidth, im.naturalHeight)), w = Math.max(1, Math.round(im.naturalWidth * k)), h = Math.max(1, Math.round(im.naturalHeight * k));
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        var g = cv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(im, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        var q = 0.8, out = cv.toDataURL('image/jpeg', q);
+        while (out.length > 400000 && q > 0.4) { q -= 0.1; out = cv.toDataURL('image/jpeg', q); }   // keep each photo under about 300 KB
+        res(out);
+      };
+      im.onerror = function () { URL.revokeObjectURL(url); rej(new Error('That file could not be read as a picture.')); };
+      im.src = url;
+    });
+  }
+  $('mk-photo-add').addEventListener('click', function () { $('mk-photo-file').click(); });
+  $('mk-photo-del').addEventListener('click', function () { if (!editing) return; editing.photo = null; showPhoto(null); say('mk-photo-msg', 'The photo will be removed when you save.'); });
+  $('mk-photo-file').addEventListener('change', function () {
+    var f = this.files[0]; this.value = ''; if (!f || !editing) return;
+    if (PHOTO_TYPES.indexOf(f.type) < 0) { say('mk-photo-msg', 'Choose a PNG, JPEG or WebP picture (this one is ' + (f.type || 'an unknown type') + ').'); return; }
+    if (f.size > PHOTO_MAX) { say('mk-photo-msg', 'That picture is ' + (f.size / 1048576).toFixed(1) + ' MB; the largest allowed is 10 MB.'); return; }
+    shrink(f).then(function (d) {
+      if (!editing) return;
+      editing.photo = d; showPhoto(d); say('mk-photo-msg', 'Photo ready (' + Math.round(d.length * 0.75 / 1024) + ' KB). It is kept when you save the marker.');
+    }, function (e) { say('mk-photo-msg', e.message); });
+  });
   $('mk-role').addEventListener('click', function (e) {
     if (e.target.id !== 'mk-icon-del' || !editing) return;
     MK.icons.remove(editing.icon); editing.icon = 'pin'; drawIcons(); drawDraft(); say('mk-msg', 'Icon removed. Markers that used it now show the pin.');
@@ -511,6 +559,8 @@
 
   tickLive();
   MW.navUI = { mapClick: mapClick, routeTo: routeTo, clear: clearPlan, addMarker: openForm, get plan() { return plan; }, refresh: refresh,
+    reset: function () { setting = null; if (plan) clearPlan(); tickLive(); },     // the site moved (app.js, setSite): bases and plans are out of date
+    openMarker: function (id) { var m = MK.get(id); if (m) openMarker(m); return !!m; },
     picking: function () { return !!mode; }, safetyAt: safetyAt, live: function () { return liveNow; },
     dustAt: function (lat, lon) { var d = dustState(); return d ? d.at(lat, lon) : null; } };
 })();

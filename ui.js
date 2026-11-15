@@ -46,8 +46,14 @@
     go:      '<path class="f" d="M4 11.2 20 4l-7.2 16-1.9-6.9z"/>',
     close:   '<path d="M6 6l12 12M18 6 6 18"/>',
     save:    '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+    redo:    '<path d="M16 13.5 20.5 9 16 4.5"/><path d="M20.5 9H10a5.5 5.5 0 0 0 0 11h3"/>',
     undo:    '<path d="M8 13.5 3.5 9 8 4.5"/><path d="M3.5 9H14a5.5 5.5 0 0 1 0 11h-3"/>',
     check:   '<path d="M4.5 12.5 10 18l9.5-11"/>',
+    compass: '<circle cx="12" cy="12" r="9"/><path class="f" d="M12 4.6 14.3 12h-4.6z"/><path d="M12 19.4 14.3 12h-4.6z"/><path d="M12 1.8v1.6M12 20.6v1.6M1.8 12h1.6M20.6 12h1.6"/>',
+    thermo:  '<path d="M10 14.2V5a2 2 0 0 1 4 0v9.2a4 4 0 1 1-4 0z"/><circle class="f" cx="12" cy="17.5" r="1.9"/><path d="M12 15.6V9.5"/><path d="M17 6h2.5M17 9h2.5M17 12h2.5"/>',
+    tank:    '<path d="M9.2 3.2h5.6M12 3.2v2.3"/><rect x="7" y="5.5" width="10" height="16" rx="4.2"/><path d="M9.6 14.2h4.8M9.6 17.4h4.8"/><path class="f" d="M7.2 13h9.6v4.4a3.9 3.9 0 0 1-3.9 3.9h-1.8a3.9 3.9 0 0 1-3.9-3.9z" opacity=".35"/>',
+    teleport:'<path class="f" d="M13.5 2.5 5 13.6h6l-1.2 7.9 8.7-11.4h-6.1z"/>',
+    help:    '<circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.7 2.5c-.7.3-1.1.9-1.1 1.7v.6"/><circle class="f" cx="12" cy="17.2" r="1.15"/>',
     bell:    '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'
   };
   function icon(name) { return '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (P[name] || '') + '</svg>'; }

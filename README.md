@@ -12,62 +12,196 @@ a safety index and the reasons for it, or a plain statement of why no route is v
 
 ![Night infrared over the HiRISE photo map, with Curiosity's route](night-infrared-over-hirise.jpg)
 
+## The look: Mission Control (1.7)
+
+Since 1.7 the app is a dark console. On a wide screen with the map first, the map fills the window and
+the top bar, the panel rail, the column and the readouts float over it as see-through panels. Numbers are
+set in JetBrains Mono so they do not jitter as they change; everything else is Space Grotesk (both from
+Google Fonts, kept by the offline store; without them the page falls back to system fonts). One accent
+colour marks what is active; magenta is still the walker's own trail.
+
+What the map does by itself keeps clear of the panels: notices, the rover view, the scale, the status chips
+and the attribution sit in the open part of the map (the lengths `--inset-t`, `--inset-l`, `--inset-r` on
+`#app` in `style.css`), and popups, routes and places are fitted into it (`syncInsets` and `MW.ui.fitPad`
+in `app.js`, which measure the panels, because the bar can wrap and the column and readouts fold away).
+"Numbers first" and narrow screens keep their own layouts, in the same colours.
+
+Settings > App colours has eight themes: **Console** (cyan, the default), **Graphite**, **Ember** (amber),
+**Aurora** (green), **Nebula** (violet), **Night red** (keeps eyes adjusted to the dark), **Daylight** (a light
+console for a lit room) and **Direct sun** (black on white, no glass). A theme saved by an earlier version opens
+as its nearest console theme (`THEMES_BEFORE_1_7` in `config.js`): Blue and Night blue as Console, Grey and Black
+as Graphite, Sand as Ember, Green and Night teal as Aurora, Violet as Nebula. The Settings page has a section
+list on the left that scrolls to each card.
+
+## New in 1.11: a start screen that never stutters
+
+**What was wrong.** In 1.10 the start screen's scene (Mars, Phobos, the orbiter) was drawn by the page itself, on the
+same thread that loads the app: 6 MB of scripts to parse, the terrain and dust records to unpack (the dust analysis
+alone takes over a second) and the map to build. Every time that work ran, the scene stopped. The orbiter also
+changed its size and brightness every frame, which made the browser lay out and re-rasterise it each time, and the
+glass panels of the app repainted under the start screen as map tiles arrived. Measured over the first 15 s in a
+test browser: 14.6 s of the page thread blocked, 97 frames in all (6 a second), stalls of up to 0.8 s.
+
+**What 1.11 does.**
+- The scene is drawn in a **Web Worker of its own** on an OffscreenCanvas (`globe.js`). The page hands it the canvas and
+  the three pictures once; from then on the worker draws every frame by itself, whatever the page is doing. Mars,
+  Phobos, the orbiter, its label and its ring are all one WebGL scene. Browsers that cannot draw WebGL in a worker run
+  the same code on the page.
+- `globe.js` loads **straight after the start screen's markup**, before the app's scripts, so the scene is up within
+  about a second instead of after everything has loaded.
+- It is **cheap to draw**: each body is drawn only inside its own box, and only that area is cleared; the resolution
+  steps down (to 60 % at most) if frames take too long and back up when there is room.
+- The relief is **baked into `mars-color.jpg`** (`make_art.py`), so nothing is computed from the terrain at start.
+- The app is **not drawn under the start screen until it is ready**, and its panels are then put on layers of their
+  own in their "before" places, so a tap only has to start them moving.
+- The background dust analysis runs **only when the page is idle**, and waits while the panels slide in.
+- Once the scene has faded out, it **stops**, leaving the graphics chip to the panels.
+
+Measured the same way after: the page thread blocked for 4.4 s of 15 (the app's own loading, which no longer touches
+the scene); a tap starts the way in within 2 to 5 ms (it was 100 to 130 ms); at most one short task during the way in
+(there were 9 to 11 of 100 to 260 ms). `MW.globe.view` reports the scene's frame rate, its resolution and whether it
+runs in a worker.
+
+## New in 1.10
+
+- **A new start screen.** Mars is on the left, drawn with WebGL from NASA's colour map of the planet (the Viking
+  orbiter colour mosaic, `mars-color.jpg`), with the relief of the app's MOLA terrain pack shaded into it. Phobos
+  (`phobos.jpg`) circles it every 40 s, passing in front and behind. The Mars Reconnaissance Orbiter (`mro.webp`, a NASA
+  render) flies a tilted ring round the planet: in front of it for half the orbit, hidden behind it for the other
+  half. MRO is there for a reason: its HiRISE and CTX cameras took the photo map the walk is on, and the legend at
+  the lower left says so. The words are on the right. All three pictures come from NASA's 3D Resources
+  (github.com/nasa/NASA-3D-Resources, public domain); `build.py` puts them inside `marswalk.html`.
+- **The way in.** Pressing to begin, Mars, Phobos and the orbiter drift left and fade, the words drift right and
+  fade, the map shows through, and the panels slide in from their own edges one after another: the bar from the top,
+  the rail and column from the left, the readouts from the right, the status chips from below. About 1.4 s; a second
+  tap skips it. This replaces 1.9's dive.
+- **Own icons for the readout tabs:** a compass for Position and movement, a thermometer for Conditions and an oxygen
+  tank for the Walk budget. They used to repeat icons from the map buttons (locate, globe, clock).
+
+## New in 1.9
+
+- **Mars as a globe.** The start screen shows Mars turning slowly (one turn in 90 s), drawn with WebGL by `globe.js`
+  from the app's own terrain pack: MGS MOLA heights for the whole planet every 0.25°. Olympus Mons, Valles Marineris,
+  Hellas, Argyre and the polar caps are where they really are. Colour follows height and relief is shaded from the
+  north-west (exaggerated so it shows at this scale): a relief map, not a photograph, so the light and dark dust
+  markings of Mars are not on it. Without WebGL the painted planet of 1.8 stays.
+- **The dive** (replaced in 1.10 by a fade and slide). Pressing to begin swung the place the map is looking at (normally the walker, at Gale) to the
+  front, brings the globe to the middle and drops the camera to about 260 km up, where Gale crater and Mount Sharp
+  show (a finer texture is made round that spot). The start screen then fades into the real map, already at crater
+  scale, which flies down to the walker; the panels arrive last. About 4 s; a second tap or key skips to the end.
+  With reduced motion asked for, the start screen simply fades.
+- **Undo and redo a teleport.** ↶ and ↷ in the top bar (or Ctrl+Z, and Ctrl+Y or Ctrl+Shift+Z). Undo puts the walker
+  back where it was with everything it had: the trail and its passes, distance, time, dose, walk budget, the replay
+  it was on, and the base, if the teleport had moved to another site. Up to 30 steps. A new teleport clears Redo.
+  In the trail editor, Ctrl+Z stays the editor's own Undo.
+
+## New in 1.8
+
+- **Start screen.** The app opens on a title screen while the scripts and NASA data load; when it is ready it says
+  "Tap anywhere to begin", and a tap, a click or any key enters. `index.html?intro=0` skips it.
+- **Tutorial.** A first visit is asked whether it wants a guided tour (asked once; the answer is kept under
+  `marswalk.tour.v1`). The **Tutorial** button in the top bar starts it any time: 13 steps, each a spotlight on one
+  part of the screen with a card saying what it is for. Back, Next, End tour, or the arrow keys and Escape. The tour
+  only looks; it opens the panel each step talks about. The steps are `STEPS` in `intro.js`.
+- **Walking to a place is the route-finder's job.** In Menu > Go to a place each place has three buttons: the arrow
+  shows it on the map, the **route symbol** opens Markers and routes with the place as the destination and lists the
+  ways to walk there, and the **bolt** teleports the walker there (it was "Walk from here").
+- **Right-click menu:** a new **Find routes here** does the same for any spot, and "Travel to location" is now
+  **Teleport here**.
+- **Sample trails.** Five practice walks near base are listed under Saved routes and trails: out and back on the
+  drive, a loop that crosses itself, a figure of eight (passed four times or more in the middle), a rover's survey
+  grid at 4 cm/s, and a detour round a hazard. Show, replay, download, or add one to your own trails. The same five
+  are files in `sample-trails/`, with `HOW-TO-USE.txt` (how to import a trail file, and what a valid one holds).
+  `make_samples.js` writes both `samples.js` and the files: `node make_samples.js`.
+
 ## Run it
 
 - **Quickest:** open `marswalk.html` in Chrome, Edge or Firefox. It is the whole app in one file.
 - **From source:** open `index.html`, or serve the folder with `python -m http.server` and open
   `http://localhost:8000`.
-- **GitHub Pages:** enable Pages on the main branch. There is no build step.
+- **GitHub Pages:** see "Publishing on GitHub Pages" below. There is no build step.
 
-The map imagery streams from NASA's Mars Trek tile server, so the browser needs internet access.
+The map imagery streams from NASA's Mars Trek tile server, so the browser needs internet access the first
+time. Served from a web address (localhost or Pages), the page keeps itself and every tile you view, and
+"Save the walk area" in the Map Overlay tab fetches the rest of the walk area ahead of time; after that it
+opens and shows the map without a connection (see "Offline map"). Opened as a file, it cannot do this.
 If the tiles cannot be reached the page says so; the route, pointer and trail still work.
+
+### Publishing on GitHub Pages
+
+1. Merge into the branch you want to publish (usually `main`) and push it.
+2. On GitHub: **Settings > Pages > Build and deployment > Source: Deploy from a branch**, branch `main`,
+   folder `/ (root)`, **Save**.
+3. After a minute or two the site is at `https://<owner>.github.io/<repository>/`; `index.html` is the page.
+
+Pages serves the files as they are: `index.html` loads the separate scripts, `marswalk.html` is the
+single-file copy. Over https the offline store works as it does on localhost.
 
 ## Where things live
 
 Plain JavaScript, no framework and no build step. Each file adds to one global object, `MW`,
-and they load in this order (see the bottom of `index.html`). In this flat checkout every file sits
-beside `index.html`; the `js/`, `css/` and `tools/` prefixes below are where each goes in a foldered checkout.
+and they load in this order (see the bottom of `index.html`). Every file sits beside `index.html`.
 
 | File | What it holds | Edit it when you want to… |
 |---|---|---|
-| `js/config.js` | Every constant, colour ramp and map layer | add or change a layer, tune the trail, change walking speed |
-| `js/data.js` | The NASA data pack: Curiosity's route, REMS weather, Navcam photo ids | move to another site or refresh the data |
-| `js/geo.js` | Unpacks `data.js`; coordinate conversion; number and text formatting | change the coordinate model |
-| `js/tiles.js` | `MW.SmoothTiles`: the tile layer (over-zoom, recolouring, reading values) | change how tiles are drawn or sampled |
-| `js/trail.js` | `MW.Trail`: trail points, pass counting, way back, saved-trail format | change what counts as "the same ground" |
-| `js/store.js` | `MW.store`: saved trails in the browser's storage | keep trails somewhere else (a server, a suit computer) |
-| `js/markers.js` | `MW.markers`: the user's markers, the four built-in icons, uploaded icons, the filter | change what a marker holds or how an icon is drawn |
-| `js/landmarks.js` | `MW.landmarks`: named places, their outlines, the rules for showing names | add a landmark or change when names appear |
-| `js/ui.js` | `MW.ui`: the line icons on buttons and their hover labels | add a button icon |
-| `js/settings.js` | `MW.settings`: the user's choices and the Settings panel | add a setting |
-| `js/app.js` | The page: map, pointer, movement, recording, readouts, main loop | change behaviour or the interface |
-| `js/trail-edit.js` | `MW.trailEdit`: the on-map editor for the trail walked so far | change how a trail is edited |
-| `js/dust-data.js` | The dust data pack: observed dust optical depth, MY24 to MY36 (written by `tools/dust_ingest.py`) | never by hand: rebuild it |
-| `js/dust.js` | `MW.dust`: seasonal baseline, anomaly detection, classes, route exposure. No map, no page | change how dust activity is detected |
-| `js/dust-ui.js` | The DUST STORM ACTIVITY layer, timeline, dust monitor and route warnings | change how dust is shown |
-| `js/terrain-data.js` | The terrain pack: height above the MOLA reference level, whole planet (written by `tools/terrain_ingest.py`) | never by hand: rebuild it |
-| `js/terrain.js` | `MW.terrain`: height and regional slope at any point. No map, no page | change how height is read |
-| `js/router.js` | `MW.router`: the route-finder and the safety index. No map, no page | change how routes are found or scored |
-| `js/nav-ui.js` | The Markers and routes tab: marker form, icon picker, filter, route search, result cards, lines on the map | change how markers and routes are shown |
-| `tools/terrain_ingest.py` | Builds `js/terrain-data.js` from the MarsTopo719 shape model and the GMM-3 gravity model | change the terrain resolution |
-| `tools/router_test.js` | Checks the terrain pack and the route-finder against the real data: `node tools/router_test.js` | you changed `router.js`, `terrain.js` or a limit |
-| `tools/dust_ingest.py` | Downloads the dust climatology and writes `js/dust-data.js` | refresh the data, or change its resolution |
-| `tools/dust_test.js` | Checks the detection against the real data: `node tools/dust_test.js` | you changed `dust.js` or a threshold |
-| `css/style.css` | All styling | change the look |
-| `tools/build.py` | Packs everything into `dist/marswalk.html` | you changed any file above: run `python tools/build.py` |
-| `vendor/` | Leaflet 1.9.4, unmodified | – |
+| `config.js` | Every constant, colour ramp and map layer | add or change a layer, tune the trail, change walking speed |
+| `data.js` | The NASA data pack: Curiosity's route, REMS weather, Navcam photo ids | move to another site or refresh the data |
+| `geo.js` | Unpacks `data.js`; coordinate conversion; number and text formatting | change the coordinate model |
+| `tiles.js` | `MW.SmoothTiles`: the tile layer (over-zoom, recolouring, reading values) | change how tiles are drawn or sampled |
+| `trail.js` | `MW.Trail`: trail points, pass counting, way back, saved-trail format | change what counts as "the same ground" |
+| `store.js` | `MW.store`: saved trails in the browser's storage | keep trails somewhere else (a server, a suit computer) |
+| `markers.js` | `MW.markers`: the user's markers, the four built-in icons, uploaded icons, the filter | change what a marker holds or how an icon is drawn |
+| `landmarks.js` | `MW.landmarks`: named places, their outlines, the rules for showing names | add a landmark or change when names appear |
+| `ui.js` | `MW.ui`: the line icons on buttons and their hover labels | add a button icon |
+| `settings.js` | `MW.settings`: the user's choices and the Settings panel | add a setting |
+| `app.js` | The page: map, pointer, movement, recording, readouts, main loop | change behaviour or the interface |
+| `globe.js` | `MW.globe`: the start screen's scene (Mars, Phobos, MRO), drawn by WebGL in a worker of its own | change the scene |
+| `make_art.py` | Writes `mars-color.jpg`: NASA's colour map with the MOLA relief shaded in | `python make_art.py Mars.jpg` |
+| `mars-color.jpg`, `phobos.jpg`, `mro.webp` | The start screen's pictures, from NASA 3D Resources (public domain) | swap a picture |
+| `intro.js` | `MW.intro`: the start screen, the question for a first visit, the guided tour (`STEPS`) | change the tour or the start screen |
+| `samples.js` | The five sample trails (written by `make_samples.js`; `sample-trails/` holds the same as files) | never by hand: edit `make_samples.js` and run it |
+| `trail-edit.js` | `MW.trailEdit`: the on-map editor for the trail walked so far | change how a trail is edited |
+| `dust-data.js` | The dust data pack: observed dust optical depth, MY24 to MY36 (written by `dust_ingest.py`) | never by hand: rebuild it |
+| `dust.js` | `MW.dust`: seasonal baseline, anomaly detection, classes, route exposure. No map, no page | change how dust activity is detected |
+| `dust-ui.js` | The DUST STORM ACTIVITY layer, timeline, dust monitor and route warnings | change how dust is shown |
+| `terrain-data.js` | The terrain pack: height above the MOLA reference level, whole planet (written by `terrain_ingest.py`) | never by hand: rebuild it |
+| `terrain.js` | `MW.terrain`: height and regional slope at any point. No map, no page | change how height is read |
+| `router.js` | `MW.router`: the route-finder and the safety index. No map, no page | change how routes are found or scored |
+| `budget.js` | `MW.budget`: oxygen, battery and the turn-back point (modelled). No map, no page | change the consumables model |
+| `places.js` | `MW.places`: what the location selector offers, checkpoints, view links. No map, no page | add a kind of place |
+| `places-ui.js` | "Go to a place" in the Menu tab: search, View, Find routes there, Teleport here, checkpoints, the address bar | change how places are shown |
+| `season.js` | `MW.season` and the "Best season for a walk here" chart in the Dust Storm tab | change how the season is judged |
+| `companions.js` | "Walk together" in the Menu tab: the other walkers on the map at once | change how companions move |
+| `offline.js` | "Offline map" in the Map Overlay tab; registers `sw.js` | change which tiles are saved |
+| `sw.js` | The service worker: keeps the app and the map tiles for use without a connection | change what is kept |
+| `lazy.js` | Loads the dust packs after the map's first view | defer another large file |
+| `hud.js` | The readout tabs beside the map, and the mission status symbols at its bottom right | change how readouts are grouped |
+| `context-menu.js` | The right-click (long-press) menu on the map: reveal, image, find routes, teleport, mark | add a choice to the menu |
+| `imagery.js` | `MW.imagery`: the best NASA picture of a place (Curiosity's Navcam or orbital), and its panel | change where pictures come from |
+| `o2-model.js` | Settings > Walk budget: oxygen model, the user's own oxygen numbers | add a field to the oxygen model |
+| `nav-ui.js` | The Markers and routes tab: marker form, icon picker, filter, route search, result cards, lines on the map | change how markers and routes are shown |
+| `terrain_ingest.py` | Builds `terrain-data.js` from the MarsTopo719 shape model and the GMM-3 gravity model | change the terrain resolution |
+| `router_test.js` | Checks the terrain pack and the route-finder against the real data: `node router_test.js` | you changed `router.js`, `terrain.js` or a limit |
+| `dust_ingest.py` | Downloads the dust climatology and writes `dust-data.js` | refresh the data, or change its resolution |
+| `dust_test.js` | Checks the detection against the real data: `node dust_test.js` | you changed `dust.js` or a threshold |
+| `features_test.js` | Checks the walk budget, places, sites, slope and the season planner: `node features_test.js` | you changed one of those |
+| `page_test.js` | Opens the page in headless Chrome or Edge and checks it end to end, offline included: `node page_test.js` | before you share a version |
+| `package.py` | Zips the app for sharing: `python package.py 1.6` writes `All_Versions/NASASA v1.6.zip` | you want to hand out a version |
+| `style.css` | All styling. The themes are at the top; the Mission Control layer (floating panels, controls) is the last section | change the look |
+| `build.py` | Packs everything into `marswalk.html` | you changed any file above: run `python build.py` |
+| `leaflet.js`, `leaflet.css` | Leaflet 1.9.4, unmodified | – |
 
-`js/app.js` is divided into eight numbered sections listed at its top. `trail.js` and `store.js`
+`app.js` is divided into eight numbered sections listed at its top. `trail.js` and `store.js`
 do not touch the map or the page, so they can be reused or tested on their own.
 Choices offered in Settings (trail palettes, pointer colours, themes, display and movement modes,
-default walkers) are plain lists in `js/config.js`; theme colours are the `body[data-theme]` blocks
-at the top of `css/style.css`.
+default walkers) are plain lists in `config.js`; theme colours are the `body[data-theme]` blocks
+at the top of `style.css`.
 
 ### Common changes
 
 **Add a map layer.** Find the layer on the
 [Trek layer list](https://trek.nasa.gov/tiles/apidoc/trekAPI.html?body=mars), then add one entry
-to `LAYERS` in `js/config.js`:
+to `LAYERS` in `config.js`:
 
 ```js
 { key: 'my-layer', name: 'Name in the list', id: 'Trek_Layer_Name', ext: 'png', nz: 9, res: '100 m',
@@ -80,11 +214,12 @@ to `LAYERS` in `js/config.js`:
 The fields `read`, `ramp`, `stretch`, `legend`, `ends` and `what` are explained above `LAYERS`.
 The legend bar, the readout under the map and the tick on the bar all follow from the entry.
 
-**Add a landmark.** Add one entry to `LIST` in `js/landmarks.js`; the comment at the top of that
+**Add a landmark.** Add one entry to `LIST` in `landmarks.js`; the comment at the top of that
 file explains each field. Its name, outline, popup and visit counts follow from the entry.
 
-**Add a colour theme.** Add a `body[data-theme="name"]` block in `css/style.css` and the name to
-`THEMES` in `js/config.js`.
+**Add a colour theme.** Add a `body[data-theme="name"]` block in `style.css` with the same variables as the
+others (the comment above them says what each is for), and the name to `THEMES` in `config.js`. A light theme
+also needs adding to the `color-scheme: light` rule and to the light status colours just below the themes.
 
 **Feed a real position.** Call this from any script, as often as fixes arrive:
 
@@ -93,8 +228,8 @@ Marswalk.setPose({ lat: -4.8012, lon: 137.3829, heading: 215 });   // heading: d
 Marswalk.releasePose();                                            // hand control back to the page
 ```
 
-**Move to another site.** Replace the three strings in `js/data.js` (the comment at its top gives
-each source and encoding) and the `BASE` layers and bounds in `js/config.js`.
+**Move to another site.** Replace the three strings in `data.js` (the comment at its top gives
+each source and encoding) and the `BASE` layers and bounds in `config.js`.
 
 ## What is on the map
 
@@ -153,8 +288,8 @@ The climatology is built from NASA retrievals: MGS TES, Mars Odyssey THEMIS and 
 [Mars Climate Sounder](https://pdsatmospheres.nmsu.edu/data_and_services/atmospheres_data/MARS/aerosols.html).
 From MY34 on it is MCS alone.
 
-`python tools/dust_ingest.py` reads the NetCDF files straight from the server (only the variables it needs,
-no extra packages), averages them to 6° × 5° cells and 5-sol frames, and writes `js/dust-data.js`:
+`python dust_ingest.py` reads the NetCDF files straight from the server (only the variables it needs,
+no extra packages), averages them to 6° × 5° cells and 5-sol frames, and writes `dust-data.js`:
 13 Martian Years, 134 frames a year, 2,160 cells. For every cell and frame it keeps the optical depth,
 its relative uncertainty, the data set's reliability value, the Ls, the sol and the instruments.
 `--years 34 35` builds a subset; `--inspect 34` lists what is in a year's files.
@@ -170,7 +305,7 @@ Every number on the page carries one of four labels:
 
 A cell with neither is NO DATA. It is drawn grey and is never treated as clear air.
 
-### The detection (`js/dust.js`, thresholds in `DUST` in `js/config.js`)
+### The detection (`dust.js`, thresholds in `DUST` in `config.js`)
 
 1. **Baseline.** For each cell and season: every OBSERVED value within ±10° of Ls, from every Martian Year
    except the one being judged. This gives a median, a 90th percentile and a robust spread
@@ -256,17 +391,24 @@ part through its `data-tab` attribute in `index.html`; `Marswalk.setTab('dust')`
 
 Small **(i)** buttons beside technical terms open a short explanation: what the value is and its unit, why it
 matters on a walk, and whether it is measured, historical, interpolated or modelled. The texts are
-`GLOSSARY` in `js/config.js`; any `<button class="info" data-info="key">` opens the entry with that key.
+`GLOSSARY` in `config.js`; any `<button class="info" data-info="key">` opens the entry with that key.
 
-**Layout** (Settings > Display) has three choices: the readouts in a row under the map, in a column beside
-it, or **Numbers first, mini-map**: the readouts fill the main area as large cards, the live safety index
+**Layout** (Settings > Display) has two choices. **Tabs beside the map** (the default) keeps the readouts in a
+narrow column on the right, chosen by three square tabs on a rail at the readouts' left edge (the mirror of the panel tabs on the
+left): **Position** (position, height, slope, bearing, distance, time), **Conditions** (safety index, map layer,
+weather, radiation, dust) and **Budget** (oxygen, battery, turn back). One shows at a time; pressing the open one again
+folds the column away and gives the map the width. A tab with nothing ticked is left out, and the choice, folded or
+not, is kept (`marswalk.roTab`). A saved
+"row" or "column" layout from an earlier version opens as this one. **Numbers first, mini-map**: the readouts fill
+the main area as large cards, every group at once, the live safety index
 gets the largest card with all its factors, and the map becomes a mini-map in the top right corner with the
 rover view and walk pad beneath it. The mini-map is the same map: it follows the walker and takes taps.
 
-Nothing in that layout scrolls. `fitNumbers` in `js/app.js` tries 2 to 8 columns of cards and keeps the
+Nothing in that layout scrolls. `fitNumbers` in `app.js` tries 2 to 8 columns of cards and keeps the
 largest type size at which every ticked readout is in view and no number is broken across lines, so the size
-follows the window and how many readouts are ticked: with all sixteen on, values are about 32 px at 1440 × 900
-and 46 px at 1920 × 1080; with three on, over 60 px. In a small window the factor list and the two headings
+follows the window and how many readouts are ticked: with the sixteen readouts there were before slope and
+the walk budget were added, values were about 32 px at 1440 × 900 and 46 px at 1920 × 1080; with three on, over 60 px.
+With all twenty on they are a little smaller. In a small window the factor list and the two headings
 are dropped before the type falls under half size. In the side column the mini-map gives up height to the
 notices (alarm, dust warning), and the rover view steps aside when under 120 px would be left for it. Below
 about 1000 × 650 with everything on, the numbers get smaller than in the ordinary layout and that layout is
@@ -274,7 +416,7 @@ the better choice; under 861 px wide the page stacks (map on top, numbers beneat
 
 **Settings** also change the trail's colour (five palettes, each four shades from pale to deep) and
 width, the pointer's colour and size, how the pointer is moved (keys and taps, keys only, taps only)
-and the app's colours (Blue, Night blue, Grey). Choices are kept in the browser
+and the app's colours (eight themes, see "The look" above). Choices are kept in the browser
 (`localStorage`, key `marswalk.settings.v1`).
 
 ## Landmarks
@@ -286,7 +428,7 @@ the active walker's own visits (this trail plus their saved trails) and a note, 
 Names follow map conventions: higher rank and larger places show first and in larger type; a name
 disappears when its place is too small to matter at the current zoom or has grown larger than the
 screen; names never overlap, the higher rank wins. The thresholds are at the top of the label code
-in `js/landmarks.js`.
+in `landmarks.js`.
 
 What the outlines are, and are not:
 
@@ -310,16 +452,34 @@ drawing cost does not grow with the number of colours. Tapping the trail lists e
 Record first: the popup that opens when you tap the trail has **Save this trail** and **Edit this trail**,
 and the same two actions are the first two icons under the Record button.
 
-**Editing** (`js/trail-edit.js`) works on a thinned copy of the trail: the fewest points that stay within a
+**Editing** (`trail-edit.js`) works on a thinned copy of the trail: the fewest points that stay within a
 metre of the walked line. Drag a point to move it; tap a point to delete it, end the trail there or start
 it there; tap the line to add a point; Undo, Done and Cancel are in the bar on the map. Done lays the trail
 again along the edited line (a point every 1.5 m, pass counts worked out afresh, times at the pace walked so
 far) and puts the walker at its end. The walker stands still while the editor is open.
 
-**What a tap would lead to.** In "Walk it yourself", with taps allowed in Settings, the mouse carries a small
-panel: every readout ticked in Settings > Display, worked out for the spot under the mouse and the moment you
-would arrive there (position, height, bearing from you, distance and time on arrival, temperatures, dose,
-dust class, map-layer value, safety index). It needs a mouse; touch screens do not have a hover.
+**The right-click menu** (`context-menu.js`). Right-click a spot on the map, or hold a finger on it for 0.6 s on a
+touch screen, for a small menu beside it:
+
+- **View location image**: a small preview of the best NASA picture of the spot, with its source and date (see
+  "Pictures of places" below), or "No imagery available for this location."
+- **Reveal information**: a popup with the spot's coordinates, height and slope (Curiosity's survey on the drive,
+  the regional model elsewhere), distance, bearing and walking time from the walker, the safety index and dust
+  there, the map layer's value, the weather on arrival (near Gale), the dose rate, the place it lies in, the
+  sharpest imagery and the nearest Curiosity stop.
+- **Find routes here**: opens the route-finder in Markers and routes with that spot as the destination, and lists
+  the ways to walk there from the walker, safest first (or why there is none).
+- **Teleport here** (called "Travel to location" before 1.8): moves the walker there at once, as the bolt in "Go to a place" does (the base stays within 60 km, a new site
+  starts beyond). If a trail is under way it first asks: save it, teleport anyway, or cancel.
+- **Mark as landmark**: opens the marker form at that spot, to give it a name, a description and an icon.
+
+Escape, a click elsewhere or moving the map closes it; the click that closes it does not walk the pointer. The
+browser's own right-click menu is held back on the map only; everywhere else right-click works as usual.
+
+**Mission status.** Three small symbols at the bottom right of the map, always shown whatever tab or layout:
+**O₂** and **battery** (percent left, from the walk budget) and the **live safety index** (a shield). They turn
+amber at 30 % left and red at the 15 % reserve, or when that one sets the turn-back point and it has passed; the
+safety index is green from 75, amber from 50 and red below. A label names each value, and a press explains it.
 
 ### Saved trails
 
@@ -343,7 +503,7 @@ The second tab on the column's edge. `Marswalk.openTab('nav')` opens it from cod
 ### Markers
 
 Press **+** and tap the map, press the locate button to mark where the walker stands, or right-click
-(long-press) the map. A marker can go anywhere on the planet. It holds a name, a description, an icon and
+(long-press) the map and choose **Mark as landmark**. A marker can go anywhere on the planet. It holds a name, a description, an icon and
 its position; the description takes a little Markdown (`**bold**`, `*italic*`, `` `code` ``, `- ` lists,
 `[links](https://…)`), and anything else is shown as typed. Drag the pin to move it before saving.
 
@@ -353,6 +513,12 @@ its position; the description takes a little Markdown (`**bold**`, `*italic*`, `
 | Home | counts as a base: "distance from the nearest base" and the way back are measured to it |
 | Crater | nothing: a landform worth finding again |
 | Danger | routes stay outside its keep-clear distance (50 m unless you set another), and pay for passing close |
+
+A marker can also carry a **photo**: in the marker form, "Add a photo" takes a PNG, JPEG or WebP picture of up to
+10 MB, shrinks it to 800 pixels (a JPEG of at most about 300 KB) and keeps it in the browser
+(`marswalk.marker-photos.v1`), so it is still there after a refresh. It shows in the marker's details; "Replace the
+photo" and "Remove" change it. If the browser has no room left, the marker is saved and the message says the photo was
+not kept.
 | Your own | nothing. The **+** beside the four icons uploads a picture; it is shrunk to a 64 px PNG and kept for reuse (up to 12) |
 
 **Show on the map** is the filter: one tick per icon kind, one for markers with your own icons, one for the
@@ -384,7 +550,7 @@ Otherwise the routes are listed safest first. Each card shows its **safety index
 safer), the travel distance, the time, up to three reasons it is safe and up to four reasons it is not, as
 short tags. The first card is the recommendation. "Follow this route" makes it the route the pointer follows.
 
-### The algorithm (`js/router.js`, every limit and weight in `ROUTER` in `js/config.js`)
+### The algorithm (`router.js`, every limit and weight in `ROUTER` in `config.js`)
 
 1. **Grid.** The ground between the two points, with room either side, is cut into at most 120 × 120 cells.
    Each cell gets its height and regional slope from the terrain pack, is closed if it is too steep or inside
@@ -455,11 +621,11 @@ or 70; 50 at first) shows a red banner on the map and gives three short beeps wh
 
 Each cause rings once and again only after it has cleared and come back. "Dismiss" silences the causes on
 show; a new cause still rings. Browsers allow sound only after the page has been clicked or tapped once.
-The thresholds are `ROUTER.LIVE` in `js/config.js`. `MW.navUI.live()` returns the latest reading.
+The thresholds are `ROUTER.LIVE` in `config.js`. `MW.navUI.live()` returns the latest reading.
 
 ### What the terrain data is, and is not
 
-`python tools/terrain_ingest.py` builds the terrain pack from two files in the
+`python terrain_ingest.py` builds the terrain pack from two files in the
 [SHTOOLS example data](https://github.com/SHTOOLS/SHTOOLS/tree/master/examples/ExampleDataFiles):
 **MarsTopo719** (M. Wieczorek, 2015: the shape of Mars from MGS MOLA altimetry, spherical harmonics to
 degree 719) and **GMM-3** (Genova et al., 2016, NASA GSFC: the gravity field). Height is the shape minus the
@@ -479,6 +645,122 @@ rises 195 m; the rover's own position fixes give 175 m.
   the walking pace set in `config.js`, whatever the walker.
 - The dust class is the one for the date chosen on the Timeline. It is a past observation, not a forecast.
 
+## Going to a place, checkpoints and sites
+
+"Go to a place" is the first part of the Menu tab (`places-ui.js`). Type to search, or open a group:
+your checkpoints, your markers, the NASA places (Gale crater, landing sites, the planet), the start and end of
+each saved trail, every tenth Curiosity stop (search "sol 4700" for any of them) and, once the dust record has
+been read, the place where each detected dust storm was densest.
+
+- **View** (arrow) moves the map there and leaves the walker where it is. It works anywhere. It says which
+  imagery is sharpest there (HiRISE 0.6 m, CTX 10 m, or Viking at about 232 m per pixel beyond Gale) and does not
+  zoom past it. The dust monitor switches to that place. A storm also sets the Timeline to its date.
+- **Find routes there** (the route symbol) is how to walk to a place: it opens the route-finder in Markers and routes
+  with the place as the destination. It is also in the popup that View opens.
+- **Teleport here** (the bolt; "Walk from here" before 1.8) puts the walker there with a fresh trail; if a walk is under way it first offers to
+  save it. Within 60 km of base (`PLACES.LOCAL_KM`) the base stays. Farther away **the base moves too**: that place
+  becomes a new site, because local metres east and north of base are only accurate near base (to well under 1 %
+  within 60 km). At a new site, distances, the route-finder, the live safety index and the walk budget count from
+  the new base, height and slope come from the regional terrain model, and the weather readings and rover photos
+  (which are Curiosity's, at Gale) show "–". Any Gale place takes the walker back to the Gale base. A saved trail
+  remembers its site, and replaying it goes back there.
+- **Checkpoints** save the map view or the walker's position under a name (star and pin buttons). They are kept
+  in the browser (`marswalk.checkpoints.v1`) and can be downloaded and imported as `marswalk-checkpoints.json`.
+- **View links.** The address bar always holds the view, `#map=lat,lon,zoom&dust=MY,Ls`; the globe button copies
+  it. Opening such a link shows the same place and the same dust date.
+
+## Pictures of places
+
+The panel at the top right of the map (`imagery.js`) shows the best real NASA picture of where the walker stands, and
+follows the walker as it moves; "View from here" brings it back after it is closed.
+
+- **On Curiosity's drive** (within 60 m of one of its 120 stops): a photo from the rover's left Navigation Camera taken
+  at that stop. Online, the app asks NASA's raw-image service (`mars.nasa.gov/api/v1/raw_image_items`) for the Navcam
+  frames of that sol and picks one taken where the sol's drive ended, looking out rather than down at the deck, and
+  facing the walker's heading. The caption gives the image id, the capture time in UTC and the sol. If the service
+  cannot be reached, the frame stored with the route (`data.js`) is shown, and its date is labelled as worked out from
+  the sol.
+- **Anywhere else**: a view from orbit cut from the same NASA Mars Trek mosaics the map uses (HiRISE at Gale's centre,
+  CTX around it, the Viking colour mosaic elsewhere), centred on the spot with a cross, with its width in metres or km.
+  The caption names the mosaic and its layer, and says what is known of the dates: Viking images were taken 1976 to
+  1980; HiRISE and CTX images from 2006 on, the date of each image in a mosaic varying.
+- **Nothing to show** (no connection and nothing kept offline): "No imagery available for this location." It never
+  shows a picture of somewhere else.
+
+The pictures come from NASA servers and need an internet connection the first time. Served from a web address, the
+offline store keeps the rover photos and image lists you have seen, and the map tiles the orbital view is cut from.
+
+## Walk budget
+
+Three readouts (`budget.js`, assumptions in `BUDGET` in `config.js`), all **modelled**:
+
+- **Oxygen left**: metabolism from pace and climb (150 W standing, 125 W more per m/s, climbing at 20 %
+  efficiency for 200 kg of person and suit), 1 litre of O2 per 20.1 kJ, 0.70 kg carried. Steady walking lasts
+  about 9 hours.
+- **Battery left**: 80 W for the suit's systems, plus heaters below −20 °C (1 W per degree colder), from 1.2 kWh.
+  A **robot** is a solar rover the size of Spirit or Opportunity: it draws 50 W standing and 120 W driving, and its
+  1.3 m² of panels recharge it by day, with the sunlight dimmed by the dust observed on the Timeline's date
+  (in MY34's global storm the direct sun all but disappears, as it did for Opportunity).
+- **Turn back in**: how long you can keep walking out before the oxygen or battery left, less a 15 % reserve,
+  only just covers the walk back to the nearest base (straight line × 1.25 at walking pace). Under 15 minutes it
+  turns orange and a notice appears on the map; at zero it says "Turn back now". A robot need not come back.
+
+Route cards in Markers and routes show the oxygen and battery an astronaut would have left on getting back.
+These are planning assumptions, not suit specifications.
+
+**Your own oxygen model** (Settings > Walk budget: oxygen model, `o2-model.js`). Two kinds: **From effort** (the
+default kind: standing metabolism, extra per m/s walked, person-and-suit mass and muscle efficiency for climbing, and
+the energy per litre of oxygen) or **Fixed rates** (kg/h walking and kg/h standing, as a suit datasheet might quote
+them); both take the oxygen carried (kg) and the reserve (%). Each field shows its unit and range and is checked
+before saving; a blank field takes the default shown in it. Nothing changes until **Save my model**, after which the
+oxygen readouts, the status symbol and route cards say "your oxygen model". **Use the defaults** removes it; the
+defaults in `BUDGET` are never changed. A model can be downloaded and imported as a `.marswalk-o2.json` file, and is
+kept with the other settings (`marswalk.settings.v1`, `o2Model`).
+
+## Walking together
+
+"Walk together" in the Menu tab (`companions.js`) puts the other walkers on the map with yours: yellow
+arrows for astronauts, green for robots, with their names. Each can stand still, replay Curiosity's drive or a
+saved trail beside you (it moves while Start is pressed, at the same pace and speed-up), or follow real position
+fixes: `Marswalk.setPose({ walker: 'w2', lat, lon, heading })`. The list says where each is from you.
+
+## Best season for a walk here
+
+In the Dust Storm tab (`season.js`), for the place the dust monitor describes: the median and 90th percentile
+of the observed dust through the Martian year over every year in the record, how often each season had HIGH or
+SEVERE dust, the clearest 60° of Ls and the next Earth dates it comes round (Ls is turned into a date with the
+newest year's calendar, so the dates are approximate). At Gale the clearest season is Ls 45°–105°; the next one
+runs from about January to May 2027. It is a record of past years, not a forecast.
+
+## Offline map
+
+`sw.js` is a service worker, registered by `offline.js` when the page is served from localhost or https:
+
+- the app's own files are kept when it installs, and fetched from the network first afterwards (so changes
+  show at once) with the kept copy as the fallback;
+- every NASA tile you look at is kept (up to 20,000, oldest dropped first) and served from the store;
+- **Save the walk area** (Map Overlay tab) shows how many tiles and roughly how many MB it will fetch, then
+  saves the photo map around the walk: HiRISE at full detail within 2.5 km, coarser zooms farther out, the whole
+  planet at low zoom, and the overlay that is switched on (`OFFLINE` in `config.js`). At Gale that is about
+  3,600 tiles. **Delete kept tiles** empties the store.
+
+The dust packs (7 MB) are loaded by `lazy.js` after the map's first view rather than with the page, so on a
+slow link the map comes first. `build.py` turns them back into ordinary scripts in `marswalk.html`.
+They are not split by year: the precomputed baselines, the live safety index, the season planner and the storm
+list all need the whole record soon after start, so loading one year at a time would not save the download.
+
+## Testing
+
+```
+node dust_test.js        the dust detection against the real data
+node router_test.js      the terrain pack and the route-finder
+node features_test.js    walk budget, places, sites, slope along the drive, season planner
+node page_test.js        the real page in headless Chrome or Edge, offline included
+```
+
+(In this flat checkout leave out ``.) `page_test.js` needs Node 22 or later and Chrome or Edge; set
+`CHROME=/path/to/browser` to choose one. It needs an internet connection for the map tiles.
+
 ## Coordinates
 
 Planetocentric latitude and east longitude, as the NASA tiles use (Leaflet `L.CRS.EPSG4326`).
@@ -490,15 +772,20 @@ Height is metres relative to the MOLA geoid. Heading is degrees clockwise from n
 - No CRISM mineral map, HiRISE terrain model, local slope map or geologic-unit lookup. Trek does not
   serve these as tiles for this site; they need downloading from PDS/USGS and tiling. Until then the
   route-finder's slope is regional (about 15 km): see "What the terrain data is, and is not".
-- The map needs a live connection to NASA's servers. An offline tile pack is the main step
-  before any use where the link can drop.
-- No oxygen or battery budget and no position-uncertainty ring. The route-finder's 8 h limit stands in
-  for a consumables budget.
+- The map needs NASA's servers the first time; offline use needs the page served from a web address and the
+  walk area saved first (see "Offline map"). A file opened by double-click cannot keep anything.
+- The walk budget is a model with assumed suit and rover sizes, not a reading from equipment. There is no
+  position-uncertainty ring. The route-finder still uses its 8 h limit for the outing; the budget is shown beside it.
 - Markers stay in one browser: there is no marker export or import yet.
-- One pointer at a time: two walkers cannot yet be shown moving together.
+- Companions replay routes or follow fixes; they do not find their own way, and they are not saved between visits.
+- Away from Gale there is no weather and no rover photo, and height and slope are regional (about 15 km).
+  Slope along the drive is local only on Curiosity's route.
 - Landmark outlines are approximations (see Landmarks); proper outlines need the USGS geologic map.
 - REMS weather ends at sol 4995 in the public feed; later stops reuse that sol.
 - Saved trails stay in one browser unless downloaded.
+- With the map first on a wide screen, part of the map lies under the panels. Popups, routes and places keep
+  clear of them, but the walk-scale view centres the walker on the whole window, slightly left of the open
+  part's centre when both panels are open. Fold either panel for more map.
 - Dust: an archive ending in MY36, at 6° × 5°; see "Dust storm activity, What it is not".
 
 ## Credits

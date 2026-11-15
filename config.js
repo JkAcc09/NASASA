@@ -28,10 +28,13 @@ MW.config = {
     orange:  ['#FFE3BF', '#FFAB52', '#E8590C', '#7A2E06'],
     white:   ['#FFFFFF', '#CFCFCF', '#8C8C8C', '#3A3A3A']
   },
-  POINTER_COLOURS: { blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
-  THEMES: {                       // name shown in Settings; colours live in css/style.css under body[data-theme]
-    blue: 'Blue', grey: 'Grey', sand: 'Sand', green: 'Green', violet: 'Violet', contrast: 'High contrast',
-    night: 'Night blue', teal: 'Night teal', black: 'Black', red: 'Night red'
+  POINTER_COLOURS: { cyan: '#5CC8FF', blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
+  THEMES: {                       // name shown in Settings; colours live in style.css under body[data-theme]
+    console: 'Console', graphite: 'Graphite', ember: 'Ember', aurora: 'Aurora', nebula: 'Nebula',
+    red: 'Night red', daylight: 'Daylight', contrast: 'Direct sun'
+  },
+  THEMES_BEFORE_1_7: {            // the themes of the printed-map look, and the console theme each one now opens as
+    blue: 'console', night: 'console', teal: 'aurora', grey: 'graphite', black: 'graphite', sand: 'ember', green: 'aurora', violet: 'nebula'
   },
   READOUTS: [                     // the readouts along the bottom of the screen, ticked on or off in Settings > Display
     { group: 'Position and movement', key: 'pos',   name: 'Position from base',   what: 'how far east and north of base',      on: true },
@@ -41,6 +44,10 @@ MW.config = {
     { group: 'Position and movement', key: 'dist',  name: 'Distance travelled',   what: 'since the walk began',                on: true },
     { group: 'Position and movement', key: 'home',  name: 'Displacement from base', what: 'straight line, or back along the trail when Show way back is on',  on: true },
     { group: 'Position and movement', key: 'time',  name: 'Time on the surface',  what: 'and the local time of day',           on: true },
+    { group: 'Position and movement', key: 'slope', name: 'Slope here',           what: "along the drive from Curiosity's fixes, otherwise regional", on: true },
+    { group: 'Walk budget',           key: 'o2',    name: 'Oxygen left',          what: 'modelled from pace and climb (astronaut)', on: true },
+    { group: 'Walk budget',           key: 'batt',  name: 'Battery left',         what: 'modelled; a robot recharges in sunlight', on: true },
+    { group: 'Walk budget',           key: 'turn',  name: 'Turn back in',         what: 'time until the way back needs what is left', on: true },
     { group: 'Conditions',            key: 'safety', name: 'Safety index, live',  what: 'how safe it is to be where the walker is now, 0 to 100', on: true },
     { group: 'Conditions',            key: 'probe', name: 'Map layer reading',    what: 'when a map overlay is switched on',   on: true },
     { group: 'Conditions',            key: 'air',   name: 'Air temperature',      what: 'just above the ground',                                  on: true },
@@ -52,7 +59,7 @@ MW.config = {
     { group: 'Conditions',            key: 'dust',  name: 'Dust activity',        what: 'dust storm class here and now',       on: true }
   ],
   UNITS: { si: 'SI (metres, °C)', us: 'US (feet, °F)' },
-  RO_LAYOUTS: { row: 'Row along the bottom', column: 'Column beside the map', focus: 'Numbers first, mini-map' },
+  RO_LAYOUTS: { side: 'Tabs beside the map', focus: 'Numbers first, mini-map' },
   ALARM_LEVELS: [40, 50, 60, 70],   // choices for "alarm when the live safety index is below"; the default is in settings.js
   MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
   DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
@@ -142,7 +149,8 @@ MW.config = {
     { key: 'tmin', name: 'Air temperature, nightly low', unit: ' °C', get: function (w) { return w.wx.tmin; } },
     { key: 'gmax', name: 'Ground temperature, daily high', unit: ' °C', get: function (w) { return w.wx.gmax; } },
     { key: 'p', name: 'Air pressure', unit: ' Pa', get: function (w) { return w.wx.p; } },
-    { key: 'uv', name: 'UV index', unit: '', get: function (w) { return w.wx.uv; } }
+    { key: 'uv', name: 'UV index', unit: '', get: function (w) { return w.wx.uv; } },
+    { key: 'grade', name: 'Slope along the drive', unit: '°', get: function (w) { return Math.round(w.grade * 10) / 10; } }
   ],
   VIRIDIS: [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]],
 
@@ -197,6 +205,63 @@ MW.config = {
   /* ---- Route-finder (router.js). Every limit, weight and threshold of the safety index is here. ----
    * These are this project's own planning assumptions, not NASA flight rules. Slope and climb come from the
    * terrain pack (terrain.js), which resolves features about 15 km across: they are regional values. */
+  /* ---- Places: the location selector, checkpoints and sites (places.js, places-ui.js) ---- */
+  PLACES: {
+    LOCAL_KM: 60,               // the walker can be moved this far from base and keep the same base; farther starts a new site
+    STOP_EVERY: 10,             // the list shows every tenth Curiosity stop; a search for "sol 4700" finds any of them
+    MAX_RESULTS: 40,            // results shown for a search
+    /* The sharpest imagery where you land, and the deepest zoom worth showing there. Checked in order. */
+    IMAGERY: [
+      { name: 'MRO HiRISE', res: '0.6 m per pixel', zoom: 17, bounds: [[-4.9254, 137.1225], [-4.2490, 137.7298]] },
+      { name: 'MRO CTX', res: '10 m per pixel', zoom: 13, bounds: [[-6.57, 135.18], [-2.81, 139.24]] },
+      { name: 'the Viking colour mosaic', res: 'about 232 m per pixel', zoom: 8, bounds: null }
+    ]
+  },
+
+  /* ---- Walk budget (budget.js): oxygen, battery and the turn-back point. MODELLED: these are this project's
+   * planning assumptions, not suit or rover specifications. Sources for the rough sizes:
+   *   oxygen   1 litre of O2 per 20.1 kJ of metabolism (respiratory quotient about 0.85); 1.43 g per litre.
+   *            Apollo surface EVAs averaged about 230 W of metabolism, peaks near 500 W.
+   *   suit     about 0.7 kg of breathing oxygen and a battery of about 1.2 kWh carry an 8 h EVA with reserve.
+   *   robot    a solar rover the size of Spirit or Opportunity: 1.3 m² of panels; dust in the air cuts the sunlight.
+   *            Curiosity and Perseverance run on a nuclear generator instead and are not modelled here. */
+  BUDGET: {
+    RESERVE: 0.15,              // share of oxygen and battery always kept back
+    astronaut: {
+      o2Kg: 0.70,               // breathing oxygen carried
+      o2PerJ: 7.11e-8,          // kg of O2 per joule of metabolism
+      metRest: 150,             // W, standing in the suit
+      metPerMs: 125,            // W more for each m/s of walking on the level
+      mass: 200,                // kg, person and suit, for the cost of climbing
+      climbEff: 0.2,            // muscle efficiency when climbing
+      battWh: 1200,             // suit battery
+      drawW: 80,                // W: fans, pump, radio, displays
+      heatFrom: -20,            // °C: below this air temperature the suit heaters run...
+      heatPerC: 1.0,            // ...this many watts for each degree colder
+      airUnknown: -60           // °C assumed where no temperature is measured (far from Gale)
+    },
+    robot: {
+      battWh: 1000, idleW: 50, driveW: 120,
+      panelM2: 1.3, panelEff: 0.24,
+      solarConst: 586,          // W/m², mean sunlight at Mars's distance from the Sun
+      visPerIr: 2.6             // visible-light optical depth for each unit of 9.3 µm absorption optical depth
+    }
+  },
+
+  /* ---- Offline map (offline.js, sw.js): which tiles "Save the walk area" fetches ---- */
+  OFFLINE: {
+    TILE_KB: 25,                // average tile size, for the estimate shown before saving
+    MAX_TILES: 6000,            // never fetch more than this in one go
+    /* For each photo base layer (BASE, by position): the zooms saved and how far around the walk area, in km.
+       radius null = the whole planet. Deepest zooms only near the walk; coarse zooms for the surroundings. */
+    PLAN: [
+      [{ zooms: [0, 4], radius: null }, { zooms: [5, 7], radius: 300 }],
+      [{ zooms: [8, 10], radius: 60 }, { zooms: [11, 12], radius: 12 }],
+      [{ zooms: [12, 14], radius: 6 }, { zooms: [15, 16], radius: 2.5 }]
+    ],
+    OVERLAY: { radius: 30 }     // the map overlay switched on, if any: every zoom it has, this far around
+  },
+
   ROUTER: {
     GRID: 120,                  // the search grid is at most this many cells along its longer side
     CELL_MIN: 3,                // m, the smallest search cell
@@ -246,6 +311,30 @@ MW.config = {
    *   term   the heading          what   what it is, in plain words, with its unit
    *   why    why a walker cares   basis  where the number comes from: measured, historical, interpolated or modelled */
   GLOSSARY: {
+    places: { term: 'Going to a place',
+      what: 'The arrow shows a place on the map and leaves the walker where it is. The walker icon moves the walker there and starts a new trail. Within 60 km of base the base stays put; farther away the base moves with the walker, and that place becomes a new site.',
+      why: 'Planning a walk elsewhere needs distances, the route-finder and the walk budget to count from a base near it.',
+      basis: 'Positions are planetocentric latitude and east longitude. A flat map of metres is accurate to well under 1 % within 60 km of its centre, which is why the base moves beyond that.' },
+    slope: { term: 'Terrain slope',
+      what: 'How steep the ground is, in degrees from level. On Curiosity\'s drive it is measured from the rover\'s own position fixes over about 60 m. Elsewhere it is the regional slope of the land over about 15 km.',
+      why: 'Steep ground costs more oxygen and time, and loose slopes can slide. Above about 15° a suited walk gets hard.',
+      basis: 'Along the drive: measured (Curiosity\'s fixes, about 25 m apart). Elsewhere: the MOLA shape model, which cannot see a cliff, a dune or a boulder.' },
+    walkBudget: { term: 'Walk budget: oxygen, battery, turn back',
+      what: 'Oxygen and battery left, in percent, and how long you can keep going out before what is left, less a 15 % reserve, only just covers the walk back to base. A robot shows its battery, which recharges in sunlight.',
+      why: 'The turn-back point is the most important number on a walk: past it, the way home is not covered.',
+      basis: 'MODELLED from your pace, climb and the air temperature, with assumed suit and rover sizes (BUDGET in config.js). Not a suit reading. A robot\'s sunlight is dimmed by the dust observed on the Timeline\'s date.' },
+    companions: { term: 'Walking together',
+      what: 'Other walkers shown on the map at the same time as yours: standing still, replaying a route beside you, or following their own position fixes.',
+      why: 'A real EVA is never solo: you need to know where your partner or rover is.',
+      basis: 'Replays use the route\'s recorded positions. Position fixes come from outside the app (Marswalk.setPose with a walker id).' },
+    season: { term: 'Best season for a walk',
+      what: 'For this place: the typical dust optical depth through the Martian year in every observed year, how often each season had HIGH or SEVERE dust, and the clearest 60° of Ls with its next Earth dates.',
+      why: 'Choosing the season is the simplest way to lower the risk of meeting a dust storm.',
+      basis: 'HISTORICAL: statistics of OBSERVED values from Martian Years 24 to 36. A record of past years, not a forecast; Earth dates are approximate.' },
+    offline: { term: 'Offline map',
+      what: 'The app and the map tiles you have viewed are kept in the browser, so the page still opens and shows the map with no connection. "Save the walk area" fetches the tiles around the walk ahead of time.',
+      why: 'A link to Earth or to a base server can drop during a walk; the map should not.',
+      basis: 'A service worker (sw.js). It needs a web address, http://localhost or https: a file opened by double-click cannot use one.' },
     liveSafety: { term: 'Live safety index',
       what: 'The safety index for where the walker stands at this moment, from 0 to 100: higher is safer. It uses the same factors as a route: dust here, regional slope, height above base, distance from the nearest base, time used plus the way back, temperature drop, daylight left for the way back, distance from known trails, and distance from marked hazards.',
       why: 'It changes as you walk. If it falls below your limit, drops quickly, or one factor turns critical, the safety alarm says which factor and why. Turn the readout and the alarm on or off in Settings > Display.',

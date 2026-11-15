@@ -26,7 +26,7 @@ const outPath = path.join(path.dirname(htmlPath), 'dust-baselines.js');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 /* Load config, the dust data pack and dust.js from the page itself, so this script can never disagree with it. */
-const blocks = [...html.matchAll(/<script>\n([\s\S]*?)\n<\/script>/g)].map(m => m[1]);
+const blocks = [...html.matchAll(/<script>\r?\n([\s\S]*?)\r?\n<\/script>/g)].map(m => m[1]);      // \r?: a Windows checkout has CRLF line ends
 const ctx = { console, Blob, Response, DecompressionStream, atob, Buffer };
 ctx.globalThis = ctx; ctx.window = ctx; vm.createContext(ctx);
 for (const marker of ['config.js —', 'window.MARSWALK_DUST =', 'dust.js — MW.dust']) {

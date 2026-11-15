@@ -1,0 +1,57 @@
+MARSWALK SAMPLE TRAIL FILES
+===========================
+
+Each .marswalk.json file in this folder is a complete, valid Marswalk trail: the same format the app
+writes when you press "Download" beside a saved trail. They are practice walks laid out near the Gale
+base (Curiosity's first stop, sol 4560), not records of real walks.
+
+  out-back.marswalk.json        Out along Curiosity's first drive and back the same way   (780 m, astronaut)
+  ridge-loop.marswalk.json      A loop that crosses its own outbound line                 (908 m, astronaut)
+  figure-eight.marswalk.json    Two laps of a figure of eight: the middle is passed 4+ times (1.1 km, astronaut)
+  rover-grid.marswalk.json      Six survey lanes at rover pace, 4 cm/s                     (1.2 km, robot)
+  hazard-detour.marswalk.json   A half circle round a 40 m keep-clear zone                 (346 m, astronaut)
+
+The same five are already listed in the app, under Menu > "Saved routes and trails".
+
+
+IMPORT A TRAIL FILE
+-------------------
+1. Open Marswalk (index.html or marswalk.html) and tap anywhere on the start screen.
+2. Open the Menu tab (the top button on the rail at the left of the map).
+3. Scroll to "Saved routes and trails" and press the upload button under the list
+   ("Import a trail file").
+4. Choose one of the .marswalk.json files in this folder.
+5. It appears in the list with its name. Its buttons:
+     star      make it the preferred route: the route-finder checks a way along it first
+     eye       show it on the map as a yellow line
+     play      replay it: the pointer goes to its start; press Start (top bar) to walk it
+     download  save it again as a file
+     bin       delete it (press twice)
+
+Importing never overwrites anything: each import gets a new id, so the same file can be imported twice.
+
+
+WHAT A VALID FILE LOOKS LIKE
+----------------------------
+{
+  "format": "marswalk-trail",          required, exactly this
+  "version": 1,
+  "name": "Sample · Boxwork ridge loop",
+  "source": "sample",                  "walked", "replay" or "sample"
+  "walker": { "name": "Astronaut 1", "type": "astronaut" },     or "robot"
+  "site": "Mount Sharp boxwork, Gale crater, Mars",
+  "base": { "lat": -4.799847, "lon": 137.383541 },              where the walk's base was
+  "distance_m": 907.7,
+  "duration_s": 756,
+  "fields": ["lat", "lon", "seconds", "heading_deg"],
+  "points": [                          required, at least two
+    [-4.799847, 137.383541, 0, 225],   latitude (planetocentric), east longitude,
+    [-4.799882, 137.3835064, 2, 225],  seconds since the start, heading (degrees clockwise from north)
+    ...
+  ]
+}
+
+The app checks only that "format" is "marswalk-trail" and that "points" holds at least two
+[latitude, longitude, ...] pairs within range; everything else is filled in if it is missing.
+To make your own, copy one of these files, change the name and the points, and import it.
+make_samples.js (beside index.html) is the script that wrote these: run "node make_samples.js".

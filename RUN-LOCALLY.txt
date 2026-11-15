@@ -1,0 +1,27 @@
+Marswalk 1.11: how to run it on your own computer
+=============================================================
+
+Quickest: double-click marswalk.html. It is the whole app in one file and opens in Chrome, Edge or Firefox.
+
+From the source files, with Python's built-in web server (needs Python 3, nothing to install):
+
+  1. Open a terminal in this folder (the one holding index.html).
+       Windows: in File Explorer, click the address bar, type cmd and press Enter.
+       macOS / Linux: right-click the folder and choose "Open in Terminal".
+  2. Start the server:
+       python -m http.server 8000 --bind 127.0.0.1
+     (on macOS or Linux it may be python3 instead of python)
+  3. Open http://localhost:8000 in Chrome, Edge or Firefox.
+  4. To stop the server, press Ctrl+C in the terminal.
+
+Start the server from inside this folder: started anywhere else it shows a list of files instead of the app.
+--bind 127.0.0.1 keeps it on this computer only.
+
+Served this way the page can also work offline: it keeps itself and every map tile you view, and
+Map Overlay > Offline map > "Save the walk area" fetches the rest of the walk area ahead of time.
+A file opened by double-click cannot do that. The map tiles come from NASA, so the first visit needs internet.
+
+Checks (optional, need Node.js 18 or later; page_test.js needs Node 22+ and Chrome or Edge):
+  node dust_test.js      node router_test.js      node features_test.js      node page_test.js
+
+Everything else is in README.md.
