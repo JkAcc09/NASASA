@@ -144,7 +144,7 @@
   map.on('popupclose', function (e) {
     if (lmOutline && e.popup.options.className === 'lmk-pop') { lmOutline.forEach(function (l) { map.removeLayer(l); }); lmOutline = null; }
   });
-  MW.landmarks.attach(map, { onOpen: openLandmark });
+  var lmLayer = MW.landmarks.attach(map, { onOpen: openLandmark });
 
   /* ================================================================== 3. Pointer and state */
   var meIcon = L.divIcon({
@@ -206,9 +206,15 @@
     if (!best) return false;
     var passes = trail.passesNear(best.x, best.y, C.NEAR), n = passes.length;
     L.popup({ maxWidth: 300 }).setLatLng(best.ll).setContent('<div class="pop"><h3>' + (n === 1 ? 'Passed here once' : 'Passed here ' + n + ' times') + '</h3>' +
-      passList(passes) + '<p>' + fmt(best.d) + ' m along the trail at the latest pass.</p></div>').openOn(map);
+      passList(passes) + '<p>' + len(best.d) + ' along the trail at the latest pass. The whole trail is ' + len(S.dist) + '.</p>' +
+      '<div class="row"><button type="button" data-trail="save">Save this trail</button><button type="button" data-trail="edit">Edit this trail</button></div></div>').openOn(map);
     return true;
   }
+  document.addEventListener('click', function (e) {      // capture phase: Leaflet popups swallow clicks
+    var b = e.target.closest && e.target.closest('[data-trail]'); if (!b) return;
+    map.closePopup();
+    if (b.getAttribute('data-trail') === 'save') offerSave(); else MW.trailEdit.start();
+  }, true);
 
   /* ================================================================== 5. Movement */
   function setPos(x, y) {
@@ -236,6 +242,16 @@
     S.x = r.pts[0].x; S.y = r.pts[0].y; S.heading = r.pts[0].hdg;
     nearestOnRoute(); clearTrail(); setPlaying(false); showMode();
     setFollow(true); map.panTo(toLL(S.x, S.y));
+  }
+  /* Follow a route worked out by the route-finder (nav-ui.js): from where the walker stands, keeping the trail so far. */
+  function followPlan(p) {
+    var pts = p.line.map(function (q) { var e = toENU(q[0], q[1]); return { x: e.x, y: e.y, hdg: 0 }; });
+    if (Math.hypot(pts[0].x - S.x, pts[0].y - S.y) > 1) pts.unshift({ x: S.x, y: S.y, hdg: 0 });      // the walker has moved since it was planned
+    for (var i = 1; i < pts.length; i++) pts[i].hdg = G.bearing(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    pts[0].hdg = pts[1] ? pts[1].hdg : S.heading;
+    route = { id: 'plan', name: p.name, stops: false, pts: pts }; S.mode = 'replay'; target = null;
+    replay.seg = 0; replay.f = 0; replay.hold = 0;
+    showMode(); setFollow(true); setPlaying(false);
   }
   function atRouteEnd() { return replay.seg >= route.pts.length - 1; }
   function stepReplay(dt) {
@@ -277,20 +293,21 @@
   }
 
   /* Where am I relative to the surveyed route? Gives height, the matching sol and its weather. */
-  function nearestOnRoute() {
+  function nearestRoutePoint(x, y) {
     var best = { d: 1e12, i: 0, z: G.ORIGIN.z, s: 0 };
     for (var i = 0; i < WP.length - 1; i++) {
       var a = WP[i], b = WP[i + 1], vx = b.x - a.x, vy = b.y - a.y, L2 = vx * vx + vy * vy || 1e-6;
-      var t = Math.max(0, Math.min(1, ((S.x - a.x) * vx + (S.y - a.y) * vy) / L2));
-      var d = Math.hypot(S.x - (a.x + vx * t), S.y - (a.y + vy * t));
+      var t = Math.max(0, Math.min(1, ((x - a.x) * vx + (y - a.y) * vy) / L2));
+      var d = Math.hypot(x - (a.x + vx * t), y - (a.y + vy * t));
       if (d < best.d) best = { d: d, i: t < 0.5 ? i : i + 1, z: a.z + (b.z - a.z) * t, s: a.s + (b.s - a.s) * t };
     }
-    S.near = best;
+    return best;
   }
+  function nearestOnRoute() { S.near = nearestRoutePoint(S.x, S.y); }
 
   /* Conditions "now": REMS gives each sol's low and high; the hour-by-hour curve between them is modelled. */
-  function conditions() {
-    var w = WP[S.near.i].wx, hour = (C.START_HOUR + S.t / C.MARS_HOUR) % 24;
+  function conditions(i, t) {                          // no arguments: here and now. Otherwise at route stop i, t seconds into the walk
+    var w = WP[i === undefined ? S.near.i : i].wx, hour = (C.START_HOUR + (t === undefined ? S.t : t) / C.MARS_HOUR) % 24;
     var day = function (peak) { return 0.5 + 0.5 * Math.cos((hour - peak) / 24 * 2 * Math.PI); };
     return {
       hour: hour, air: w.tmin + (w.tmax - w.tmin) * day(14.5), gnd: w.gmin + (w.gmax - w.gmin) * day(13),
@@ -303,21 +320,46 @@
   function startRecording() {
     if (S.mode !== 'manual') setManual();
     clearTrail(); recording = true;
-    $('save-form').hidden = true; $('btn-rec').textContent = 'Stop and save'; $('btn-rec').setAttribute('aria-pressed', 'true');
+    $('save-form').hidden = true; MW.ui.setButton($('btn-rec'), 'stop', 'Stop and save'); $('btn-rec').setAttribute('aria-pressed', 'true');
     setPlaying(true);
   }
   function stopRecording(offerSave) {
     if (!recording) return;
     recording = false; setPlaying(false);
-    $('btn-rec').textContent = 'Record a new trail'; $('btn-rec').setAttribute('aria-pressed', 'false');
-    var st = $('rec-status');
-    if (!offerSave) { st.hidden = true; return; }
-    var lastPt = trail.pts[trail.pts.length - 1];
-    if (Math.hypot(S.x - lastPt.x, S.y - lastPt.y) > 0.05) trail.add(S.x, S.y, S.dist, meta());   // end exactly where the walker stands
-    if (trail.pts.length < 2) { st.textContent = 'Nothing to save yet: walk first, then stop.'; st.className = 'rec'; st.hidden = false; return; }
+    MW.ui.setButton($('btn-rec'), 'record', 'Record a new trail'); $('btn-rec').setAttribute('aria-pressed', 'false');
+    if (!offerSave) { $('rec-status').hidden = true; return; }
+    askName();
+  }
+  /* Offer to save the trail walked so far, whether or not it was started with Record (the trail's popup and the
+     save button use this). The form sits in "Your trail", which shows in Menu and in Markers and routes. */
+  function offerSave() { if (recording) stopRecording(true); else { setPlaying(false); askName(); } }
+  function askName() {
+    var st = $('rec-status'), lastPt = trail.pts[trail.pts.length - 1];
+    if (lastPt && Math.hypot(S.x - lastPt.x, S.y - lastPt.y) > 0.05) trail.add(S.x, S.y, S.dist, meta());   // end exactly where the walker stands
+    openTab(tab === 'nav' ? 'nav' : 'menu');
+    if (trail.pts.length < 2) { st.textContent = 'Nothing to save yet: walk first.'; st.className = 'rec'; st.hidden = false; st.scrollIntoView({ block: 'nearest' }); return; }
     st.hidden = true;
     $('save-name').value = 'Trail ' + (store.list().length + 1);
-    $('save-form').hidden = false; $('save-name').focus(); $('save-name').select();
+    $('save-form').hidden = false; $('save-form').scrollIntoView({ block: 'nearest' }); $('save-name').focus(); $('save-name').select();
+  }
+  $('btn-save-now').addEventListener('click', offerSave);
+  $('btn-edit').addEventListener('click', function () { MW.trailEdit.start(); });
+  /* The trail editor (trail-edit.js) hands back the edited line: [{ x, y }, …]. The trail is laid again along it,
+     with times at the pace walked so far, and the walker is put at its end. */
+  function replaceTrail(pts) {
+    var pace = S.t > 1 && S.dist > 1 ? S.dist / S.t : C.WALK, sol = WP[S.near.i].sol, odo = 0, hdg = Math.round(norm(S.heading)) % 360;
+    trail.reset();
+    trail.add(pts[0].x, pts[0].y, 0, { t: 0, hdg: hdg, sol: sol });
+    for (var i = 1; i < pts.length; i++) {
+      var a = pts[i - 1], b = pts[i], seg = Math.hypot(b.x - a.x, b.y - a.y); if (seg < 0.01) continue;
+      hdg = Math.round(G.bearing(b.x - a.x, b.y - a.y)) % 360;
+      for (var k = 1; k * C.SAMPLE < seg - 0.05; k++) trail.add(a.x + (b.x - a.x) * k * C.SAMPLE / seg, a.y + (b.y - a.y) * k * C.SAMPLE / seg, odo + k * C.SAMPLE, { t: (odo + k * C.SAMPLE) / pace, hdg: hdg, sol: sol });
+      odo += seg; trail.add(b.x, b.y, odo, { t: odo / pace, hdg: hdg, sol: sol });
+    }
+    var end = pts[pts.length - 1];
+    S.x = end.x; S.y = end.y; S.heading = hdg; S.dist = odo; S.t = odo / pace; S.dose = C.RAD_RATE * S.t / 3600;
+    target = null; if (S.mode !== 'manual') setManual(); else setPlaying(false);
+    nearestOnRoute(); drawTrail(); map.closePopup();
   }
   $('btn-rec').addEventListener('click', function () { if (recording) stopRecording(true); else startRecording(); });
   $('save-form').addEventListener('submit', function (e) {
@@ -335,15 +377,19 @@
     var row = function (id, name, metaText, acts) {
       var li = document.createElement('li');
       li.innerHTML = '<strong>' + G.escapeHtml(name) + '</strong><span>' + metaText + '</span><div>' +
-        acts.map(function (a) { return '<button type="button" data-act="' + a[0] + '" data-id="' + id + '">' + a[1] + '</button>'; }).join('') + '</div>';
+        acts.map(function (a) { return '<button type="button" class="ib sm" data-act="' + a[0] + '" data-id="' + id + '" aria-label="' + a[2] + '" data-tip="' + a[2] + '">' + MW.ui.icon(a[1]) + '</button>'; }).join('') + '</div>';
       ul.appendChild(li);
     };
-    row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [['replay', 'Replay']]);
+    /* The star marks one trail as the preferred route: the route-finder checks a way along it first (router.js). */
+    var pref = store.preferred(), star = function (id) { return ['prefer', pref === id ? 'starOn' : 'star', pref === id ? 'Preferred route: press to unset' : 'Set as the preferred route']; };
+    row('curiosity', "Curiosity's drive", 'NASA, sols 4560–5073, ' + fmt(G.routeLen / 1000, 1) + ' km', [star('curiosity'), ['replay', 'play', 'Replay']]);
     store.list().forEach(function (r) {
       row(r.id, r.name, (r.walker ? G.escapeHtml(r.walker.name) + (r.walker.type === 'robot' ? ' (robot)' : '') + ', ' : '') + fmt(r.distance_m) + ' m, ' + clock(r.duration_s) + ', ' + new Date(r.savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-        [['show', shown.has(r.id) ? 'Hide' : 'Show'], ['replay', 'Replay'], ['file', 'Download'], ['del', 'Delete']]);
+        [star(r.id), ['show', shown.has(r.id) ? 'eyeoff' : 'eye', shown.has(r.id) ? 'Hide from the map' : 'Show on the map'], ['replay', 'play', 'Replay'], ['file', 'download', 'Download'], ['del', 'trash', 'Delete']]);
     });
+    Array.prototype.forEach.call(ul.querySelectorAll('button[data-act="prefer"]'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-id') === pref); });
   }
+  store.onChange(function (what) { if (what === 'preferred') renderSaved(); });      // the star can also be moved from the Markers and routes tab
   function toggleShown(rec) {
     if (shown.has(rec.id)) { shown.get(rec.id).forEach(function (l) { map.removeLayer(l); }); shown.delete(rec.id); return; }
     var ll = rec.points.map(function (p) { return [p[0], p[1]]; });
@@ -362,6 +408,10 @@
   $('saved').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-act]'); if (!b) return;
     var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+    if (act === 'prefer') {
+      var on = store.preferred() !== id; store.setPreferred(on ? id : null);
+      say(on ? 'Preferred route set. The route-finder in Markers and routes will check a way along it first.' : 'No preferred route now.'); return;
+    }
     if (id === 'curiosity') { loadRoute(CURIOSITY); return; }
     var rec = store.get(id); if (!rec) { renderSaved(); return; }
     if (act === 'show') { toggleShown(rec); renderSaved(); }
@@ -416,31 +466,81 @@
   }
 
   var UV = ['', 'low', 'moderate', 'high', 'very high'];
+
+  /* While you walk it yourself with taps allowed, the mouse shows what a tap would lead to: every readout that
+     is ticked in Settings > Display, worked out for the spot under the mouse and the moment you would arrive. */
+  var hoverBox = $('hover-read'), hoverAt = null, hoverRaf = 0, mouseLike = true;
+  function hoverWanted() {
+    return mouseLike && S.mode === 'manual' && settings.get('move') !== 'keys' && !S.external && !(MW.trailEdit && MW.trailEdit.active) && !(MW.navUI && MW.navUI.picking());
+  }
+  function drawHover() {
+    hoverRaf = 0;
+    if (!hoverAt || !hoverWanted()) { hoverBox.hidden = true; return; }
+    var ro = settings.get('readouts'), ll = hoverAt.latlng, e = toENU(ll.lat, ll.lng), d = Math.hypot(e.x - S.x, e.y - S.y), walk = d / C.WALK, tArr = S.t + walk;
+    var near = nearestRoutePoint(e.x, e.y), c = conditions(near.i, tArr), k = us() ? FT : 1, u = us() ? ' ft' : ' m', rows = '';
+    var row = function (key, val, lab) { if (ro[key]) rows += '<dt>' + lab + '</dt><dd>' + val + '</dd>'; };
+    row('pos', 'E ' + G.signed(e.x * k) + u + ', N ' + G.signed(e.y * k) + u, 'from base');
+    row('ll', ll.lat.toFixed(6) + '°, ' + ll.lng.toFixed(6) + '°', 'latitude, longitude');
+    var zm = MW.terrain && MW.terrain.ready ? MW.terrain.heightAt(ll.lat, ll.lng) : null;
+    if (near.d <= 25) row('z', minus(near.z * k, 1) + u, "height, Curiosity's survey");
+    else if (zm !== null) row('z', '≈ ' + minus(zm * k) + u, 'height, regional model');
+    else row('z', '≈ ' + minus(near.z * k, 1) + u, 'height of nearest route point');
+    var bg = G.bearing(e.x - S.x, e.y - S.y);
+    row('hdg', String(Math.round(bg) % 360).padStart(3, '0') + '° ' + compass(bg), 'bearing from you');
+    row('dist', len(S.dist + d), 'distance travelled on arrival');
+    row('home', len(Math.hypot(e.x, e.y)), 'displacement from base');
+    row('time', clock(tArr) + ', ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local', 'on the surface on arrival');
+    if (ro.safety && MW.navUI && MW.navUI.safetyAt) { var sf = MW.navUI.safetyAt(ll.lat, ll.lng, walk); if (sf) row('safety', '<b class="hv-safe ' + sf.band + '">' + sf.index + '</b> ' + G.escapeHtml(sf.worst), 'safety index there'); }
+    if (activeDef.what && dataLayer && activeDef.key !== 'topo') {
+      var sm = dataLayer.sample(ll.lat, ll.lng), pv = sm && !sm.nodata ? (activeDef.read === 'rgb' ? sm.rgb.map(function (v) { return Math.round(v * 100); }).join(' / ') : Math.round((activeDef.stretch ? sm.view : sm.value) * 100) + ' of 100') : sm ? 'no data' : '…';
+      row('probe', pv, activeDef.what);
+    }
+    row('air', us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C', 'air on arrival');
+    row('gnd', us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C', 'ground on arrival');
+    row('p', us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa', 'pressure');
+    row('uv', UV[c.uv] || '–', 'UV');
+    row('rad', us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h', 'dose rate');
+    var dose = S.dose + c.rate * walk / 3600;
+    row('dose', us() ? fmt(dose / 10, 2) + ' mrem' : fmt(dose, 1) + ' µSv', 'dose on arrival');
+    if (ro.dust && MW.navUI && MW.navUI.dustAt) { var du = MW.navUI.dustAt(ll.lat, ll.lng); row('dust', du ? C.DUST.CLASSES[du.cls] : '…', 'dust activity'); }
+    hoverBox.innerHTML = '<h4>Tap to walk here: ' + len(d) + ', ' + clock(walk) + '</h4>' + (rows ? '<dl>' + rows + '</dl>' : '<p>No readouts are ticked in Settings &gt; Display.</p>');
+    hoverBox.hidden = false;
+    var mp = $('map'), bw = hoverBox.offsetWidth, bh = hoverBox.offsetHeight, x = mp.offsetLeft + hoverAt.containerPoint.x + 18, y = mp.offsetTop + hoverAt.containerPoint.y + 18;
+    if (x + bw > mp.offsetLeft + mp.offsetWidth - 6) x = mp.offsetLeft + hoverAt.containerPoint.x - bw - 18;
+    if (y + bh > mp.offsetTop + mp.offsetHeight - 6) y = mp.offsetTop + hoverAt.containerPoint.y - bh - 18;
+    hoverBox.style.left = Math.max(4, x) + 'px'; hoverBox.style.top = Math.max(4, y) + 'px';
+  }
+  map.getContainer().addEventListener('pointermove', function (e) { mouseLike = e.pointerType === 'mouse'; }, true);
+  map.on('mousemove', function (e) { hoverAt = e; if (!hoverRaf) hoverRaf = requestAnimationFrame(drawHover); });
+  map.on('mouseout', function () { hoverAt = null; hoverBox.hidden = true; });
+  map.on('movestart zoomstart', function () { hoverBox.hidden = true; });
+  /* Units (Settings > Display): the data stay in SI; only what is written changes. */
+  var FT = 3.28084;                                     // feet in a metre
+  function us() { return settings.get('units') === 'us'; }
+  function len(m, d) { return us() ? fmt(m * FT, d) + ' ft' : fmt(m, d) + ' m'; }
   function updateReadouts() {
     nearestOnRoute();
     var c = conditions(), off = S.near.d > 25;
-    var exact = settings.get('display') === 'robot', ll = toLL(S.x, S.y);   // Robot display: full precision
-    $('r-pos').textContent = exact ? 'E ' + S.x.toFixed(2) + ' m, N ' + S.y.toFixed(2) + ' m' : 'E ' + G.signed(S.x) + ' m, N ' + G.signed(S.y) + ' m';
+    var exact = settings.get('roExact'), ll = toLL(S.x, S.y);   // Settings > Display > Exact numbers: full precision
+    var k = us() ? FT : 1, u = us() ? ' ft' : ' m';
+    $('r-pos').textContent = exact ? 'E ' + (S.x * k).toFixed(2) + u + ', N ' + (S.y * k).toFixed(2) + u : 'E ' + G.signed(S.x * k) + u + ', N ' + G.signed(S.y * k) + u;
     $('r-ll').textContent = ll[0].toFixed(6) + '°, ' + ll[1].toFixed(6) + '°';
-    $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z, 1) + ' m';
+    $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z * k, 1) + u;
     $('r-z-l').textContent = off ? 'height of nearest route point' : 'height, MOLA datum';
     $('r-hdg').textContent = exact ? norm(S.heading).toFixed(1) + '°' : String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
-    $('r-dist').textContent = exact ? S.dist.toFixed(1) + ' m' : fmt(S.dist) + ' m';
-    if (showBack) { $('r-home').textContent = fmt(MW.Trail.pathLength(trail.wayBack())) + ' m'; $('r-home-l').textContent = 'back to the trail start along your trail'; }
-    else { $('r-home').textContent = fmt(Math.hypot(S.x, S.y)) + ' m'; $('r-home-l').textContent = 'straight back to base'; }
+    $('r-dist').textContent = exact ? (S.dist * k).toFixed(1) + u : len(S.dist);
+    if (showBack) { $('r-home').textContent = len(MW.Trail.pathLength(trail.wayBack())); $('r-home-l').textContent = 'back to the trail start along your trail'; }
+    else { $('r-home').textContent = len(Math.hypot(S.x, S.y)); $('r-home-l').textContent = 'displacement from base'; }
     $('r-time').textContent = exact ? Math.round(S.t) + ' s' : clock(S.t);
     $('r-time-l').textContent = 'on the surface, ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local';
-    $('e-air').textContent = minus(c.air) + ' °C';
-    $('e-gnd').textContent = minus(c.gnd) + ' °C';
-    $('e-p').textContent = c.p + ' Pa';
+    $('e-air').textContent = us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C';
+    $('e-gnd').textContent = us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C';
+    $('e-p').textContent = us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa';
     $('e-uv').textContent = UV[c.uv] || '–';
-    $('e-rad').textContent = fmt(c.rate, 1) + ' µSv/h';
-    $('e-dose').textContent = fmt(S.dose, 1) + ' µSv';
-    var w = WP[S.near.i];
-    $('e-src').textContent = 'Weather: Curiosity REMS low and high for sol ' + w.sol + (w.wxMeasured ? '' : ' (last sol in the feed)') +
-      ', with the hourly curve modelled. Radiation: modelled from the RAD surface average, 0.67 mSv a day.';
-    if (recording) { var st = $('rec-status'); st.textContent = 'Recording: ' + fmt(S.dist) + ' m, ' + clock(S.t); st.className = 'rec on'; st.hidden = false; }
-    updateProbe(); drawProfile();
+    $('e-rad').textContent = us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h';        // 1 mrem = 10 µSv
+    $('e-dose').textContent = us() ? fmt(S.dose / 10, 2) + ' mrem' : fmt(S.dose, 1) + ' µSv';
+    if (recording) { var st = $('rec-status'); st.textContent = 'Recording: ' + len(S.dist) + ', ' + clock(S.t); st.className = 'rec on'; st.hidden = false; }
+    updateProbe(); drawProfile(); checkFit();
   }
 
   /* Rover view: the nearest Curiosity Navcam photo. */
@@ -480,11 +580,16 @@
     pg.beginPath(); pg.arc(x, y, 7, 0, 7); pg.fillStyle = '#0B5FFF'; pg.fill(); pg.strokeStyle = '#fff'; pg.lineWidth = 2.5; pg.stroke();
   }
 
-  function updateScale() {
-    var mpp = G.metresPerPixel(map.getZoom()), want = mpp * 130;
-    var p = Math.pow(10, Math.floor(Math.log10(want))), n = want / p, len = (n >= 5 ? 5 : n >= 2 ? 2 : 1) * p;
-    $('scale').firstElementChild.style.width = (len / mpp) + 'px';
-    $('scale').lastElementChild.textContent = len >= 1000 ? fmt(len / 1000) + ' km' : fmt(len) + ' m';
+  function nice(w) { var p = Math.pow(10, Math.floor(Math.log10(w))), n = w / p; return (n >= 5 ? 5 : n >= 2 ? 2 : 1) * p; }
+  function updateScale() {                              // a round length about 130 px long, in the chosen units
+    var mpp = G.metresPerPixel(map.getZoom()), want = mpp * 130, m, lab;
+    if (us()) {
+      var ft = want * FT;
+      if (ft >= 5280) { var mi = nice(ft / 5280); m = mi * 1609.344; lab = fmt(mi) + ' mi'; }
+      else { var f = nice(ft); m = f / FT; lab = fmt(f) + ' ft'; }
+    } else { m = nice(want); lab = m >= 1000 ? fmt(m / 1000) + ' km' : fmt(m) + ' m'; }
+    $('scale').firstElementChild.style.width = (m / mpp) + 'px';
+    $('scale').lastElementChild.textContent = lab;
   }
   map.on('zoomend', updateScale); updateScale();
   if (window.ResizeObserver) new ResizeObserver(function () { map.invalidateSize({ pan: false }); }).observe($('map'));   // the margins can reflow
@@ -492,25 +597,27 @@
   /* ================================================================== 8. Controls and the main loop */
   function setPlaying(p) {
     S.playing = p;
-    $('btn-play').textContent = p ? 'Pause'
-      : S.mode === 'replay' && atRouteEnd() ? 'Replay from the start'
-      : S.dist === 0 ? 'Start' : 'Resume';
+    var end = !p && S.mode === 'replay' && atRouteEnd();
+    MW.ui.setButton($('btn-play'), p ? 'pause' : end ? 'restart' : 'play', p ? 'Pause' : end ? 'Replay from the start' : S.dist === 0 ? 'Start' : 'Resume');
   }
   function showMode() {
     $('mode-replay').setAttribute('aria-pressed', S.mode === 'replay'); $('mode-manual').setAttribute('aria-pressed', S.mode === 'manual');
-    $('mode-replay').textContent = route === CURIOSITY ? "Replay Curiosity's drive" : 'Replay “' + route.name + '”';
+    MW.ui.setButton($('mode-replay'), 'route', route === CURIOSITY ? "Replay Curiosity's drive" : 'Replay “' + route.name + '”');
     $('pad').hidden = S.mode !== 'manual';
   }
   function setManual() { S.mode = 'manual'; target = null; showMode(); setPlaying(false); }
-  $('mode-replay').addEventListener('click', function () { if (S.mode !== 'replay') loadRoute(route); });
+  $('mode-replay').addEventListener('click', function () {
+    if (S.mode === 'replay') return;
+    if (route.id === 'plan') { S.mode = 'replay'; target = null; showMode(); setPlaying(false); }      // a planned route carries on; it does not start again
+    else loadRoute(route);
+  });
   $('mode-manual').addEventListener('click', function () { if (S.mode !== 'manual') setManual(); });
   $('btn-play').addEventListener('click', function () {
     if (!S.playing && S.mode === 'replay' && atRouteEnd()) loadRoute(route);
     setPlaying(!S.playing);
   });
   $('speed').addEventListener('change', function (e) { S.factor = +e.target.value; });
-  function setFollow(f) { S.follow = f; $('btn-follow').setAttribute('aria-pressed', f); }
-  $('btn-follow').addEventListener('click', function () { setFollow(!S.follow); if (S.follow) map.panTo(toLL(S.x, S.y)); });
+  function setFollow(f) { S.follow = f; $('z-walk').setAttribute('aria-pressed', f); }     // Walk is pressed while the map follows the walker
   map.on('dragstart', function () { setFollow(false); });
   $('z-walk').addEventListener('click', function () { setFollow(true); map.setView(toLL(S.x, S.y), 16); });
   $('z-crater').addEventListener('click', function () { setFollow(false); map.setView([-5.1, 137.8], 7); });
@@ -519,36 +626,116 @@
   $('z-out').addEventListener('click', function () { map.zoomOut(1); });
   $('btn-clear').addEventListener('click', function () { stopRecording(false); clearTrail(); setPlaying(false); });
   $('btn-back').addEventListener('click', function () {
-    showBack = !showBack; this.setAttribute('aria-pressed', showBack); this.textContent = showBack ? 'Hide way back' : 'Show way back';
+    showBack = !showBack; this.setAttribute('aria-pressed', showBack); MW.ui.setButton(this, 'wayback', showBack ? 'Hide way back' : 'Show way back');
     drawTrail();
   });
-  /* Legend column. Wide screens (Planner, Robot): the tab on its edge folds it away, remembered between
-     visits. Narrow screens and the Astronaut display: it is a drawer, opened by "Layers", closed by × or Escape. */
-  var COLLAR_KEY = 'marswalk.collarHidden';
-  function setCollarHidden(hid) {
-    $('app').classList.toggle('collar-hidden', hid);
-    var t = $('collar-tab'), lab = hid ? 'Show panel' : 'Hide panel';
-    t.setAttribute('aria-expanded', !hid); t.setAttribute('aria-label', lab); t.title = lab;
+  /* Legend column. The four tabs on its edge choose which part it shows; the open part's own tab folds it away.
+     Wide screens: whether it is folded away is remembered between visits. Narrow screens: it is a drawer over
+     the map, closed by its tab, by × or by Escape, and the tabs ride on the drawer's edge while it is open. */
+  var COLLAR_KEY = 'marswalk.collarHidden', tab = 'menu', narrow = window.matchMedia('(max-width: 860px)');
+  function panelOpen() { return narrow.matches ? $('collar').classList.contains('open') : !$('app').classList.contains('collar-hidden'); }
+  function showTabs() {
+    var open = panelOpen();
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) {
+      b.setAttribute('aria-pressed', open && b.getAttribute('data-tab-btn') === tab); b.setAttribute('aria-expanded', open);
+    });
   }
-  try { setCollarHidden(window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) { setCollarHidden(false); }
-  $('collar-tab').addEventListener('click', function () {
-    var hid = !$('app').classList.contains('collar-hidden');
-    setCollarHidden(hid);
+  function setCollarHidden(hid) {
+    $('app').classList.toggle('collar-hidden', hid); showTabs();
     try { window.localStorage.setItem(COLLAR_KEY, hid ? '1' : '0'); } catch (e) {}
-  });
-  function setDrawer(open) { $('collar').classList.toggle('open', open); $('btn-collar').setAttribute('aria-expanded', open); }
-  $('btn-collar').addEventListener('click', function () { setDrawer(!$('collar').classList.contains('open')); });
-  function closeDrawer() { if ($('collar').classList.contains('open')) { setDrawer(false); $('btn-collar').focus(); } }
+  }
+  function setDrawer(open) { $('collar').classList.toggle('open', open); $('app').classList.toggle('drawer-open', open); showTabs(); }
+  function openPanel(open) { if (narrow.matches) setDrawer(open); else setCollarHidden(!open); }
+  function closeDrawer() {
+    if (!$('collar').classList.contains('open')) return;
+    setDrawer(false); document.querySelector('#tabs [data-tab-btn="' + tab + '"]').focus();
+  }
+  try { $('app').classList.toggle('collar-hidden', window.localStorage.getItem(COLLAR_KEY) === '1'); } catch (e) {}
+  showTabs();
+  if (narrow.addEventListener) narrow.addEventListener('change', showTabs);
   $('collar-close').addEventListener('click', closeDrawer);
   window.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
 
-  /* The legend column has four parts. The buttons at its bottom choose which one is shown; Menu is shown first. */
-  function setTab(name) {
-    Array.prototype.forEach.call(document.querySelectorAll('#collar > [data-tab]'), function (s) { s.hidden = s.getAttribute('data-tab') !== name; });
-    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-tab-btn') === name); });
-    $('collar').scrollTop = 0; closeInfo();
+  function placeTabs() {
+    var home = document.body.classList.contains('ro-focus') && !narrow.matches ? $('app') : $('stage');
+    if ($('tabs').parentNode !== home) home.appendChild($('tabs'));
   }
-  $('tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-tab-btn]'); if (b) setTab(b.getAttribute('data-tab-btn')); });
+  if (narrow.addEventListener) narrow.addEventListener('change', placeTabs);
+  /* "Numbers first" never scrolls. Every size in that layout is a multiple of --k and the cards sit in --cols
+     columns (style.css). This tries each number of columns, finds the largest --k at which every ticked readout
+     is in view with no number cut short, and keeps the pair with the largest type. In a small window it first
+     drops the factor list and the two headings (class "tight") rather than let the type fall under half size. */
+  var FIT = [], fitK = 0, fitSig = '', FIT_ROOMY = 0.5;
+  for (var fk = 1.9; fk > 0.24; fk *= 0.95) FIT.push(+fk.toFixed(3));
+  function numbersFirst() { return document.body.classList.contains('ro-focus') && !narrow.matches; }
+  function shownValues() { return Array.prototype.filter.call(document.querySelectorAll('#strip [data-ro] > dd'), function (d) { return d.offsetParent !== null; }); }
+  function fitSignature(st, dds) {                      // what the fit depends on: the space, and how long each value is
+    return st.clientWidth + 'x' + st.clientHeight + '|' + dds.map(function (d) { return d.textContent.length; }).join(',');
+  }
+  function spills(st, dds) {                            // something no longer fits: a label grew a line, a value grew a digit
+    if (st.scrollHeight > st.clientHeight + 1) return true;
+    for (var i = 0; i < dds.length; i++) if (dds[i].id !== 'e-safe' && dds[i].scrollWidth > dds[i].clientWidth + 1) return true;
+    return false;
+  }
+  function fitNumbers() {
+    var st = $('strip');
+    if (!numbersFirst()) { if (fitK) { st.style.removeProperty('--k'); st.style.removeProperty('--cols'); st.classList.remove('tight'); fitK = 0; fitSig = ''; } return; }
+    var dds = shownValues();
+    var ok = function (k) {
+      st.style.setProperty('--k', k);
+      if (st.scrollHeight > st.clientHeight + 1) return false;
+      for (var i = 0; i < dds.length; i++) if (dds[i].id !== 'e-safe' && dds[i].scrollWidth > dds[i].clientWidth + 1) return false;
+      return true;
+    };
+    var best = function () {                            // over 2 to 8 columns: the largest size that fits, found by halving
+      var top = null;
+      for (var cols = 2; cols <= 8; cols++) {
+        st.style.setProperty('--cols', cols);
+        var lo = 0, hi = FIT.length - 1;
+        if (!ok(FIT[hi])) continue;
+        while (lo < hi) { var mid = (lo + hi) >> 1; if (ok(FIT[mid])) hi = mid; else lo = mid + 1; }
+        if (!top || FIT[lo] > top.k) top = { k: FIT[lo], cols: cols };
+      }
+      return top;
+    };
+    st.classList.remove('tight');
+    var pick = best();
+    if (!pick || pick.k < FIT_ROOMY) { st.classList.add('tight'); var t = best(); if (t) pick = t; else if (pick) st.classList.remove('tight'); }
+    pick = pick || { k: FIT[FIT.length - 1], cols: 6 };
+    st.style.setProperty('--cols', pick.cols); st.style.setProperty('--k', pick.k); fitK = pick.k;
+    fitSig = fitSignature(st, dds);
+  }
+  /* The side column does not scroll either: the rover view takes the height the notices leave, and steps aside
+     when that is under 120 px rather than show as a sliver. */
+  function fitSide() {
+    var pv = $('pov'); if (!numbersFirst()) { pv.classList.remove('nofit'); return; }
+    var stg = $('stage'), used = 0;
+    Array.prototype.forEach.call(stg.children, function (el) {
+      if (el === pv || el.hidden) return;
+      var cs = getComputedStyle(el); if (cs.position === 'absolute' || cs.display === 'none') return;
+      used += el.offsetHeight + parseFloat(cs.marginTop) + parseFloat(cs.marginBottom);
+    });
+    pv.classList.toggle('nofit', stg.clientHeight - used < 136);
+  }
+  function checkFit() {                                 // called with the readouts, five times a second: refit only when something it depends on changed
+    fitSide();
+    if (!numbersFirst()) { if (fitK) fitNumbers(); return; }
+    var st = $('strip'), dds = shownValues();
+    if (!fitK || fitSignature(st, dds) !== fitSig || spills(st, dds)) fitNumbers();
+  }
+  window.addEventListener('resize', function () { fitNumbers(); });
+  if (window.ResizeObserver) new ResizeObserver(function () { if (numbersFirst()) fitNumbers(); }).observe($('strip'));
+  function setTab(name) {                               // show one part of the column (the column itself may stay folded)
+    tab = name;
+    Array.prototype.forEach.call(document.querySelectorAll('#collar > [data-tab]'), function (s) { s.hidden = s.getAttribute('data-tab').split(' ').indexOf(name) < 0; });      // a part may list several tabs
+    $('collar').scrollTop = 0; closeInfo(); showTabs();
+  }
+  function openTab(name) { setTab(name); openPanel(true); }
+  $('tabs').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-tab-btn]'); if (!b) return;
+    var name = b.getAttribute('data-tab-btn');
+    if (panelOpen() && name === tab) openPanel(false); else openTab(name);
+  });
 
   /* (i) buttons: any button.info with data-info="key" opens the matching GLOSSARY entry (config.js) in one shared pop-up. */
   var infoBtn = null;
@@ -573,8 +760,9 @@
 
   var KEYMAP = { ArrowUp: 'fwd', w: 'fwd', W: 'fwd', ArrowDown: 'back', s: 'back', S: 'back', ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' };
   window.addEventListener('keydown', function (e) {
-    var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    var k = KEYMAP[e.key]; if (!k || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || !$('settings').hidden) return;
     if (settings.get('move') === 'click') return;        // Settings: taps only
+    if (MW.trailEdit && MW.trailEdit.active) return;     // the walker stands still while the trail is edited
     if (S.mode !== 'manual') setManual();
     keys[k] = true; if (!S.playing) setPlaying(true); e.preventDefault();
   });
@@ -586,6 +774,8 @@
     ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) { b.addEventListener(ev, function () { keys[k] = false; }); });
   });
   map.on('click', function (e) {
+    if (MW.trailEdit && MW.trailEdit.mapClick(e)) return;   // editing the trail: taps add points to it (js/trail-edit.js)
+    if (MW.navUI && MW.navUI.mapClick(e.latlng)) return;    // placing a marker or picking a destination comes first (js/nav-ui.js)
     if (inspectTrail(e.latlng)) return;
     if (MW.dustUI && MW.dustUI.inspect(e.latlng)) return;   // dust layer on and zoomed out: the tap reads that dust cell (js/dust-ui.js)
     if (S.mode === 'manual' && settings.get('move') !== 'keys') { target = toENU(e.latlng.lat, e.latlng.lng); setPlaying(true); }   // Settings: keys only switches this off
@@ -622,8 +812,8 @@
     var mv = settings.get('move');
     $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
     if (mv === 'keys') target = null;
-    renderSaved();
-    setTimeout(function () { map.invalidateSize({ pan: false }); }, 0);   // a display mode can change the map's size
+    renderSaved(); updateScale(); placeTabs();
+    setTimeout(function () { fitNumbers(); map.invalidateSize({ pan: false }); if (S.follow) map.panTo(toLL(S.x, S.y), { animate: false }); }, 0);   // hiding readouts or moving them can change the map's size
   }
   settings.onChange(applySettings);
 
@@ -648,6 +838,13 @@
     savedTrails: function () { return store.list(); },
     _state: S, _map: map, _trail: trail, _waypoints: WP, _layer: function () { return dataLayer; },
     _route: function () { return route; },               // the route being replayed; dust-ui.js checks the dust along it
-    setTab: setTab                                       // 'menu', 'overlay', 'dust' or 'time': show that part of the legend column
+    openTab: openTab,                                    // show that part and open the column if it is folded away
+    followPlan: followPlan,                              // { name, line: [[lat, lon], …] }: make it the route being followed
+    replaceTrail: replaceTrail,                          // [{ x, y }, …]: lay the trail again along an edited line (trail-edit.js)
+    pause: function () { setPlaying(false); },
+    saveTrail: offerSave,                                // offer to save the trail walked so far
+    closeDrawer: closeDrawer,                            // narrow screens: put the panel away so the map shows
+    _landmarks: lmLayer,                                 // the NASA place names: nav-ui.js hides them from its filter
+    setTab: setTab                                       // 'menu', 'nav', 'overlay', 'dust' or 'time': show that part of the legend column
   };
 })();

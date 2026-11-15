@@ -21,7 +21,71 @@
       <p>Mount Sharp boxwork, Gale crater<br>4.80° S, 137.38° E</p>
     </header>
 
-    <!-- The four parts of this column: data-tab says which button at the bottom shows each one (app.js, setTab) -->
+    <!-- The five parts of this column: data-tab says which tab on the column's edge shows each one (app.js, setTab) -->
+
+    <!-- Markers and routes: filled in and wired up by nav-ui.js from markers.js, router.js and terrain.js -->
+    <section id="nav-route" class="navsec" data-tab="nav" hidden>
+      <h2>Find a route <button type="button" class="info" data-info="safetyIndex" aria-label="What does this mean?">i</button></h2>
+      <label for="rt-q" class="mk-lab">Route to</label>
+      <div id="rt-bar" role="search">
+        <span data-icon="search"></span>
+        <input id="rt-q" type="search" autocomplete="off" spellcheck="false" placeholder="Marker, place or lat, lon" aria-label="Route: where to" aria-controls="rt-sug" aria-expanded="false">
+        <button id="rt-pick" type="button" class="ib" aria-pressed="false" aria-label="Pick the destination on the map" data-tip="Pick the destination on the map" data-icon="target"></button>
+      </div>
+      <ul id="rt-sug" role="listbox" aria-label="Destinations" hidden></ul>
+      <p id="rt-msg" role="alert" hidden></p>
+      <div class="row pair">
+        <label class="select"><span>Leave at</span><select id="rt-hour"></select></label>
+        <label class="select"><span>Preferred trail <button type="button" class="info" data-info="preferredTrail" aria-label="What does this mean?">i</button></span><select id="rt-pref"></select></label>
+      </div>
+      <div class="row pair">
+        <label class="select"><span>Dust and season of <button type="button" class="info" data-info="martianYear" aria-label="What does this mean?">i</button></span><select id="rt-my" disabled><option>loading…</option></select></label>
+        <label class="num"><span>Ls <button type="button" class="info" data-info="ls" aria-label="What does this mean?">i</button></span><input id="rt-ls" type="number" min="0" max="359" step="5" value="0" disabled></label>
+      </div>
+      <p id="rt-from" class="note"></p>
+      <ol id="rt-list" aria-label="Routes, safest first"></ol>
+      <div id="rt-notes"></div>
+      <div id="rt-tools" class="row icons" hidden>
+        <button id="rt-again" type="button" class="ib" aria-label="Work the routes out again from where the walker is now" data-tip="Work out again from my position" data-icon="refresh"></button>
+        <button id="rt-clear" type="button" class="ib" aria-label="Clear the routes" data-tip="Clear the routes" data-icon="trash"></button>
+      </div>
+      <p class="note">Type a marker or place name, or tap the target and then the map. Routes are scored for the active walker; a higher safety index is safer. Slope and climb are regional <button type="button" class="info" data-info="regionalSlope" aria-label="What does this mean?">i</button>: mark local hazards with a danger marker.</p>
+    </section>
+
+    <section id="nav-markers" class="navsec" data-tab="nav" hidden>
+      <h2>Your markers</h2>
+      <div class="row icons">
+        <button id="mk-add" type="button" class="ib" aria-pressed="false" aria-label="Add a marker: then tap the map" data-tip="Add a marker: then tap the map" data-icon="plus"></button>
+        <button id="mk-here" type="button" class="ib" aria-label="Mark where the walker is now" data-tip="Mark where the walker is now" data-icon="locate"></button>
+      </div>
+      <p id="mk-hint" class="rec on" role="status" hidden>Tap the map where the marker should go. Any point on the planet works.</p>
+      <form id="mk-form" hidden>
+        <label for="mk-name">Name</label>
+        <input id="mk-name" type="text" maxlength="60" autocomplete="off">
+        <span class="mk-lab" id="mk-icons-lab">Icon</span>
+        <div id="mk-icons" role="radiogroup" aria-labelledby="mk-icons-lab"></div>
+        <input id="mk-file" type="file" accept="image/*" hidden>
+        <p id="mk-role" class="note"></p>
+        <label id="mk-radius-row" class="num" hidden><span>Keep-clear distance, metres</span><input id="mk-radius" type="number" min="5" max="5000" step="5" value="50"></label>
+        <label for="mk-note">Description</label>
+        <textarea id="mk-note" rows="4" maxlength="2000" placeholder="What is here, what to watch for. **bold**, *italic* and - lists work."></textarea>
+        <p id="mk-where" class="note"></p>
+        <div class="row">
+          <button type="submit">Save marker</button>
+          <button id="mk-cancel" type="button">Cancel</button>
+        </div>
+      </form>
+      <p id="mk-msg" class="note" role="status" hidden></p>
+      <ul id="mk-list"></ul>
+    </section>
+
+    <section id="nav-filter" class="navsec" data-tab="nav" hidden>
+      <h2>Show on the map</h2>
+      <div id="mk-filter"></div>
+      <div class="row"><button id="mk-all" type="button">Show everything</button></div>
+      <p class="note">Everything is shown until you untick it. The eye beside a marker in the list above hides that one marker.</p>
+    </section>
+
     <section data-tab="overlay" hidden>
       <h2>Data over the photo map</h2>
       <div id="layer-list" role="radiogroup" aria-label="Data layer"></div>
@@ -81,7 +145,7 @@
         <p id="dust-when" class="note"></p>
         <div class="row">
           <button id="dust-prev" type="button" aria-label="Previous observation">◀</button>
-          <button id="dust-play" type="button" aria-pressed="false">Play</button>
+          <button id="dust-play" type="button" class="ib" aria-pressed="false" aria-label="Play" data-tip="Play" data-icon="play"></button>
           <button id="dust-next" type="button" aria-label="Next observation">▶</button>
           <label class="select"><span class="sr">Animation speed</span>
             <select id="dust-fps"><option value="2">Slow</option><option value="4" selected>Normal</option><option value="10">Fast</option></select>
@@ -94,7 +158,8 @@
       </div>
     </section>
 
-    <section data-tab="menu">
+    <!-- The trail and the saved trails show in two parts of the column: Menu, and Markers and routes -->
+    <section id="trail-sec" data-tab="menu nav">
       <h2>Your trail</h2>
       <ul class="trail-key" aria-label="Trail colour by number of passes">
         <li><i style="background:var(--t1)"></i>once</li>
@@ -102,10 +167,16 @@
         <li><i style="background:var(--t3)"></i>3 times</li>
         <li><i style="background:var(--t4)"></i>4 or more</li>
       </ul>
-      <p class="note">The line darkens each time you cross the same ground. Tap it to see every pass in order.</p>
+      <p class="note">The line darkens each time you cross the same ground. Tap it to see every pass in order, and to save or edit the trail.</p>
       <p id="rec-status" class="rec" role="status" hidden></p>
       <div class="row">
-        <button id="btn-rec" type="button" aria-pressed="false">Record a new trail</button>
+        <button id="btn-rec" type="button" class="lb" aria-pressed="false" data-icon="record"><span>Record a new trail</span></button>
+      </div>
+      <div class="row icons">
+        <button id="btn-save-now" type="button" class="ib" aria-label="Save the trail walked so far" data-tip="Save the trail walked so far" data-icon="save"></button>
+        <button id="btn-edit" type="button" class="ib" aria-label="Edit the trail walked so far" data-tip="Edit the trail walked so far" data-icon="edit"></button>
+        <button id="btn-back" type="button" class="ib" aria-pressed="false" aria-label="Show way back" data-tip="Show way back" data-icon="wayback"></button>
+        <button id="btn-clear" type="button" class="ib" aria-label="Clear trail" data-tip="Clear trail" data-icon="trash"></button>
       </div>
       <form id="save-form" hidden>
         <label for="save-name">Name this trail</label>
@@ -115,18 +186,14 @@
           <button id="btn-discard" type="button">Don't save</button>
         </div>
       </form>
-      <div class="row">
-        <button id="btn-back" type="button" aria-pressed="false">Show way back</button>
-        <button id="btn-clear" type="button">Clear trail</button>
-      </div>
     </section>
 
-    <section data-tab="menu">
+    <section id="saved-sec" data-tab="menu nav">
       <h2>Saved routes and trails</h2>
       <ul id="saved"></ul>
       <p id="store-msg" class="note" role="status" hidden></p>
-      <div class="row">
-        <button id="btn-import" type="button">Import a trail file</button>
+      <div class="row icons">
+        <button id="btn-import" type="button" class="ib" aria-label="Import a trail file" data-tip="Import a trail file" data-icon="upload"></button>
       </div>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
     </section>
@@ -145,24 +212,16 @@
       <p>Imagery and layers: NASA/JPL Mars Trek (MRO HiRISE and CTX, Viking, Odyssey THEMIS, MGS TES and MOLA, Mars Express HRSC). Route, weather and rover photos: NASA/JPL-Caltech Curiosity (MSL, REMS, Navcam). Radiation is a model built on the published RAD surface average. Dust optical depth: Montabone et al. climatology (MGS TES, Odyssey THEMIS, MRO MCS), CC BY-SA 3.0.</p>
     </footer>
 
-    <!-- Bottom of the column: which part is shown -->
-    <nav id="tabs" aria-label="Panel sections">
-      <button type="button" data-tab-btn="menu" aria-pressed="true">Menu</button>
-      <button type="button" data-tab-btn="overlay" aria-pressed="false">Map Overlay</button>
-      <button type="button" data-tab-btn="dust" aria-pressed="false">Dust Storm</button>
-      <button type="button" data-tab-btn="time" aria-pressed="false">Timeline</button>
-    </nav>
   </aside>
 
   <!-- ============ top bar: who moves the pointer, and the view ============ -->
   <div id="bar" role="toolbar" aria-label="Movement and view">
-    <button id="btn-collar" type="button" class="only-narrow" aria-controls="collar" aria-expanded="false">Menu</button>
     <div class="seg" role="group" aria-label="Who moves the pointer">
-      <button id="mode-replay" type="button" aria-pressed="true">Replay Curiosity's drive</button>
-      <button id="mode-manual" type="button" aria-pressed="false">Walk it yourself</button>
+      <button id="mode-replay" type="button" class="ib" aria-pressed="true" aria-label="Replay Curiosity's drive" data-tip="Replay Curiosity's drive" data-icon="route"></button>
+      <button id="mode-manual" type="button" class="ib" aria-pressed="false" aria-label="Walk it yourself" data-tip="Walk it yourself" data-icon="walk"></button>
     </div>
-    <button id="btn-play" type="button">Start</button>
-    <label class="select inline plan"><span>Speed</span>
+    <button id="btn-play" type="button" class="ib" aria-label="Start" data-tip="Start" data-icon="play"></button>
+    <label class="select inline ico-label" data-tip="Speed"><span data-icon="speed"></span><span class="sr">Speed</span>
       <select id="speed">
         <option value="1">Real time</option>
         <option value="10">10×</option>
@@ -171,29 +230,42 @@
       </select>
     </label>
     <span class="spacer"></span>
-    <label class="select inline plan"><span>Walker</span><select id="walker"></select></label>
-    <button id="btn-settings" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
-    <button id="btn-follow" type="button" aria-pressed="true">Follow me</button>
-    <div class="seg plan" role="group" aria-label="Map scale">
-      <button id="z-walk" type="button">Walk</button>
-      <button id="z-crater" type="button">Crater</button>
-      <button id="z-planet" type="button">Planet</button>
+    <label class="select inline ico-label" data-tip="Walker"><span data-icon="person"></span><span class="sr">Walker</span><select id="walker"></select></label>
+    <!-- Map scale. Walk also keeps the walker in view (it is pressed while the map follows them); dragging the map stops that. -->
+    <div class="seg" role="group" aria-label="Map scale">
+      <button id="z-walk" type="button" class="ib" aria-pressed="true" aria-label="Walk scale, following the walker" data-tip="Walk scale: follow the walker" data-icon="locate"></button>
+      <button id="z-crater" type="button" class="ib" aria-label="Crater scale" data-tip="Crater scale" data-icon="crater"></button>
+      <button id="z-planet" type="button" class="ib" aria-label="Planet scale" data-tip="Planet scale" data-icon="globe"></button>
     </div>
     <div class="seg" role="group" aria-label="Zoom">
-      <button id="z-out" type="button" aria-label="Zoom out">−</button>
-      <button id="z-in" type="button" aria-label="Zoom in">+</button>
+      <button id="z-out" type="button" class="ib" aria-label="Zoom out" data-tip="Zoom out">−</button>
+      <button id="z-in" type="button" class="ib" aria-label="Zoom in" data-tip="Zoom in">+</button>
     </div>
+    <button id="btn-settings" class="ib" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings" aria-label="Settings" data-tip="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M20.22 9.46 L22.76 9.71 L22.76 14.29 L20.22 14.54 L19.61 16.01 L21.23 17.99 L17.99 21.23 L16.01 19.61 L14.54 20.22 L14.29 22.76 L9.71 22.76 L9.46 20.22 L7.99 19.61 L6.01 21.23 L2.77 17.99 L4.39 16.01 L3.78 14.54 L1.24 14.29 L1.24 9.71 L3.78 9.46 L4.39 7.99 L2.77 6.01 L6.01 2.77 L7.99 4.39 L9.46 3.78 L9.71 1.24 L14.29 1.24 L14.54 3.78 L16.01 4.39 L17.99 2.77 L21.23 6.01 L19.61 7.99 Z M15.6 12 A3.6 3.6 0 1 0 8.4 12 A3.6 3.6 0 1 0 15.6 12 Z"/></svg></button>
   </div>
 
   <!-- ============ the map ============ -->
   <main id="stage">
     <div id="map" aria-label="Map of the walk"></div>
-    <!-- Tab on the legend column's edge: folds the column away (wide screens, Planner and Robot displays) -->
-    <button id="collar-tab" type="button" aria-controls="collar" aria-expanded="true" aria-label="Hide panel" title="Hide panel">
-      <svg viewBox="0 0 10 18" aria-hidden="true"><polyline points="8,2 2,9 8,16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </button>
+    <!-- Tabs on the legend column's edge: each shows its part of the column; the open part's tab folds the column away -->
+    <nav id="tabs" aria-label="Panel sections">
+      <button type="button" data-tab-btn="menu" aria-pressed="true" aria-controls="collar" aria-label="Menu: your trail and saved routes" data-tip="Menu" data-tip-side="right" data-icon="menu"></button>
+      <button type="button" data-tab-btn="nav" aria-pressed="false" aria-controls="collar" aria-label="Markers and routes" data-tip="Markers and routes" data-tip-side="right" data-icon="pin"></button>
+      <button type="button" data-tab-btn="overlay" aria-pressed="false" aria-controls="collar" aria-label="Map overlay" data-tip="Map overlay" data-tip-side="right" data-icon="layers"></button>
+      <button type="button" data-tab-btn="dust" aria-pressed="false" aria-controls="collar" aria-label="Dust storm" data-tip="Dust storm" data-tip-side="right" data-icon="dust"></button>
+      <button type="button" data-tab-btn="time" aria-pressed="false" aria-controls="collar" aria-label="Timeline" data-tip="Timeline" data-tip-side="right" data-icon="clock"></button>
+    </nav>
     <div id="banner" role="alert" hidden></div>
     <div id="dust-warn" role="status" hidden></div>
+    <div id="pick-hint" role="status" hidden></div>
+    <div id="safe-alarm" role="alert" hidden></div>
+    <div id="edit-bar" role="toolbar" aria-label="Trail editing" hidden>
+      <p>Editing the trail. Drag a point to move it, tap a point for more, tap the line to add a point.</p>
+      <button id="edit-undo" type="button" class="lb" data-icon="undo" disabled><span>Undo</span></button>
+      <button id="edit-done" type="button" class="lb" data-icon="check"><span>Done</span></button>
+      <button id="edit-cancel" type="button" class="lb" data-icon="close"><span>Cancel</span></button>
+    </div>
+    <div id="hover-read" aria-hidden="true" hidden></div>
     <div id="scale" aria-hidden="true"><i></i><span></span></div>
 
     <figure id="pov" hidden>
@@ -215,73 +287,118 @@
       <p id="pad-hint">W A S D or arrow keys. Tap the map to walk to a spot.</p>
     </div>
 
-    <!-- Settings panel: wired up in settings.js, choices listed in config.js -->
-    <section id="settings" role="dialog" aria-label="Settings" hidden>
-      <header><h2>Settings</h2><button id="settings-close" type="button" aria-label="Close settings">×</button></header>
-
-      <h3>Walker</h3>
-      <label class="select"><span class="sr">Active walker</span><select id="set-walker"></select></label>
-      <div class="row">
-        <input id="set-walker-name" type="text" maxlength="30" autocomplete="off" aria-label="Walker's name">
-        <select id="set-walker-type" aria-label="Kind of walker"><option value="astronaut">Astronaut</option><option value="robot">Robot</option></select>
-      </div>
-      <div class="row">
-        <button id="set-walker-add" type="button">Add a walker</button>
-        <button id="set-walker-remove" type="button">Remove this one</button>
-      </div>
-      <p class="note">Every recorded trail carries its walker's name and kind, and landmark visits are counted per walker.</p>
-
-      <h3>Display</h3>
-      <div id="set-display" class="seg"></div>
-      <p class="note">Planner shows everything. Astronaut keeps a few large readouts for a glance through a visor. Robot gives exact coordinates.</p>
-
-      <h3>App colours</h3>
-      <div id="set-theme" class="seg"></div>
-
-      <h3>Trail</h3>
-      <div id="set-trail-colour" class="sws" role="group" aria-label="Trail colour"></div>
-      <label class="slider"><span>Width</span><input id="set-trail-width" type="range" min="0.5" max="2.5" step="0.25"></label>
-
-      <h3>Pointer</h3>
-      <div id="set-pointer-colour" class="sws" role="group" aria-label="Pointer colour"></div>
-      <label class="slider"><span>Size</span><input id="set-pointer-size" type="range" min="0.7" max="2.2" step="0.1"></label>
-
-      <h3>Moving the pointer</h3>
-      <div id="set-move" class="seg"></div>
-      <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
-
-      <div class="row"><button id="set-reset" type="button">Back to the original look</button></div>
-    </section>
   </main>
 
   <!-- ============ bottom strip: the head-up readouts ============ -->
   <div id="strip" aria-label="Position and conditions">
     <dl id="nav">
-      <div class="plan"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
-      <div class="robot"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
-      <div class="plan"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
-      <div><dd id="r-hdg">–</dd><dt>looking</dt></div>
-      <div><dd id="r-dist">–</dd><dt>walked</dt></div>
-      <div><dd id="r-home">–</dd><dt id="r-home-l">straight back to base</dt></div>
-      <div><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
+      <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
+      <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
+      <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="hdg"><dd id="r-hdg">–</dd><dt>bearing</dt></div>
+      <div data-ro="dist"><dd id="r-dist">–</dd><dt>distance travelled</dt></div>
+      <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
+      <div data-ro="time"><dd id="r-time">–</dd><dt id="r-time-l">on the surface</dt></div>
     </dl>
     <dl id="env">
-      <div id="probe" hidden>
+      <div id="safe-read" data-ro="safety">
+        <dd id="e-safe"><b id="e-safe-n">–</b><span id="e-safe-w"></span></dd>
+        <dt><span id="e-safe-l">safety index here</span> <button type="button" class="info" data-info="liveSafety" aria-label="What does this mean?">i</button></dt>
+        <ul id="e-safe-f" aria-label="Safety factors"></ul>
+      </div>
+      <div id="probe" data-ro="probe" hidden>
         <dd id="p-val">–</dd>
         <i id="p-bar" aria-hidden="true"><b id="p-tick"></b></i>
         <dt id="p-lab"></dt>
       </div>
-      <div class="plan"><dd id="e-air">–</dd><dt>air <button type="button" class="info" data-info="temperature" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-gnd">–</dd><dt>ground</dt></div>
-      <div class="plan"><dd id="e-p">–</dd><dt>pressure <button type="button" class="info" data-info="pressure" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
-      <div class="plan"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
-      <div><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
-      <div id="dust-read"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
-      <p id="e-src" class="note plan"></p>
+      <div data-ro="air"><dd id="e-air">–</dd><dt>air <button type="button" class="info" data-info="temperature" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="gnd"><dd id="e-gnd">–</dd><dt>ground</dt></div>
+      <div data-ro="p"><dd id="e-p">–</dd><dt>pressure <button type="button" class="info" data-info="pressure" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="uv"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="rad"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
   </div>
 </div>
+
+<!-- ============ Settings: a full-screen page over the app. Wired up in settings.js, choices listed in config.js ============ -->
+<section id="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+  <header class="set-head">
+    <h2 id="settings-title"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" fill-rule="evenodd" d="M20.22 9.46 L22.76 9.71 L22.76 14.29 L20.22 14.54 L19.61 16.01 L21.23 17.99 L17.99 21.23 L16.01 19.61 L14.54 20.22 L14.29 22.76 L9.71 22.76 L9.46 20.22 L7.99 19.61 L6.01 21.23 L2.77 17.99 L4.39 16.01 L3.78 14.54 L1.24 14.29 L1.24 9.71 L3.78 9.46 L4.39 7.99 L2.77 6.01 L6.01 2.77 L7.99 4.39 L9.46 3.78 L9.71 1.24 L14.29 1.24 L14.54 3.78 L16.01 4.39 L17.99 2.77 L21.23 6.01 L19.61 7.99 Z M15.6 12 A3.6 3.6 0 1 0 8.4 12 A3.6 3.6 0 1 0 15.6 12 Z"/></svg>Settings</h2>
+    <p class="note">Changes apply straight away and are kept for your next visit.</p>
+    <button id="settings-close" type="button" aria-label="Close settings">Done</button>
+  </header>
+  <div class="set-body">
+    <div class="set-grid">
+
+      <section class="set-card set-wide" aria-labelledby="set-display-h">
+        <h3 id="set-display-h">Display</h3>
+        <p class="note">Tick the readouts you want to see beside the map.</p>
+        <div class="row ro-tools">
+          <button id="set-ro-all" type="button">Show all</button>
+          <button id="set-ro-none" type="button">Hide all</button>
+        </div>
+        <div id="set-readouts"></div>
+        <h4>How the readouts look</h4>
+        <div class="set-pair">
+          <div><span class="set-lab">Units</span><div id="set-units" class="seg" role="group" aria-label="Units"></div></div>
+          <div><span class="set-lab">Layout</span><div id="set-layout" class="seg" role="group" aria-label="Layout of the readouts"></div></div>
+        </div>
+        <p class="note">US units: feet, °F, psi and millirem. The column sits beside the map on wide screens. "Numbers first" swaps the two: the readouts fill the screen in large type and the map becomes a mini-map in the top right corner. On narrow screens the readouts always sit under the map.</p>
+        <div class="set-pair">
+          <div><label class="set-lab" for="set-alarm-at">Sound the safety alarm when the live index is</label><select id="set-alarm-at"></select></div>
+        </div>
+        <div class="ro-list">
+          <label class="check"><input id="set-ro-large" type="checkbox"><span>Large readouts<span class="dsub">Big numbers for a glance through a visor</span></span></label>
+          <label class="check"><input id="set-alarm" type="checkbox"><span>Safety alarm<span class="dsub">Warn when the live safety index falls below the limit, changes quickly, or one factor turns critical</span></span></label>
+          <label class="check"><input id="set-alarm-sound" type="checkbox"><span>Alarm sound<span class="dsub">Three short beeps with the warning</span></span></label>
+          <label class="check"><input id="set-ro-exact" type="checkbox"><span>Exact numbers<span class="dsub">Full precision: distances to two decimals, time in seconds, heading to a tenth of a degree</span></span></label>
+        </div>
+      </section>
+
+      <section class="set-card set-wide" aria-labelledby="set-theme-h">
+        <h3 id="set-theme-h">App colours</h3>
+        <div id="set-theme" role="group" aria-label="App colours"></div>
+        <p class="note">The night themes are easier on the eyes in the dark; Night red keeps them adjusted to it. High contrast is for bright light.</p>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-walker-h">
+        <h3 id="set-walker-h">Walker</h3>
+        <label class="select"><span class="sr">Active walker</span><select id="set-walker"></select></label>
+        <div class="row">
+          <input id="set-walker-name" type="text" maxlength="30" autocomplete="off" aria-label="Walker's name">
+          <select id="set-walker-type" aria-label="Kind of walker"><option value="astronaut">Astronaut</option><option value="robot">Robot</option></select>
+        </div>
+        <div class="row">
+          <button id="set-walker-add" type="button">Add a walker</button>
+          <button id="set-walker-remove" type="button">Remove this one</button>
+        </div>
+        <p class="note">Every recorded trail carries its walker's name and kind, and landmark visits are counted per walker.</p>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-trail-h">
+        <h3 id="set-trail-h">Trail</h3>
+        <div id="set-trail-colour" class="sws" role="group" aria-label="Trail colour"></div>
+        <label class="slider"><span>Width</span><input id="set-trail-width" type="range" min="0.5" max="2.5" step="0.25"></label>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-pointer-h">
+        <h3 id="set-pointer-h">Pointer</h3>
+        <div id="set-pointer-colour" class="sws" role="group" aria-label="Pointer colour"></div>
+        <label class="slider"><span>Size</span><input id="set-pointer-size" type="range" min="0.7" max="2.2" step="0.1"></label>
+      </section>
+
+      <section class="set-card" aria-labelledby="set-move-h">
+        <h3 id="set-move-h">Moving the pointer</h3>
+        <div id="set-move" class="seg"></div>
+        <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
+      </section>
+
+    </div>
+    <div class="row set-foot"><button id="set-reset" type="button">Back to the original look</button></div>
+  </div>
+</section>
 
 <!-- One small pop-up shared by every (i) button; the texts are GLOSSARY in config.js -->
 <div id="info-pop" role="dialog" aria-label="Explanation" hidden></div>
@@ -294,11 +411,20 @@
 <script src="tiles.js"></script>
 <script src="trail.js"></script>
 <script src="store.js"></script>
+<script src="markers.js"></script>
 <script src="landmarks.js"></script>
+<script src="ui.js"></script>
 <script src="settings.js"></script>
 <script src="app.js"></script>
+<script src="trail-edit.js"></script>
 <script src="dust-data.js"></script>
+<!-- Precomputed dust baselines, made by build_dust_baselines.js. Optional: without it the page works them out itself (slower). -->
+<script src="dust-baselines.js"></script>
 <script src="dust.js"></script>
 <script src="dust-ui.js"></script>
+<script src="terrain-data.js"></script>
+<script src="terrain.js"></script>
+<script src="router.js"></script>
+<script src="nav-ui.js"></script>
 </body>
 </html>
