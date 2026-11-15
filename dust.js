@@ -65,8 +65,67 @@
       P = { grid: g, n: n, years: years, lut: lut, source: pack.source, quantity: pack.quantity, built: pack.built,
             stepSols: pack.time.stepSols, notIncluded: pack.notIncluded || [] };
       analyses.clear(); records.clear();
-      return api;
+      return loadBaselines(pack).then(function () { return api; });
     });
+  }
+
+  /* ------------------------------------------------------------------ precomputed baselines (dust-baselines.js) */
+  /* Working the baselines out here froze the page for about a second per Martian Year. build_dust_baselines.js
+     precomputes them into dust-baselines.js; this reads that file. Without it, or if it was built from other data
+     or other settings, baselineForBin works them out as before: same results, just slower. */
+  var pre = null;                  // { T: decoded planes, yi: Martian Year -> index, has: stored bins per year }
+  function baselineFingerprint(pack) {     // data pack + the settings that shape a baseline (FNV-1a)
+    var s = JSON.stringify([pack.built, pack.encoding.scale, K.LS_BIN, K.LS_WINDOW, K.MIN_YEARS, K.MIN_VALUES, K.SIGMA_REL, K.SIGMA_ABS]) + pack.data, h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h >>> 0).toString(16);
+  }
+  function gunzipBase64(b64) {
+    var bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    var gz = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) gz[i] = bin.charCodeAt(i);
+    return new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer().then(function (b) { return new Uint8Array(b); });
+  }
+  function loadBaselines(pack) {
+    pre = null;
+    var F = root.MARSWALK_DUST_BASELINES, bins = Math.round(360 / K.LS_BIN), yrs = P.years.map(function (y) { return y.my; });
+    if (!F) return Promise.resolve();
+    if (F.format !== 'marswalk-dust-baselines' || F.version !== 1 || F.n !== P.n || F.bins !== bins || F.years.join() !== yrs.join() ||
+        F.fingerprint !== baselineFingerprint(pack)) {
+      console.warn('dust-baselines.js does not match this dust data or these settings, so the page works the baselines out itself (slower). Rebuild it with: node build_dust_baselines.js');
+      return Promise.resolve();
+    }
+    return gunzipBase64(F.data).then(function (bytes) {
+      var Y = yrs.length, E = bins * P.n * Y, pl = [], i, j;
+      if (bytes.length !== 9 * E) throw new Error('wrong size');
+      for (i = 0; i < 9; i++) {                            // each plane is stored as differences from the entry before
+        var a = bytes.subarray(i * E, (i + 1) * E), prev = 0;
+        for (j = 0; j < E; j++) { prev = (prev + a[j]) & 255; a[j] = prev; }
+        pl.push(a);
+      }
+      var plus = function (a, b) { for (var k = 0; k < E; k++) b[k] = (b[k] + a[k]) & 255; return b; };   // second of a pair: stored relative to the first
+      var cnt = new Uint16Array(E);
+      for (j = 0; j < E; j++) cnt[j] = pl[7][j] | (pl[8][j] << 8);
+      var yi = new Map(); yrs.forEach(function (my, k) { yi.set(my, k); });
+      pre = { yi: yi, has: F.has, T: { Y: Y, n: P.n, mA: pl[0], mB: plus(pl[0], pl[1]), pA: pl[2], pB: plus(pl[2], pl[3]),
+                                       dA: pl[4], dB: plus(pl[4], pl[5]), yrs: pl[6], cnt: cnt } };
+    }).catch(function (e) { pre = null; console.warn('dust-baselines.js could not be read (' + e.message + '), so the page works the baselines out itself (slower).'); });
+  }
+  /* One Ls bin's baseline from the stored readings: the same arithmetic as baselineForBin, so the same Float32 values. */
+  function pairAt(a, b, m, x, k) { return k + 1 < m ? a + (b - a) * (x - k) : a; }
+  function decodeBaselineBin(T, yi, bin) {
+    var n = T.n, lut = P.lut;
+    var out = { med: new Float32Array(n), p90: new Float32Array(n), sig: new Float32Array(n), cnt: new Uint16Array(n), yrs: new Uint8Array(n) };
+    for (var c = 0; c < n; c++) {
+      var e = (bin * n + c) * T.Y + yi, m = T.cnt[e], yrs = T.yrs[e];
+      out.cnt[c] = m; out.yrs[c] = yrs;
+      if (yrs < K.MIN_YEARS || m < K.MIN_VALUES) { out.med[c] = out.p90[c] = out.sig[c] = NAN; continue; }
+      var xm = (m - 1) * 0.5, km = Math.floor(xm), xp = (m - 1) * 0.9, kp = Math.floor(xp);
+      var med = pairAt(lut[T.mA[e]], lut[T.mB[e]], m, xm, km);
+      var da = Math.fround(Math.abs(lut[T.dA[e]] - med)), db = Math.fround(Math.abs(lut[T.dB[e]] - med));
+      out.med[c] = med; out.p90[c] = pairAt(lut[T.pA[e]], lut[T.pB[e]], m, xp, kp);
+      out.sig[c] = Math.max(1.4826 * pairAt(da, db, m, xm, km), K.SIGMA_REL * med, K.SIGMA_ABS);
+    }
+    return out;
   }
   var ready = null;
   function load() {
@@ -110,7 +169,11 @@
     return k + 1 < n ? sorted[k] + (sorted[k + 1] - sorted[k]) * f : sorted[k];
   }
   /* For every cell: statistics of the OBSERVED values near one season, from every year except `excludeMy`. */
-  function baselineForBin(excludeMy, bin) {
+  function baselineForBin(excludeMy, bin, compute) {     // compute: ignore dust-baselines.js (the build script's reference)
+    if (pre && !compute) {
+      var yi = pre.yi.get(excludeMy);
+      if (yi !== undefined && pre.has[yi].charAt(bin) === '1') return decodeBaselineBin(pre.T, yi, bin);
+    }
     var n = P.n, centre = (bin + 0.5) * K.LS_BIN, lut = P.lut;
     var out = { med: new Float32Array(n), p90: new Float32Array(n), sig: new Float32Array(n), cnt: new Uint16Array(n), yrs: new Uint8Array(n) };
     var picks = [];
@@ -402,6 +465,7 @@
     get pack() { return P; },
     years: function () { return P.years.map(function (y) { return y.my; }); },
     year: year, cellAt: cellAt, cellBounds: cellBounds, frameAtLs: frameAtLs, framesInLs: framesInLs, lsDiff: lsDiff,
+    baselineFingerprint: baselineFingerprint, decodeBaselineBin: decodeBaselineBin, usingPrecomputed: function () { return !!pre; },
     analyse: analyse, assess: assess, series: series, seasonalRisk: seasonalRisk, routeExposure: routeExposure,
     implications: implications, baselineForBin: baselineForBin,
     record: function (my) { return records.get(my) || null; },

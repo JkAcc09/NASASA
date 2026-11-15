@@ -137,7 +137,7 @@
   }
   function setPlaying(p) {
     st.playing = p; clearInterval(timer); timer = null;
-    $('dust-play').textContent = p ? 'Pause' : 'Play'; $('dust-play').setAttribute('aria-pressed', p);
+    MW.ui.setButton($('dust-play'), p ? 'pause' : 'play', p ? 'Pause' : 'Play'); $('dust-play').setAttribute('aria-pressed', p);
     if (p && !st.on) setOn(true);                          // playing the timeline shows what it plays
     if (p) timer = setInterval(function () { step(1); }, 1000 / st.fps);
   }
@@ -338,14 +338,15 @@
     else if (ex.kmNoData > 0) html += '<p class="note">Part of the route has no observation for these sols. That is a gap in the data, not a clear sky.</p>';
     else html += '<p class="note">Dust along the route is inside the normal range for the season on these sols.</p>';
 
-    /* alternatives: the app has no path-finder, so the only alternatives it can offer are the other stored routes, and other seasons */
+    /* alternatives: dust is one value per cell hundreds of km wide, so a different path inside the cell reads the same.
+       What can differ is another stored route in another cell, or another season. Paths are compared in nav-ui.js. */
     var others = allRoutes().filter(function (o) { return o.id !== r.id; }).map(function (o) { return { name: o.name, ex: D.routeExposure(o.points, st.my, st.frame) }; });
     var better = others.filter(function (o) { return o.ex.score < ex.score - 1e-9; }).sort(function (p, q) { return p.ex.score - q.ex.score; });
     if (ex.worst >= 2 || ex.kmNoData > 0) {
       html += '<p><b>Alternatives</b></p>';
       html += better.length ? '<p class="note">Lower dust exposure on these sols: ' + better.slice(0, 3).map(function (o) { return esc(o.name) + ' (' + K.CLASSES[o.ex.worst] + ')'; }).join(', ') + '.</p>'
         : '<p class="note">' + (others.length ? 'None of the ' + others.length + ' other stored routes has lower dust exposure on these sols' + (ex.cells === 1 ? ': at this resolution they share the same cell' : '') + '.'
-          : 'There is no other stored route to compare.') + ' Marswalk has no path-finder, so it cannot draw a detour; a detour would have to leave this ' + D.pack.grid.dlon + '° × ' + D.pack.grid.dlat + '° cell to change the reading.</p>';
+          : 'There is no other stored route to compare.') + ' A detour would have to leave this ' + D.pack.grid.dlon + '° × ' + D.pack.grid.dlat + '° cell to change the dust reading; Markers and routes compares the ways to a destination on everything else.</p>';
       var cs = clearestSeason(ex.sections[0].cell);
       if (cs) html += '<p class="note">Timing: in the record, this place is clearest around Ls ' + (cs.best.ls - 15) + '°–' + (cs.best.ls + 15) + '° (median optical depth ' + tau(cs.best.med) + ') and dustiest around Ls ' + (cs.worst.ls - 15) + '°–' + (cs.worst.ls + 15) + '° (' + tau(cs.worst.med) + ') ' + tag('HISTORICAL') + '. A record of past years, not a forecast.</p>';
     }
@@ -419,7 +420,7 @@
     $('dust-unpin').addEventListener('click', function () { st.pin = null; map.closePopup(); renderAll(); });
     $('dust-warn').addEventListener('click', function (e) {
       if (e.target.id !== 'dust-warn-more') return;
-      $('app').classList.remove('collar-hidden'); $('collar').classList.add('open'); app.setTab('dust'); $('dust-route').scrollIntoView({ block: 'start' });
+      app.openTab('dust'); $('dust-route').scrollIntoView({ block: 'start' });
     });
     map.on('popupclose', function (e) { if (e.popup.options.className === 'dust-pop' && st.pin !== null) { pinLine.setLatLngs([]); } });
     MW.settings.onChange(function () { if (ready) drawChart(); });

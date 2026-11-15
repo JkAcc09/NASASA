@@ -30,9 +30,30 @@ MW.config = {
   },
   POINTER_COLOURS: { blue: '#0B5FFF', yellow: '#FFD400', green: '#19C37D', red: '#E5263A', white: '#FFFFFF' },
   THEMES: {                       // name shown in Settings; colours live in css/style.css under body[data-theme]
-    blue: 'Blue', night: 'Night blue', grey: 'Grey'
+    blue: 'Blue', grey: 'Grey', sand: 'Sand', green: 'Green', violet: 'Violet', contrast: 'High contrast',
+    night: 'Night blue', teal: 'Night teal', black: 'Black', red: 'Night red'
   },
-  DISPLAYS: { planner: 'Planner', astronaut: 'Astronaut', robot: 'Robot' },
+  READOUTS: [                     // the readouts along the bottom of the screen, ticked on or off in Settings > Display
+    { group: 'Position and movement', key: 'pos',   name: 'Position from base',   what: 'how far east and north of base',      on: true },
+    { group: 'Position and movement', key: 'll',    name: 'Latitude and longitude', what: 'to six decimal places',             on: false },
+    { group: 'Position and movement', key: 'z',     name: 'Height',               what: 'above the MOLA datum',                on: true },
+    { group: 'Position and movement', key: 'hdg',   name: 'Bearing',              what: 'which way the walker is facing',     on: true },
+    { group: 'Position and movement', key: 'dist',  name: 'Distance travelled',   what: 'since the walk began',                on: true },
+    { group: 'Position and movement', key: 'home',  name: 'Displacement from base', what: 'straight line, or back along the trail when Show way back is on',  on: true },
+    { group: 'Position and movement', key: 'time',  name: 'Time on the surface',  what: 'and the local time of day',           on: true },
+    { group: 'Conditions',            key: 'safety', name: 'Safety index, live',  what: 'how safe it is to be where the walker is now, 0 to 100', on: true },
+    { group: 'Conditions',            key: 'probe', name: 'Map layer reading',    what: 'when a map overlay is switched on',   on: true },
+    { group: 'Conditions',            key: 'air',   name: 'Air temperature',      what: 'just above the ground',                                  on: true },
+    { group: 'Conditions',            key: 'gnd',   name: 'Ground temperature',   what: 'at the surface',                                  on: true },
+    { group: 'Conditions',            key: 'p',     name: 'Air pressure',         what: 'of the thin Martian air',               on: true },
+    { group: 'Conditions',            key: 'uv',    name: 'UV level',             what: 'low to very high',                    on: true },
+    { group: 'Conditions',            key: 'rad',   name: 'Radiation dose rate',  what: 'per hour, from the surface',            on: true },
+    { group: 'Conditions',            key: 'dose',  name: 'Dose this walk',       what: 'received so far',                       on: true },
+    { group: 'Conditions',            key: 'dust',  name: 'Dust activity',        what: 'dust storm class here and now',       on: true }
+  ],
+  UNITS: { si: 'SI (metres, °C)', us: 'US (feet, °F)' },
+  RO_LAYOUTS: { row: 'Row along the bottom', column: 'Column beside the map', focus: 'Numbers first, mini-map' },
+  ALARM_LEVELS: [40, 50, 60, 70],   // choices for "alarm when the live safety index is below"; the default is in settings.js
   MOVES: { hybrid: 'Keys and taps', keys: 'Keys only', click: 'Taps only' },
   DEFAULT_WALKERS: [{ id: 'w1', name: 'Astronaut 1', type: 'astronaut' }, { id: 'w2', name: 'Rover 1', type: 'robot' }],
 
@@ -161,10 +182,86 @@ MW.config = {
     TREND_COLOURS: { increasing: '#C2321F', stable: '#C9C2A6', decreasing: '#2F6FB0', unknown: '#7C8794' }
   },
 
+  /* ---- Markers (js: markers.js, nav-ui.js). The four built-in icons; the first is the default. ----
+   *   name    shown in the icon picker and the filter      colour  the badge on the map
+   *   role    what the route-finder does with a marker of this kind */
+  MARKER_ICONS: {
+    pin:    { name: 'Pin',    colour: '#6D28D9', role: 'A note or a destination.' },
+    home:   { name: 'Home',   colour: '#0E8A5F', role: 'A base or shelter: the route-finder measures "distance from the nearest base" to it.' },
+    crater: { name: 'Crater', colour: '#37474F', role: 'A crater or other landform worth finding again.' },
+    danger: { name: 'Danger', colour: '#D7263D', role: 'A hazard: routes keep outside its keep-clear distance.' }
+  },
+  MARKER_MAX_ICONS: 12,         // uploaded icons kept in the browser
+  MARKER_ICON_PX: 64,           // an uploaded picture is shrunk to this many pixels square
+
+  /* ---- Route-finder (router.js). Every limit, weight and threshold of the safety index is here. ----
+   * These are this project's own planning assumptions, not NASA flight rules. Slope and climb come from the
+   * terrain pack (terrain.js), which resolves features about 15 km across: they are regional values. */
+  ROUTER: {
+    GRID: 120,                  // the search grid is at most this many cells along its longer side
+    CELL_MIN: 3,                // m, the smallest search cell
+    MARGIN: 0.35,               // room searched either side of the straight line, as a share of its length...
+    MARGIN_MIN: 150,            // ...and never less than this many metres
+    WX_RADIUS: 150000,          // m from base inside which Curiosity's REMS temperatures are used
+    RETURN_DETOUR: 1.25,        // the way back to the nearest base is taken as the straight line times this
+    AT_BASE: 30,                // m: a destination this close to a base needs no way back
+    DANGER_RADIUS: 50,          // m: keep-clear distance of a danger marker unless the marker sets its own
+    PREFER_MARGIN: 5,           // the preferred trail is recommended when its index is within this many points of the best
+    TWILIGHT: 0.4,              // hours of usable light before sunrise and after sunset
+    TAG_GOOD: 0.25,             // a factor at or below this risk is given as a reason the route is safe
+    TAG_BAD: 0.5,               // a factor at or above this risk is given as a reason it is unsafe
+    MEAN_SHARE: 0.6,            // the index mixes the weighted mean of the risks (this share) with the single worst one (the rest)
+    DUST_RISK: [0.4, 0, 0.45, 0.85, 1],     // risk by activity class: NO DATA, LOW, MODERATE, HIGH, SEVERE
+    DUST_RISING: 0.1,           // added when optical depth has been increasing
+    /* What each kind of walker can do, and how much each factor counts for them (weights add up to 1).
+     *   speed m/s on level ground     climbRate metres of climb that cost one extra hour (0: no extra time)
+     *   hours the longest outing, out and back     sols, driveHours a robot's longest traverse and its driving day
+     *   slopeEasy..slopeMax regional slope, degrees: no risk below, impassable above. Measured over about 7 km, only
+     *       0.25 % of Mars is steeper than 10° and 0.004 % steeper than 20°; the flank of Mount Sharp at the boxwork is 8.5°
+     *   climbRef a climb this high is full risk; climbMax is refused     baseFar m from the nearest base that is full risk
+     *   tempRef a fall in air temperature this large (°C) is full risk     dustBlock activity class that closes a route
+     *   unknownRef metres of ground nobody has walked or driven that count as full risk (a short hop off the trail counts less) */
+    WALKERS: {
+      astronaut: { speed: 1.2, climbRate: 600, hours: 8, needsReturn: true, slopeEasy: 6, slopeMax: 18, climbRef: 600, climbMax: 1500,
+        baseFar: 5000, tempRef: 40, unknownRef: 2000, dustBlock: 4,
+        w: { dust: 0.20, slope: 0.12, climb: 0.08, base: 0.14, time: 0.14, temp: 0.08, dark: 0.10, unknown: 0.08, hazard: 0.06 } },
+      robot: { speed: 0.04, climbRate: 0, sols: 30, driveHours: 6, needsReturn: false, slopeEasy: 8, slopeMax: 22, climbRef: 1500, climbMax: 5000,
+        baseFar: 20000, tempRef: 60, unknownRef: 1000, dustBlock: 4,
+        w: { dust: 0.24, slope: 0.20, climb: 0.08, base: 0.04, time: 0.18, temp: 0.02, dark: 0, unknown: 0.14, hazard: 0.10 } }
+    },
+    IMPORTANCE: { dust: 1, slope: 1, time: 1, dark: 0.9, hazard: 0.9, base: 0.8, climb: 0.7, temp: 0.7, unknown: 0.6 },   // how far one bad factor alone can pull the index down
+    /* The live index: the same factors, worked out for where the walker stands now (router.js, live). And its alarm. */
+    LIVE: {
+      OFF_TRAIL: 300,           // m from the nearest known trail that counts as full risk
+      FACTOR_ALARM: 0.8,        // one factor at or above this risk raises the alarm...
+      FACTOR_CLEAR: 0.7,        // ...until it falls back below this
+      INDEX_CLEAR: 5,           // the index alarm stops once the index is this many points back above the limit
+      DROP: 15,                 // a fall of this many index points...
+      JUMP: 0.3,                // ...or a rise of this much in one factor's risk...
+      WINDOW: 600               // ...within this many seconds of the walk counts as a large change
+    }
+  },
+
   /* ---- Explanations behind the (i) buttons. A button carries data-info="key"; app.js shows the entry.
    *   term   the heading          what   what it is, in plain words, with its unit
    *   why    why a walker cares   basis  where the number comes from: measured, historical, interpolated or modelled */
   GLOSSARY: {
+    liveSafety: { term: 'Live safety index',
+      what: 'The safety index for where the walker stands at this moment, from 0 to 100: higher is safer. It uses the same factors as a route: dust here, regional slope, height above base, distance from the nearest base, time used plus the way back, temperature drop, daylight left for the way back, distance from known trails, and distance from marked hazards.',
+      why: 'It changes as you walk. If it falls below your limit, drops quickly, or one factor turns critical, the safety alarm says which factor and why. Turn the readout and the alarm on or off in Settings > Display.',
+      basis: 'Calculated by Marswalk about once a second. Dust is OBSERVED from orbit for the Timeline\'s date; slope and height are regional (MOLA shape model, about 15 km); temperature and daylight are MODELLED. The limits are this project\'s planning assumptions, not NASA flight rules.' },
+    safetyIndex: { term: 'Safety index',
+      what: 'A score from 0 to 100 for one route: higher is safer. It combines dust activity, regional slope, climb, distance from the nearest base, travel time, temperature drop, daylight, how much of the route is on ground already walked, and how close it passes to marked hazards. One bad factor pulls the score down even when the rest are good.',
+      why: 'It lets you compare routes at a glance. The tags under each route say which factors help and which hurt.',
+      basis: 'Calculated by Marswalk. Dust is OBSERVED from orbit for the date chosen on the Timeline; slope and climb are regional, from the MOLA shape model (about 15 km resolution), so a local cliff does not show; temperature and daylight are MODELLED. The limits and weights are this project\'s planning assumptions, not NASA flight rules.' },
+    regionalSlope: { term: 'Regional slope and climb',
+      what: 'The tilt of the land measured over kilometres, in degrees, and the height gained along a route in metres.',
+      why: 'A long steady climb costs time and energy. It does not tell you about a cliff, a dune or a boulder field on the way: mark those with a danger marker.',
+      basis: 'From the MarsTopo719 shape model of Mars (MGS MOLA laser altimetry) and the GMM-3 gravity model. It resolves features about 15 km across.' },
+    preferredTrail: { term: 'Preferred trail',
+      what: 'One saved trail (or Curiosity\'s drive) that you have starred as the way you would rather go.',
+      why: 'The route-finder checks a route along it first and recommends it whenever it is nearly as safe as the best route found.',
+      basis: 'Your own choice, kept in this browser.' },
     activityClass: { term: 'Activity class',
       what: 'How unusual the dust in the air is for this place and season: LOW, MODERATE, HIGH or SEVERE. NO DATA means nothing was observed, not that the air is clear.',
       why: 'HIGH or SEVERE can mean less light, less solar power and a walk worth rescheduling.',

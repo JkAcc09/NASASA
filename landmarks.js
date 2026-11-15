@@ -184,7 +184,8 @@
       markers.forEach(function (m, i) { var on = group.hasLayer(m); if (show[i] && !on) group.addLayer(m); else if (!show[i] && on) group.removeLayer(m); });
     }
     map.on('zoomend moveend', refresh); refresh();
-    return { refresh: refresh };
+    return { refresh: refresh,
+      setVisible: function (on) { if (on) { group.addTo(map); refresh(); } else map.removeLayer(group); } };   // the markers filter can hide the names
   }
 
   MW.landmarks = { list: LIST, contains: contains, entries: entries, attach: attach };
