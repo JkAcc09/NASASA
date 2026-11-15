@@ -98,6 +98,19 @@
     </section>
 
     <!-- Dust storm activity: filled in by dust-ui.js from dust.js and dust-data.js -->
+    <!-- Offline map: the service worker (sw.js) and saving the walk area. Filled in by offline.js -->
+    <section id="offline-sec" data-tab="overlay" hidden>
+      <h2>Offline map <button type="button" class="info" data-info="offline" aria-label="What does this mean?">i</button></h2>
+      <p id="off-status" class="note"></p>
+      <div class="row"><button id="off-save" type="button">Save the walk area</button><button id="off-clear" type="button">Delete kept tiles</button></div>
+      <div id="off-confirm" class="pl-box" hidden>
+        <p id="off-plan"></p>
+        <div class="row"><button id="off-go" type="button">Save it</button><button id="off-cancel" type="button">Cancel</button></div>
+      </div>
+      <div class="row"><button id="off-stop" type="button" hidden>Stop saving</button></div>
+      <p id="off-msg" class="note" role="status" hidden></p>
+    </section>
+
     <section id="dust" class="dustsec" data-tab="dust" hidden>
       <h2>Dust storm activity</h2>
       <label class="check"><input id="dust-on" type="checkbox"><span>DUST STORM ACTIVITY</span><span id="dust-res" class="res"></span></label>
@@ -128,6 +141,15 @@
     </section>
 
     <!-- Timeline: the same dust data through time. Filled in by dust-ui.js -->
+    <!-- Best season for a walk here: the whole dust record for one place. Drawn by season.js -->
+    <section id="season-sec" class="dustsec" data-tab="dust" hidden>
+      <h2>Best season for a walk here <button type="button" class="info" data-info="season" aria-label="What does this mean?">i</button></h2>
+      <p id="season-where" class="note">Loading the dust record…</p>
+      <canvas id="season-chart" width="536" height="230" aria-label="Dust optical depth through the Martian year at this place, in all observed years"></canvas>
+      <p class="note">Grey band: median to 90th percentile of the dust in every observed year (HISTORICAL). Red bars: the share of years with HIGH or SEVERE dust in that season. Green: the clearest 60° of Ls. Blue line: the Timeline's date. A record of past years, not a forecast.</p>
+      <div id="season-text"></div>
+    </section>
+
     <section id="dust-time" class="dustsec" data-tab="time" hidden>
       <h2>Timeline</h2>
       <p id="dust-time-status" class="note" role="status">Loading the dust observations…</p>
@@ -156,6 +178,36 @@
         <p id="dust-chart-note" class="note"></p>
         <div id="dust-events"></div>
       </div>
+    </section>
+
+    <!-- Go to a place: the location selector, checkpoints and view links. Filled in by places-ui.js -->
+    <section id="places-sec" data-tab="menu">
+      <h2>Go to a place <button type="button" class="info" data-info="places" aria-label="What does this mean?">i</button></h2>
+      <div id="pl-bar" role="search">
+        <span data-icon="search"></span>
+        <input id="pl-q" type="search" autocomplete="off" spellcheck="false" placeholder="Place, marker, checkpoint or sol" aria-label="Search places, markers, checkpoints and Curiosity stops">
+      </div>
+      <div id="pl-list" aria-label="Places"></div>
+      <div id="pl-confirm" class="pl-box" role="alertdialog" aria-labelledby="pl-confirm-text" hidden>
+        <p id="pl-confirm-text"></p>
+        <div class="row"><button id="pl-save-first" type="button">Save the trail first</button><button id="pl-go" type="button">Move anyway</button><button id="pl-cancel" type="button">Cancel</button></div>
+      </div>
+      <p id="pl-msg" class="note" role="status" hidden></p>
+      <div class="row icons">
+        <button id="pl-home" type="button" class="ib" aria-label="Back to the walker" data-tip="Back to the walker" data-icon="locate"></button>
+        <button id="pl-cp-view" type="button" class="ib" aria-label="Save the map view as a checkpoint" data-tip="Save the map view as a checkpoint" data-icon="star"></button>
+        <button id="pl-cp-walker" type="button" class="ib" aria-label="Save the walker's position as a checkpoint" data-tip="Save the walker's position as a checkpoint" data-icon="pin"></button>
+        <button id="pl-link" type="button" class="ib" aria-label="Copy a link to this view" data-tip="Copy a link to this view" data-icon="globe"></button>
+        <button id="pl-cp-file" type="button" class="ib" aria-label="Download your checkpoints" data-tip="Download your checkpoints" data-icon="download"></button>
+        <button id="pl-cp-import" type="button" class="ib" aria-label="Import a checkpoints file" data-tip="Import a checkpoints file" data-icon="upload"></button>
+      </div>
+      <input id="pl-cp-input" type="file" accept=".json,application/json" hidden>
+      <form id="pl-save" hidden>
+        <label id="pl-save-lab" for="pl-save-name">Name this checkpoint</label>
+        <input id="pl-save-name" type="text" maxlength="60" autocomplete="off">
+        <div class="row"><button type="submit">Save checkpoint</button><button id="pl-save-cancel" type="button">Cancel</button></div>
+      </form>
+      <p class="note">The arrow shows a place on the map; the walker stays put. The walker icon moves the walker there with a new trail: nearby the base stays, far away the base moves too, because a flat map of metres is only accurate near its centre.</p>
     </section>
 
     <!-- The trail and the saved trails show in two parts of the column: Menu, and Markers and routes -->
@@ -198,6 +250,13 @@
       <input id="import-file" type="file" accept=".json,application/json" hidden>
     </section>
 
+    <!-- Walk together: the other walkers on the map at the same time. Filled in by companions.js -->
+    <section id="mates-sec" data-tab="menu">
+      <h2>Walk together <button type="button" class="info" data-info="companions" aria-label="What does this mean?">i</button></h2>
+      <ul id="mates"></ul>
+      <p class="note">Another walker can stand by, replay a route beside you while Start is pressed, or follow its own position fixes.</p>
+    </section>
+
     <section data-tab="menu">
       <h2>Measured along the route</h2>
       <label class="select"><span class="sr">Colour the route stops by</span>
@@ -205,7 +264,7 @@
       </label>
       <div id="route-legend" class="ramp" hidden><span id="ramp-min"></span><i></i><span id="ramp-max"></span></div>
       <canvas id="profile" width="536" height="150" aria-label="Elevation along the route"></canvas>
-      <p class="note">Height along the route <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button>, from Curiosity's own position fixes. The blue mark is you.</p>
+      <p class="note">Height along the route <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button>, from Curiosity's own position fixes. The blue mark is you. Colour the stops by "Slope along the drive" <button type="button" class="info" data-info="slope" aria-label="What does this mean?">i</button> to see the steep parts.</p>
     </section>
 
     <footer data-tab="menu">
@@ -257,6 +316,7 @@
     </nav>
     <div id="banner" role="alert" hidden></div>
     <div id="dust-warn" role="status" hidden></div>
+    <div id="budget-warn" role="alert" hidden></div>
     <div id="pick-hint" role="status" hidden></div>
     <div id="safe-alarm" role="alert" hidden></div>
     <div id="edit-bar" role="toolbar" aria-label="Trail editing" hidden>
@@ -295,6 +355,7 @@
       <div data-ro="pos"><dd id="r-pos">–</dd><dt>from base, east and north</dt></div>
       <div data-ro="ll"><dd id="r-ll">–</dd><dt>latitude, east longitude</dt></div>
       <div data-ro="z"><dd id="r-z">–</dd><dt><span id="r-z-l">height, MOLA datum</span> <button type="button" class="info" data-info="elevation" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="slope"><dd id="r-slope">–</dd><dt><span id="r-slope-l">slope here</span> <button type="button" class="info" data-info="slope" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="hdg"><dd id="r-hdg">–</dd><dt>bearing</dt></div>
       <div data-ro="dist"><dd id="r-dist">–</dd><dt>distance travelled</dt></div>
       <div data-ro="home"><dd id="r-home">–</dd><dt id="r-home-l">displacement from base</dt></div>
@@ -317,6 +378,9 @@
       <div data-ro="uv"><dd id="e-uv">–</dd><dt>UV <button type="button" class="info" data-info="uv" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="rad"><dd id="e-rad">–</dd><dt>dose rate <button type="button" class="info" data-info="dose" aria-label="What does this mean?">i</button></dt></div>
       <div data-ro="dose"><dd id="e-dose">–</dd><dt>dose this walk</dt></div>
+      <div data-ro="o2"><dd id="e-o2">–</dd><dt><span id="e-o2-l">oxygen left</span> <button type="button" class="info" data-info="walkBudget" aria-label="What does this mean?">i</button></dt></div>
+      <div data-ro="batt"><dd id="e-batt">–</dd><dt><span id="e-batt-l">battery left</span></dt></div>
+      <div data-ro="turn"><dd id="e-turn">–</dd><dt><span id="e-turn-l">turn back in</span></dt></div>
       <div id="dust-read" data-ro="dust"><dd id="e-dust">…</dd><dt><span id="e-dust-l">dust activity</span> <button type="button" class="info" data-info="activityClass" aria-label="What does this mean?">i</button></dt></div>
     </dl>
   </div>
@@ -393,6 +457,9 @@
         <h3 id="set-move-h">Moving the pointer</h3>
         <div id="set-move" class="seg"></div>
         <p class="note">Keys are W A S D, the arrow keys and the on-screen pad. A tap walks the pointer to the spot you touch.</p>
+        <div class="ro-list">
+          <label class="check"><input id="set-hover" type="checkbox"><span>Show hover information<span class="dsub">In "Walk it yourself", a panel beside the mouse shows what a tap would lead to: distance, time, conditions. Turn it off to keep the map clear; walking and the readouts are unchanged.</span></span></label>
+        </div>
       </section>
 
     </div>
@@ -415,16 +482,24 @@
 <script src="landmarks.js"></script>
 <script src="ui.js"></script>
 <script src="settings.js"></script>
+<script src="budget.js"></script>
+<script src="places.js"></script>
 <script src="app.js"></script>
 <script src="trail-edit.js"></script>
-<script src="dust-data.js"></script>
+<!-- The dust packs (7 MB) load after the map's first view, not with the page (lazy.js). build.py makes them ordinary scripts in marswalk.html. -->
+<script src="lazy.js"></script>
+<script type="text/plain" data-lazy="dust" data-lazy-src="dust-data.js"></script>
 <!-- Precomputed dust baselines, made by build_dust_baselines.js. Optional: without it the page works them out itself (slower). -->
-<script src="dust-baselines.js"></script>
+<script type="text/plain" data-lazy="dust" data-lazy-src="dust-baselines.js"></script>
 <script src="dust.js"></script>
 <script src="dust-ui.js"></script>
 <script src="terrain-data.js"></script>
 <script src="terrain.js"></script>
 <script src="router.js"></script>
 <script src="nav-ui.js"></script>
+<script src="places-ui.js"></script>
+<script src="season.js"></script>
+<script src="companions.js"></script>
+<script src="offline.js"></script>
 </body>
 </html>

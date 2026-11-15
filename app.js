@@ -7,7 +7,9 @@
  *   3. Pointer and state         8. Controls, settings and the main loop
  *   4. Trail drawing
  *
- * Real sensors plug in through window.Marswalk.setPose({ lat, lon, heading }).
+ * Real sensors plug in through window.Marswalk.setPose({ lat, lon, heading }); add walker: 'id' to move a companion.
+ * Moving the walker to another place (places-ui.js) goes through moveWalker, which keeps the base when the place
+ * is near and starts a new site with its own base when it is far (geo.js, setOrigin).
  */
 (function () {
   'use strict';
@@ -156,6 +158,9 @@
       '<path class="me-arrow" d="M0 -18 L12 13 L0 6.5 L-12 13 Z" fill="currentColor" stroke-width="2.6" stroke-linejoin="round"/></g></svg>'   // colour and size come from Settings, as CSS variables
   });
   var me = L.marker([G.ORIGIN.lat, G.ORIGIN.lon], { icon: meIcon, interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(map);
+  /* At Gale the base is the first route stop (drawn in section 2). At any other site it is this mark. */
+  var siteBase = L.circleMarker([0, 0], { renderer: routeR, radius: 8, color: '#000', weight: 2, fillColor: '#fff', fillOpacity: 1, interactive: false })
+    .bindTooltip('Base', { permanent: true, direction: 'left', offset: [-8, 0] });
 
   var S = {
     x: 0, y: 0, heading: G.ORIGIN.yaw,   // metres from base, degrees clockwise from north
@@ -164,8 +169,10 @@
     factor: 30,                          // time speed-up
     t: 0, dist: 0, dose: 0,              // seconds, metres and µSv since this trail began
     follow: true, external: false,
-    near: { i: 0, z: G.ORIGIN.z, d: 0, s: 0 }   // nearest place on the reference route
+    near: { i: 0, z: G.ORIGIN.z, d: 0, s: 0 },  // nearest place on the reference route
+    budget: MW.budget.fresh()            // oxygen and battery used on this walk (budget.js, MODELLED)
   };
+  var bAcc = { dt: 0, moved: 0, z: null }, lastBudget = null;   // what the walk has cost since the readouts were last worked out
 
   /* ================================================================== 4. Trail drawing */
   var trail = new MW.Trail();
@@ -190,7 +197,7 @@
     trail.dirty = false;
   }
   function clearTrail() {
-    trail.reset(); S.dist = 0; S.t = 0; S.dose = 0;
+    trail.reset(); S.dist = 0; S.t = 0; S.dose = 0; S.budget = MW.budget.fresh(); bAcc = { dt: 0, moved: 0, z: null };
     trail.add(S.x, S.y, 0, meta()); drawTrail(); map.closePopup();
   }
   function passList(passes) {
@@ -231,12 +238,15 @@
   /* --- replay: follow `route`, either Curiosity's drive or a saved trail --- */
   var CURIOSITY = { id: 'curiosity', name: "Curiosity's drive", stops: true, pts: WP.map(function (w) { return { x: w.x, y: w.y, hdg: w.yaw }; }) };
   function routeFromRecord(rec) {
-    return { id: rec.id, name: rec.name, stops: false, pts: rec.points.map(function (p) { var e = toENU(p[0], p[1]); return { x: e.x, y: e.y, hdg: p[3] || 0 }; }) };
+    siteFor(rec.base || { lat: rec.points[0][0], lon: rec.points[0][1] }, rec.site);      // a trail walked at another site is replayed there
+    return { id: rec.id, name: rec.name, stops: false, rec: rec, pts: rec.points.map(function (p) { var e = toENU(p[0], p[1]); return { x: e.x, y: e.y, hdg: p[3] || 0 }; }) };
   }
   var route = CURIOSITY, replay = { seg: 0, f: 0, hold: 0 };
 
   /* Put the pointer at the start of a route, standing still, with a fresh trail. */
   function loadRoute(r) {
+    if (r === CURIOSITY && !G.SITE.gale) setSite(G.GALE);                     // Curiosity's drive is at Gale
+    else if (r.rec) r = routeFromRecord(r.rec);                               // laid again: the site may have changed since
     route = r; S.mode = 'replay'; target = null; stopRecording(false);
     replay.seg = 0; replay.f = 0; replay.hold = 0;
     S.x = r.pts[0].x; S.y = r.pts[0].y; S.heading = r.pts[0].hdg;
@@ -304,15 +314,63 @@
     return best;
   }
   function nearestOnRoute() { S.near = nearestRoutePoint(S.x, S.y); }
+  /* Metres from Curiosity's base at Gale, for a point in local x and y. REMS weather is only used within
+     ROUTER.WX_RADIUS of it (the route-finder uses the same limit); farther away there is no measurement. */
+  function galeDist(x, y) {
+    if (G.SITE.gale) return Math.hypot(x, y);
+    var ll = toLL(x, y); return G.haversine({ lat: ll[0], lon: ll[1] }, G.GALE);
+  }
+  function wxHere(x, y) { return galeDist(x, y) <= C.ROUTER.WX_RADIUS; }
 
-  /* Conditions "now": REMS gives each sol's low and high; the hour-by-hour curve between them is modelled. */
-  function conditions(i, t) {                          // no arguments: here and now. Otherwise at route stop i, t seconds into the walk
+  /* Conditions "now": REMS gives each sol's low and high; the hour-by-hour curve between them is modelled.
+     Away from Gale the temperatures, pressure and UV are null: not measured there. */
+  function conditions(i, t, wxOk) {                    // no arguments: here and now. Otherwise at route stop i, t seconds into the walk
     var w = WP[i === undefined ? S.near.i : i].wx, hour = (C.START_HOUR + (t === undefined ? S.t : t) / C.MARS_HOUR) % 24;
     var day = function (peak) { return 0.5 + 0.5 * Math.cos((hour - peak) / 24 * 2 * Math.PI); };
+    if (wxOk === undefined) wxOk = wxHere(S.x, S.y);
     return {
-      hour: hour, air: w.tmin + (w.tmax - w.tmin) * day(14.5), gnd: w.gmin + (w.gmax - w.gmin) * day(13),
-      p: w.p, uv: w.uv, rate: C.RAD_RATE * (1 + 0.03 * Math.cos((hour - 16) / 24 * 2 * Math.PI))
+      hour: hour, measured: wxOk,
+      air: wxOk ? w.tmin + (w.tmax - w.tmin) * day(14.5) : null, gnd: wxOk ? w.gmin + (w.gmax - w.gmin) * day(13) : null,
+      p: wxOk ? w.p : null, uv: wxOk ? w.uv : null, rate: C.RAD_RATE * (1 + 0.03 * Math.cos((hour - 16) / 24 * 2 * Math.PI))
     };
+  }
+  /* Height where the walker stands: Curiosity's survey on the route, else the regional model, else nothing. */
+  function heightHere() {
+    if (S.near.d <= 25) return { z: S.near.z, how: 'survey' };
+    var T = MW.terrain, ll = toLL(S.x, S.y);
+    if (T && T.ready) { var z = T.heightAt(ll[0], ll[1]); if (z !== null) return { z: z, how: 'model' }; }
+    if (S.near.d < 5000) return { z: S.near.z, how: 'nearest' };
+    return null;
+  }
+  /* Slope where the walker stands: along the drive from Curiosity's fixes (local, about 60 m), else regional. */
+  function slopeHere() {
+    if (S.near.d <= 25) return { deg: Math.abs(WP[S.near.i].grade), how: 'drive', up: WP[S.near.i].grade >= 0 };
+    var T = MW.terrain, ll = toLL(S.x, S.y);
+    if (T && T.ready) { var s = T.slopeAt(ll[0], ll[1]); if (s !== null) return { deg: s, how: 'regional' }; }
+    return null;
+  }
+  /* Distance to the nearest base: this site's base, or a marker with the Home icon. */
+  function backDistance() {
+    var d = Math.hypot(S.x, S.y), ll = toLL(S.x, S.y), here = { lat: ll[0], lon: ll[1] };
+    if (MW.markers) MW.markers.list().forEach(function (m) { if (m.icon === 'home') d = Math.min(d, G.haversine(here, m)); });
+    return d;
+  }
+  function sunHere(c) {                                // W/m² on a robot's panels: season and dust from the Timeline's date
+    var st = MW.dustUI && MW.dustUI.state, D = MW.dust, ls = 0, tau = 0.5, ll = toLL(S.x, S.y);
+    if (D && D.pack && st && st.my !== null && st.my !== undefined) ls = D.year(st.my).ls[st.frame];
+    var d = MW.navUI && MW.navUI.dustAt ? MW.navUI.dustAt(ll[0], ll[1]) : null;
+    if (d && d.tau !== null && d.tau !== undefined) tau = d.tau;                    // no dust data: assume a hazy 0.5, never clear air
+    return MW.budget.sunlight(ll[0], c.hour, ls, tau);
+  }
+  /* Use up what the walk has cost since last time, and read what is left. Called with the readouts. */
+  function updateBudget(c, h) {
+    var kind = settings.walker().type === 'robot' ? 'robot' : 'astronaut', sun = kind === 'robot' ? sunHere(c) : 0;
+    var z = h ? h.z : null, climbed = bAcc.z !== null && z !== null ? Math.max(0, z - bAcc.z) : 0;
+    if (bAcc.dt > 0) MW.budget.step(S.budget, { kind: kind, dt: bAcc.dt, moved: bAcc.moved, climbed: climbed, air: c.air, sun: sun });
+    var moving = bAcc.dt > 0 && bAcc.moved / bAcc.dt > 0.05;
+    bAcc = { dt: 0, moved: 0, z: z };
+    lastBudget = MW.budget.read(S.budget, { kind: kind, back: backDistance(), air: c.air, sun: sun, moving: moving });
+    return lastBudget;
   }
 
   /* ================================================================== 6. Recording and saved trails */
@@ -471,13 +529,14 @@
      is ticked in Settings > Display, worked out for the spot under the mouse and the moment you would arrive. */
   var hoverBox = $('hover-read'), hoverAt = null, hoverRaf = 0, mouseLike = true;
   function hoverWanted() {
-    return mouseLike && S.mode === 'manual' && settings.get('move') !== 'keys' && !S.external && !(MW.trailEdit && MW.trailEdit.active) && !(MW.navUI && MW.navUI.picking());
+    return settings.get('hoverInfo') !== false &&        // Settings > Moving the pointer > Show hover information
+      mouseLike && S.mode === 'manual' && settings.get('move') !== 'keys' && !S.external && !(MW.trailEdit && MW.trailEdit.active) && !(MW.navUI && MW.navUI.picking());
   }
   function drawHover() {
     hoverRaf = 0;
     if (!hoverAt || !hoverWanted()) { hoverBox.hidden = true; return; }
     var ro = settings.get('readouts'), ll = hoverAt.latlng, e = toENU(ll.lat, ll.lng), d = Math.hypot(e.x - S.x, e.y - S.y), walk = d / C.WALK, tArr = S.t + walk;
-    var near = nearestRoutePoint(e.x, e.y), c = conditions(near.i, tArr), k = us() ? FT : 1, u = us() ? ' ft' : ' m', rows = '';
+    var near = nearestRoutePoint(e.x, e.y), c = conditions(near.i, tArr, wxHere(e.x, e.y)), k = us() ? FT : 1, u = us() ? ' ft' : ' m', rows = '';
     var row = function (key, val, lab) { if (ro[key]) rows += '<dt>' + lab + '</dt><dd>' + val + '</dd>'; };
     row('pos', 'E ' + G.signed(e.x * k) + u + ', N ' + G.signed(e.y * k) + u, 'from base');
     row('ll', ll.lat.toFixed(6) + '°, ' + ll.lng.toFixed(6) + '°', 'latitude, longitude');
@@ -495,10 +554,12 @@
       var sm = dataLayer.sample(ll.lat, ll.lng), pv = sm && !sm.nodata ? (activeDef.read === 'rgb' ? sm.rgb.map(function (v) { return Math.round(v * 100); }).join(' / ') : Math.round((activeDef.stretch ? sm.view : sm.value) * 100) + ' of 100') : sm ? 'no data' : '…';
       row('probe', pv, activeDef.what);
     }
-    row('air', us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C', 'air on arrival');
-    row('gnd', us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C', 'ground on arrival');
-    row('p', us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa', 'pressure');
-    row('uv', UV[c.uv] || '–', 'UV');
+    if (c.measured) {
+      row('air', us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C', 'air on arrival');
+      row('gnd', us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C', 'ground on arrival');
+      row('p', us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa', 'pressure');
+      row('uv', UV[c.uv] || '–', 'UV');
+    } else row('air', '–', 'weather: not measured this far from Gale');
     row('rad', us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h', 'dose rate');
     var dose = S.dose + c.rate * walk / 3600;
     row('dose', us() ? fmt(dose / 10, 2) + ' mrem' : fmt(dose, 1) + ' µSv', 'dose on arrival');
@@ -525,20 +586,26 @@
     var k = us() ? FT : 1, u = us() ? ' ft' : ' m';
     $('r-pos').textContent = exact ? 'E ' + (S.x * k).toFixed(2) + u + ', N ' + (S.y * k).toFixed(2) + u : 'E ' + G.signed(S.x * k) + u + ', N ' + G.signed(S.y * k) + u;
     $('r-ll').textContent = ll[0].toFixed(6) + '°, ' + ll[1].toFixed(6) + '°';
-    $('r-z').textContent = (off ? '≈ ' : '') + minus(S.near.z * k, 1) + u;
-    $('r-z-l').textContent = off ? 'height of nearest route point' : 'height, MOLA datum';
+    var h = heightHere(), sl = slopeHere();
+    $('r-z').textContent = !h ? '–' : (h.how === 'survey' ? '' : '≈ ') + minus(h.z * k, h.how === 'model' ? 0 : 1) + u;
+    $('r-z-l').textContent = !h ? 'height: no data here yet' : h.how === 'survey' ? 'height, MOLA datum' : h.how === 'model' ? 'height, regional model' : 'height of nearest route point';
+    $('r-slope').textContent = !sl ? '–' : (sl.how === 'regional' ? '≈ ' : '') + fmt(sl.deg, sl.how === 'drive' ? 1 : 0) + '°';
+    $('r-slope-l').textContent = !sl ? 'slope: no data here yet' : sl.how === 'drive' ? 'slope along the drive, ' + (sl.up ? 'uphill' : 'downhill') + " in Curiosity's direction" : 'slope here, regional (about 15 km)';
     $('r-hdg').textContent = exact ? norm(S.heading).toFixed(1) + '°' : String(Math.round(norm(S.heading)) % 360).padStart(3, '0') + '° ' + compass(S.heading);
     $('r-dist').textContent = exact ? (S.dist * k).toFixed(1) + u : len(S.dist);
     if (showBack) { $('r-home').textContent = len(MW.Trail.pathLength(trail.wayBack())); $('r-home-l').textContent = 'back to the trail start along your trail'; }
     else { $('r-home').textContent = len(Math.hypot(S.x, S.y)); $('r-home-l').textContent = 'displacement from base'; }
     $('r-time').textContent = exact ? Math.round(S.t) + ' s' : clock(S.t);
     $('r-time-l').textContent = 'on the surface, ' + String(Math.floor(c.hour)).padStart(2, '0') + ':' + String(Math.floor(c.hour % 1 * 60)).padStart(2, '0') + ' local';
-    $('e-air').textContent = us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C';
-    $('e-gnd').textContent = us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C';
-    $('e-p').textContent = us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa';
-    $('e-uv').textContent = UV[c.uv] || '–';
+    var noWx = c.measured ? '' : 'Not measured here: the weather readings are from Curiosity at Gale crater.';
+    $('e-air').textContent = !c.measured ? '–' : us() ? minus(c.air * 9 / 5 + 32) + ' °F' : minus(c.air) + ' °C';
+    $('e-gnd').textContent = !c.measured ? '–' : us() ? minus(c.gnd * 9 / 5 + 32) + ' °F' : minus(c.gnd) + ' °C';
+    $('e-p').textContent = !c.measured ? '–' : us() ? fmt(c.p / 6894.757, 3) + ' psi' : c.p + ' Pa';
+    $('e-uv').textContent = !c.measured ? '–' : UV[c.uv] || '–';
+    ['e-air', 'e-gnd', 'e-p', 'e-uv'].forEach(function (id) { $(id).title = noWx; });
     $('e-rad').textContent = us() ? fmt(c.rate / 10, 2) + ' mrem/h' : fmt(c.rate, 1) + ' µSv/h';        // 1 mrem = 10 µSv
     $('e-dose').textContent = us() ? fmt(S.dose / 10, 2) + ' mrem' : fmt(S.dose, 1) + ' µSv';
+    showBudget(updateBudget(c, h));
     if (recording) { var st = $('rec-status'); st.textContent = 'Recording: ' + len(S.dist) + ', ' + clock(S.t); st.className = 'rec on'; st.hidden = false; }
     updateProbe(); drawProfile(); checkFit();
   }
@@ -575,6 +642,7 @@
     pg.fillStyle = look.ink2; pg.font = '500 20px "Barlow Semi Condensed", Arial, sans-serif';
     pg.textAlign = 'left'; pg.fillText(minus(lo) + ' m', pad, 22);
     pg.textAlign = 'right'; pg.fillText(minus(hi) + ' m, ' + fmt(G.routeLen / 1000, 1) + ' km', W - pad, 22);
+    if (S.near.d > 200) return;                         // the walker is not on this route: no mark
     var x = X(S.near.s), y = Y(S.near.z);
     pg.beginPath(); pg.moveTo(x, H - pad); pg.lineTo(x, y); pg.strokeStyle = '#0B5FFF'; pg.lineWidth = 2; pg.stroke();
     pg.beginPath(); pg.arc(x, y, 7, 0, 7); pg.fillStyle = '#0B5FFF'; pg.fill(); pg.strokeStyle = '#fff'; pg.lineWidth = 2.5; pg.stroke();
@@ -736,6 +804,17 @@
     var name = b.getAttribute('data-tab-btn');
     if (panelOpen() && name === tab) openPanel(false); else openTab(name);
   });
+  /* Keyboard: with a tab focused, the arrow keys move to the next or previous tab, Home and End to the first and
+     last; Enter or Space opens it. The keys stop here, so they do not also walk the pointer. */
+  $('tabs').addEventListener('keydown', function (e) {
+    var bs = Array.prototype.slice.call(document.querySelectorAll('#tabs button[data-tab-btn]')), i = bs.indexOf(document.activeElement), n = bs.length, j = null;
+    if (i < 0) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') j = (i + 1) % n;
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') j = (i + n - 1) % n;
+    else if (e.key === 'Home') j = 0; else if (e.key === 'End') j = n - 1;
+    if (j === null) return;
+    e.preventDefault(); e.stopPropagation(); bs[j].focus();
+  });
 
   /* (i) buttons: any button.info with data-info="key" opens the matching GLOSSARY entry (config.js) in one shared pop-up. */
   var infoBtn = null;
@@ -785,8 +864,10 @@
   function frame(ts) {
     var dt = Math.min(0.1, (ts - lastTs) / 1000 || 0); lastTs = ts;
     if (S.playing) {
+      var d0 = S.dist;
       if (!S.external) { if (S.mode === 'replay') stepReplay(dt); else stepManual(dt); }
       var simDt = dt * S.factor; S.t += simDt; S.dose += conditions().rate * simDt / 3600;
+      bAcc.dt += simDt; bAcc.moved += S.dist - d0;
     }
     if (S.x !== drawn.x || S.y !== drawn.y) {
       me.setLatLng(toLL(S.x, S.y)); drawn.x = S.x; drawn.y = S.y;
@@ -809,6 +890,7 @@
     var cs = getComputedStyle(document.body);
     look = { fill: cs.getPropertyValue('--paper-2').trim(), ink: cs.getPropertyValue('--ink').trim(), ink2: cs.getPropertyValue('--ink-2').trim() };
     styleTrail();
+    if (!hoverWanted()) hoverBox.hidden = true;          // turned off in Settings: hide it at once, not on the next mouse move
     var mv = settings.get('move');
     $('pad-hint').textContent = mv === 'keys' ? 'W A S D or arrow keys.' : 'W A S D or arrow keys. Tap the map to walk to a spot.';
     if (mv === 'keys') target = null;
@@ -816,6 +898,65 @@
     setTimeout(function () { fitNumbers(); map.invalidateSize({ pan: false }); if (S.follow) map.panTo(toLL(S.x, S.y), { animate: false }); }, 0);   // hiding readouts or moving them can change the map's size
   }
   settings.onChange(applySettings);
+
+  /* ---- Sites: moving the walker somewhere else ----
+     Within PLACES.LOCAL_KM of base the walker just moves. Farther away, the base moves with it (a new site), so that
+     local metres stay accurate; at Gale the base is always Curiosity's first stop. Either way the walk starts afresh:
+     a new trail, distance, time, dose and budget. */
+  function siteFor(at, name) {                         // make sure `at` is near this site's base, moving the base if not
+    if (G.haversine(at, G.ORIGIN) <= C.PLACES.LOCAL_KM * 1000) return false;
+    if (G.haversine(at, G.GALE) <= C.PLACES.LOCAL_KM * 1000) setSite(G.GALE);
+    else setSite({ name: name || (Math.abs(at.lat).toFixed(2) + '° ' + (at.lat < 0 ? 'S' : 'N') + ', ' + Math.abs(at.lon).toFixed(2) + '° ' + (at.lon < 0 ? 'W' : 'E')), lat: at.lat, lon: at.lon });
+    return true;
+  }
+  function setSite(site) {
+    stopRecording(false); target = null;
+    var T = MW.terrain;
+    if (!site.gale && site.z === undefined && T && T.ready) site.z = T.heightAt(site.lat, site.lon) || 0;
+    G.setOrigin(site);
+    CURIOSITY.pts = WP.map(function (w) { return { x: w.x, y: w.y, hdg: w.yaw }; });
+    if (route !== CURIOSITY) route = CURIOSITY;           // a saved trail or a planned route is laid again when it is next used
+    if (G.SITE.gale) map.removeLayer(siteBase);
+    else { siteBase.setLatLng([G.ORIGIN.lat, G.ORIGIN.lon]).addTo(map); siteBase.setTooltipContent('Base: ' + G.escapeHtml(G.SITE.name)); }
+    S.x = 0; S.y = 0; nearestOnRoute(); clearTrail();
+    if (!G.SITE.gale) $('pov').hidden = true;              // the rover photos are of Gale
+    if (MW.navUI && MW.navUI.reset) MW.navUI.reset();      // the route-finder's bases follow the site
+    showMode();
+  }
+  function moveWalker(lat, lon, name) {
+    var newSite = siteFor({ lat: lat, lon: lon }, name);
+    if (S.mode !== 'manual') setManual(); else setPlaying(false);
+    var e = toENU(lat, lon); S.x = e.x; S.y = e.y;
+    nearestOnRoute(); clearTrail(); setFollow(true);
+    return newSite ? (G.SITE.gale ? 'gale' : 'new') : 'same';
+  }
+
+  /* The walk budget readouts (budget.js). MODELLED: they say so in their labels. */
+  function hm(sec) { var m = Math.max(0, Math.round(sec / 60)); return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min'; }
+  function showBudget(b) {
+    var warn = $('budget-warn');
+    if (!b) return;
+    var pct = function (v) { return Math.max(0, Math.round(v)) + ' %'; };
+    if (b.kind === 'robot') {
+      $('e-o2').textContent = 'not used'; $('e-o2-l').textContent = 'oxygen: a robot needs none';
+      $('e-batt').textContent = pct(b.battPct) + (b.chargingW > 0 ? ' ↑' : '');
+      $('e-batt-l').textContent = b.chargingW > 0 ? 'battery, charging about ' + Math.round(b.chargingW) + ' W in sunlight (modelled)'
+        : 'battery left (modelled)' + (isFinite(b.battHours) ? ', about ' + hm(b.battHours * 3600) + ' to the reserve' : '');
+      $('e-turn').textContent = '–'; $('e-turn-l').textContent = 'a robot need not come back';
+      $('e-turn').className = ''; warn.hidden = true; return;
+    }
+    $('e-o2').textContent = pct(b.o2Pct); $('e-o2-l').textContent = 'oxygen left, about ' + hm(b.o2Hours * 3600) + ' at this pace (modelled)';
+    $('e-batt').textContent = pct(b.battPct); $('e-batt-l').textContent = 'battery left, about ' + hm(b.battHours * 3600) + ' at this rate (modelled)';
+    var late = b.turnS <= 0, soon = !late && b.turnS < 900;
+    $('e-turn').textContent = late ? 'now' : hm(b.turnS);
+    $('e-turn-l').textContent = late ? 'turn back now: ' + b.limit + ' only just covers the way back' : 'until you must turn back (' + b.limit + ' sets the limit; modelled)';
+    $('e-turn').className = late || soon ? 'alert' : '';
+    var out = S.dist > 1;
+    if (out && (late || soon)) {
+      warn.innerHTML = '<b>' + (late ? 'Turn back now.' : 'Turn back within ' + Math.ceil(b.turnS / 60) + ' min.') + '</b> The ' + b.limit + ' left, less the reserve, ' + (late ? 'no longer covers' : 'will soon only cover') + ' the way back to base (about ' + hm(b.backS) + '). Modelled from the walk so far.';
+      warn.hidden = false;
+    } else warn.hidden = true;
+  }
 
   /* ---- start: pointer standing still at base, waiting for Start ---- */
   applySettings();
@@ -828,6 +969,7 @@
   /* Hook for real hardware: feed position fixes (IMU, visual odometry, orbital relay) and look direction. */
   window.Marswalk = {
     setPose: function (p) {
+      if (p.walker && p.walker !== settings.walker().id && MW.companions) { MW.companions.setPose(p); return; }   // another walker: a companion
       S.external = true;
       if (typeof p.heading === 'number') S.heading = norm(p.heading);
       if (typeof p.lat === 'number' && typeof p.lon === 'number') { var e = toENU(p.lat, p.lon); setPos(e.x, e.y); }
@@ -845,6 +987,13 @@
     saveTrail: offerSave,                                // offer to save the trail walked so far
     closeDrawer: closeDrawer,                            // narrow screens: put the panel away so the map shows
     _landmarks: lmLayer,                                 // the NASA place names: nav-ui.js hides them from its filter
-    setTab: setTab                                       // 'menu', 'nav', 'overlay', 'dust' or 'time': show that part of the legend column
+    setTab: setTab,                                      // 'menu', 'nav', 'overlay', 'dust' or 'time': show that part of the legend column
+    setFollow: setFollow,                                // true: the map keeps the walker in view
+    moveWalker: moveWalker,                              // (lat, lon, name): put the walker there with a fresh trail; may start a new site
+    setSite: setSite,                                    // { name, lat, lon } or MW.geo.GALE: where base is
+    budget: function () { return lastBudget; },          // the latest walk budget reading (budget.js)
+    here: function () { var ll = toLL(S.x, S.y); return { lat: ll[0], lon: ll[1] }; },
+    playing: function () { return S.playing; },
+    speed: function () { return S.factor; }
   };
 })();

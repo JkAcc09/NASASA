@@ -432,7 +432,12 @@
     }, 1000);
   }
 
-  MW.dustUI = { inspect: inspect, state: st,
+  /* Describe one place in the dust monitor (places-ui.js uses this after going somewhere). */
+  function pinAt(lat, lon) {
+    if (!ready) return false;
+    st.pin = D.cellAt(lat, lon).c; renderAll(); return true;
+  }
+  MW.dustUI = { inspect: inspect, state: st, pinAt: pinAt,
     show: function (on) { setOn(on !== false); },
     goTo: function (my, ls) { setYear(my, ls); } };
 

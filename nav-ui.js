@@ -242,7 +242,7 @@
     };
     return setting;
   }
-  function wxNear(lat, lon) { return RT.haversine({ lat: lat, lon: lon }, { lat: G.ORIGIN.lat, lon: G.ORIGIN.lon }) <= K.WX_RADIUS ? app._waypoints[app._state.near.i].wx : null; }
+  function wxNear(lat, lon) { return RT.haversine({ lat: lat, lon: lon }, { lat: G.GALE.lat, lon: G.GALE.lon }) <= K.WX_RADIUS ? app._waypoints[app._state.near.i].wx : null; }   // REMS is at Gale, wherever the base is
   function question(to) {
     var w = settings.walker(), sel = $('rt-hour').value, dust = dustState(), c = surroundings(), from = here();
     var live = app._trail.pts, known = live.length > 3 ? c.known.concat([{ id: 'live', name: 'This walk', points: live.map(function (p) { return p.ll; }), preferred: false }]) : c.known;
@@ -285,7 +285,7 @@
           '<button type="button" class="rt-head" data-rt="show" aria-pressed="' + sel + '" aria-label="Route ' + o.rank + ', ' + esc(o.label) + ': show on the map"><span class="rt-rank">' + o.rank + '</span>' +
           '<span class="rt-title">' + esc(o.label) + (o.also.length ? '<small>also: ' + esc(o.also.join(', ').toLowerCase()) + '</small>' : '') + '</span>' + (o.recommended ? '<span class="rt-rec">Recommended</span>' : '') + '</button>' +
           '<div class="rt-nums"><div class="rt-idx ' + b[0] + '"><b>' + o.index + '</b><span>safety index</span><i>' + b[1] + '</i></div>' +
-          '<div><b>' + dist(m.distance) + '</b><span>travel distance</span></div><div>' + time + '</div></div>' +
+          '<div><b>' + dist(m.distance) + '</b><span>travel distance</span></div><div>' + time + '</div></div>' + budgetLine(q, m) +
           (o.good.length ? '<ul class="rt-tags good" aria-label="Why it is safe">' + o.good.map(function (t) { return '<li>' + nb(t) + '</li>'; }).join('') + '</ul>' : '') +
           (o.bad.length ? '<ul class="rt-tags bad" aria-label="Why it is unsafe">' + o.bad.map(function (t) { return '<li>' + nb(t) + '</li>'; }).join('') + '</ul>' : '') +
           '<div class="row"><button type="button" data-rt="follow">Follow this route</button></div></li>';
@@ -293,6 +293,14 @@
     }
     var extra = (r.refused || r.tried || []).filter(function (o) { return !o.viable; }).map(function (o) { return '<p class="note"><b>Not offered: ' + esc(o.label.toLowerCase()) + '.</b> ' + esc(o.refused.charAt(0).toUpperCase() + o.refused.slice(1)) + '.</p>'; });
     notes.innerHTML = extra.join('') + (r.notes || []).map(function (n) { return '<p class="note">' + esc(n) + '</p>'; }).join('');
+  }
+  /* The walk budget for a planned route (budget.js): oxygen and battery left on getting back. Astronauts only. */
+  function budgetLine(q, m) {
+    if (q.walker === 'robot' || !MW.budget) return '';
+    var air = q.wx ? RT.airAt(q.wx, q.hour) : null, b = MW.budget.forRoute('astronaut', m, air);
+    return '<p class="rt-budget' + (b.short ? ' short' : '') + '">' + (m.returnTime ? 'Back at base with about ' : 'On arrival, about ') +
+      Math.max(0, Math.round(b.o2Pct)) + ' % oxygen and ' + Math.max(0, Math.round(b.battPct)) + ' % battery left' +
+      (b.short ? ': under the ' + Math.round(C.BUDGET.RESERVE * 100) + ' % reserve' : '') + ' <span class="dtag">MODELLED</span></p>';
   }
   function drawPlan(fit) {
     planLayer.clearLayers(); badgeLayer.clearLayers();
@@ -511,6 +519,7 @@
 
   tickLive();
   MW.navUI = { mapClick: mapClick, routeTo: routeTo, clear: clearPlan, addMarker: openForm, get plan() { return plan; }, refresh: refresh,
+    reset: function () { setting = null; if (plan) clearPlan(); tickLive(); },     // the site moved (app.js, setSite): bases and plans are out of date
     picking: function () { return !!mode; }, safetyAt: safetyAt, live: function () { return liveNow; },
     dustAt: function (lat, lon) { var d = dustState(); return d ? d.at(lat, lon) : null; } };
 })();

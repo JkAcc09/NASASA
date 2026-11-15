@@ -129,8 +129,10 @@
   }
   var ready = null;
   function load() {
+    var missing = function () { return Promise.reject(new Error('The dust data pack (dust-data.js) is missing. Build it with: python dust_ingest.py')); };
     if (!ready) ready = root.MARSWALK_DUST ? unpack(root.MARSWALK_DUST)
-      : Promise.reject(new Error('The dust data pack (dust-data.js) is missing. Build it with: python dust_ingest.py'));
+      : MW.lazy && MW.lazy.has('dust') ? MW.lazy.need('dust').then(function () { return root.MARSWALK_DUST ? unpack(root.MARSWALK_DUST) : missing(); })   // index.html defers the packs (lazy.js)
+      : missing();
     return ready;
   }
 
